@@ -1,0 +1,9 @@
+R_DEF: Internal format may change without notice
+local
+drawable sceneform_hand_phone
+id sceneform_ar_scene_view
+id sceneform_hand_image
+id sceneform_hand_layout
+layout sceneform_plane_discovery_layout
+layout sceneform_ux_fragment_layout
+raw sceneform_footprint
