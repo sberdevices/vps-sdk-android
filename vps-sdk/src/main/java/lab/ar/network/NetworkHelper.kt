@@ -8,6 +8,7 @@ import com.google.ar.sceneform.math.Vector3
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import lab.ar.extentions.getResizedBitmap
+import lab.ar.extentions.toNewPositionAndLocationPair
 import lab.ar.network.dto.RequestDto
 import lab.ar.network.dto.ResponseDto
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -57,28 +58,8 @@ object NetworkHelper {
     ): Pair<Quaternion, Vector3> {
         return withContext(Dispatchers.IO) {
             val deferredResponse = RestApi.getApiService(url).process(jsonToSend, imageMultipart)
-             extractResponseData(deferredResponse.await())
+            deferredResponse.await().toNewPositionAndLocationPair()
         }
-    }
-
-    private fun extractResponseData(response: ResponseDto): Pair<Quaternion, Vector3> {
-        val coordinateData =
-            response.responseData?.responseAttributes?.responseLocation?.responseRelative ?: throw Exception("Fail")
-
-        val yaw = coordinateData.yaw ?: 0f
-        val x = 0 - (coordinateData.x ?: 0f)
-        val y = 0 - (coordinateData.y ?: 0f)
-        val z = 0 - (coordinateData.z ?: 0f)
-
-        val newPosition = Vector3(x, y, z)
-
-        val newRotation = if (yaw > 0) {
-            Quaternion(Vector3(0f, 180f - yaw, 0f)).inverted()
-        } else {
-            Quaternion(Vector3(0f, yaw, 0f)).inverted()
-        }
-
-        return Pair(newRotation, newPosition)
     }
 
 }

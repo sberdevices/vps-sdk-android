@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import lab.ar.extentions.getConvertedCameraStartRotation
 import lab.ar.extentions.setAlpha
+import lab.ar.extentions.toNewPositionAndLocationPair
 import lab.ar.network.NetworkHelper
 import lab.ar.network.dto.RequestDataDto
 import lab.ar.network.dto.RequestDto
@@ -81,6 +82,24 @@ class Vps(
         }
     }
 
+    private fun createJsonToSend(location: Location?): RequestDto {
+        val request = RequestDto(RequestDataDto())
+
+        request.data.attributes.forcedLocalisation = onlyForce
+        request.data.attributes.location.locationId = locationID
+
+        request.data.attributes.location.gps.apply {
+            accuracy = location?.accuracy?.toDouble() ?: 0.0
+            longitude = location?.longitude ?: 0.0
+            latitude = location?.latitude ?: 0.0
+            altitude = location?.altitude ?: 0.0
+            timestamp = location?.elapsedRealtimeNanos?.toDouble() ?: 0.0
+        }
+
+        return request
+
+    }
+
     private fun localize(newRotation: Quaternion, newPosition: Vector3) {
         if (!isModelCreated) {
             createNodeHierarchy()
@@ -116,8 +135,7 @@ class Vps(
     }
 
     fun stop() {
-        timer?.cancel()
-        timer = null
+        stopTimer()
         onlyForce = true
     }
 
@@ -126,24 +144,14 @@ class Vps(
     }
 
     fun localizeWithMockData(mockData: ResponseDto) {
+        stopTimer()
 
+        val pairOfNewPositionAndLocation = mockData.toNewPositionAndLocationPair()
+        localize(pairOfNewPositionAndLocation.first, pairOfNewPositionAndLocation.second)
     }
 
-    private fun createJsonToSend(location: Location?): RequestDto {
-        val request = RequestDto(RequestDataDto())
-
-        request.data.attributes.forcedLocalisation = onlyForce
-        request.data.attributes.location.locationId = locationID
-
-        request.data.attributes.location.gps.apply {
-            accuracy = location?.accuracy?.toDouble() ?: 0.0
-            longitude = location?.longitude ?: 0.0
-            latitude = location?.latitude ?: 0.0
-            altitude = location?.altitude ?: 0.0
-            timestamp = location?.elapsedRealtimeNanos?.toDouble() ?: 0.0
-        }
-
-        return request
-
+    private fun stopTimer() {
+        timer?.cancel()
+        timer = null
     }
 }

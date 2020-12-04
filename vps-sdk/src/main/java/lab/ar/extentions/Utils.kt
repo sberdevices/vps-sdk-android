@@ -8,7 +8,9 @@ import com.google.ar.sceneform.rendering.EngineInstance
 import com.google.ar.sceneform.ux.TransformableNode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import lab.ar.network.dto.ResponseDto
 import java.io.ByteArrayOutputStream
+import java.lang.Exception
 
 fun Image.toByteArray(): ByteArray {
     val yBuffer = planes[0].buffer
@@ -80,4 +82,24 @@ fun TransformableNode.setAlpha() {
             }
         }
     }
+}
+
+fun ResponseDto.toNewPositionAndLocationPair(): Pair<Quaternion, Vector3> {
+    val coordinateData =
+        responseData?.responseAttributes?.responseLocation?.responseRelative ?: throw Exception("Fail")
+
+    val yaw = coordinateData.yaw ?: 0f
+    val x = 0 - (coordinateData.x ?: 0f)
+    val y = 0 - (coordinateData.y ?: 0f)
+    val z = 0 - (coordinateData.z ?: 0f)
+
+    val newPosition = Vector3(x, y, z)
+
+    val newRotation = if (yaw > 0) {
+        Quaternion(Vector3(0f, 180f - yaw, 0f)).inverted()
+    } else {
+        Quaternion(Vector3(0f, yaw, 0f)).inverted()
+    }
+
+    return Pair(newRotation, newPosition)
 }
