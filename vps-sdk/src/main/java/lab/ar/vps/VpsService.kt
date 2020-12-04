@@ -16,7 +16,7 @@ class VpsService(
     private val locationManager: LocationManager
 ) {
 
-    private val vpsService: VpsService by lazy { initVps() }
+    private val vpsService: Vps by lazy { initVps() }
 
     fun start() {
         vpsService.start()
@@ -35,6 +35,6 @@ class VpsService(
     }
 
     private fun initVps() =
-        VpsService(coroutineScope, vpsArFragment, modelRenderable, url, locationID, onlyForce, locationManager)
+        Vps(coroutineScope, vpsArFragment, modelRenderable, url, locationID, onlyForce, locationManager)
 
 }

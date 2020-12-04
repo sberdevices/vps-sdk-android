@@ -42,25 +42,11 @@ class Vps(
 
     private var timer: Timer? = Timer()
 
-    private fun createNodeHierarchy() {
-        politechParentParentNode = TransformableNode(vpsArFragment.transformationSystem)
-
-        politechParentNode = TransformableNode(vpsArFragment.transformationSystem)
-
-        politechTransformableNode = TransformableNode(vpsArFragment.transformationSystem).apply {
-            renderable = modelRenderable
-            scaleController.isEnabled = true
-            scaleController.minScale = 0.01f
-            scaleController.maxScale = 1f
+    fun start() {
+        if(timer == null) {
+            timer = Timer()
         }
 
-        vpsArFragment.arSceneView.scene.addChild(politechParentParentNode)
-        politechParentParentNode?.addChild(politechParentNode)
-        politechParentNode?.addChild(politechTransformableNode)
-
-    }
-
-    fun start() {
         timer?.schedule(object : TimerTask() {
             override fun run() {
                 updateLocalization()
@@ -84,7 +70,7 @@ class Vps(
 
             try {
                 val newLocationData =
-                    NetworkHelper.takePhotoAndSendRequestToServer(vpsArFragment.arSceneView, createJsonToSend(location))
+                    NetworkHelper.takePhotoAndSendRequestToServer(vpsArFragment.arSceneView, createJsonToSend(location), url)
                 val newRotation = newLocationData.first
                 val newPosition = newLocationData.second
 
@@ -109,6 +95,24 @@ class Vps(
         politechParentNode?.localRotation = newRotation
 
         politechTransformableNode?.localPosition = newPosition
+    }
+
+    private fun createNodeHierarchy() {
+        politechParentParentNode = TransformableNode(vpsArFragment.transformationSystem)
+
+        politechParentNode = TransformableNode(vpsArFragment.transformationSystem)
+
+        politechTransformableNode = TransformableNode(vpsArFragment.transformationSystem).apply {
+            renderable = modelRenderable
+            scaleController.isEnabled = true
+            scaleController.minScale = 0.01f
+            scaleController.maxScale = 1f
+        }
+
+        vpsArFragment.arSceneView.scene.addChild(politechParentParentNode)
+        politechParentParentNode?.addChild(politechParentNode)
+        politechParentNode?.addChild(politechTransformableNode)
+
     }
 
     fun stop() {

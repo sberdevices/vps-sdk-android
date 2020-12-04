@@ -34,8 +34,8 @@ object RestApi {
 
     var retrofitService: RestApiService? = null
 
-    fun getApiService(baseUrl: String = BASE_URL): RestApiService {
-        val service = retrofitService ?: getClient(baseUrl).create(RestApiService::class.java)
+    fun getApiService(baseUrl: String?): RestApiService {
+        val service = retrofitService ?: getClient(baseUrl ?: BASE_URL).create(RestApiService::class.java)
         if(retrofitService == null) {
             retrofitService = service
         }

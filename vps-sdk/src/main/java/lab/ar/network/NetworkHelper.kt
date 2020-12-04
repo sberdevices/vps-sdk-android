@@ -8,7 +8,6 @@ import com.google.ar.sceneform.math.Vector3
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import lab.ar.extentions.getResizedBitmap
-import lab.ar.network.dto.RequestDataDto
 import lab.ar.network.dto.RequestDto
 import lab.ar.network.dto.ResponseDto
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -19,39 +18,45 @@ import java.lang.Exception
 
 object NetworkHelper {
 
-    suspend fun takePhotoAndSendRequestToServer(view: ArSceneView, createJsonToSend: RequestDto): Pair<Quaternion, Vector3> {
+    suspend fun takePhotoAndSendRequestToServer(
+        view: ArSceneView,
+        jsonToSend: RequestDto,
+        url: String? = null
+    ): Pair<Quaternion, Vector3> {
         return withContext(Dispatchers.IO) {
-            val imageName = "sceneform_photo"
             var image: Image? = null
             try {
                 image = view.arFrame?.acquireCameraImage() ?: throw Exception("Error while acquiring camera image")
                 val resizedBitmap = getResizedBitmap(image)
-                val imageMultipart = getImageMultipart(resizedBitmap, imageName)
+                val imageMultipart = getImageMultipart(resizedBitmap)
 
-                sendRequestToServer(imageMultipart, imageName)
+                sendRequestToServer(imageMultipart, jsonToSend, url)
             } finally {
                 image?.close()
             }
         }
     }
 
-    private fun getImageMultipart(bitmap: Bitmap, filePath: String): MultipartBody.Part {
+    private fun getImageMultipart(bitmap: Bitmap): MultipartBody.Part {
         val stream = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
         val byteArray = stream.toByteArray()
         bitmap.recycle()
 
         val requestBody = byteArray.toRequestBody("*/*".toMediaTypeOrNull(), 0, byteArray.size)
-        return MultipartBody.Part.createFormData("image", filePath, requestBody)
+        return MultipartBody.Part.createFormData("image", "sceneform_photo", requestBody)
     }
 
     /**
      * can throw network exceptions
      */
-    private suspend fun sendRequestToServer(imageMultipart: MultipartBody.Part, filePath: String): Pair<Quaternion, Vector3> {
+    private suspend fun sendRequestToServer(
+        imageMultipart: MultipartBody.Part,
+        jsonToSend: RequestDto,
+        url: String?
+    ): Pair<Quaternion, Vector3> {
         return withContext(Dispatchers.IO) {
-            val json = RequestDto(RequestDataDto(jobId = filePath.hashCode().toString()))
-            val deferredResponse = RestApi.retrofitService.process(json, imageMultipart)
+            val deferredResponse = RestApi.getApiService(url).process(jsonToSend, imageMultipart)
              extractResponseData(deferredResponse.await())
         }
     }
