@@ -1,17 +1,17 @@
 package lab.ar.network
 
 import com.jakewharton.retrofit2.adapter.kotlin.coroutines.CoroutineCallAdapterFactory
-import lab.ar.network.dto.RequestDto
-import lab.ar.network.dto.ResponseDto
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Deferred
+import lab.ar.network.dto.RequestDto
+import lab.ar.network.dto.ResponseDto
 import okhttp3.MultipartBody
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
-import retrofit2.http.*
-
-private const val BASE_URL = "https://api.polytech.vps.arvr.sberlabs.com/polytech/vps/api/v1/"
+import retrofit2.http.Multipart
+import retrofit2.http.POST
+import retrofit2.http.Part
 
 interface RestApiService {
 
@@ -26,17 +26,28 @@ interface RestApiService {
 
 object RestApi {
 
+    private var BASE_URL = "https://api.polytech.vps.arvr.sberlabs.com/polytech/vps/api/v1/"
+
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
 
-    private val retrofit = Retrofit.Builder()
-        .addConverterFactory(MoshiConverterFactory.create(moshi))
-        .addCallAdapterFactory(CoroutineCallAdapterFactory())
-        .baseUrl(BASE_URL)
-        .build()
+    var retrofitService: RestApiService? = null
 
-    val retrofitService: RestApiService by lazy {
-        retrofit.create(RestApiService::class.java)
+    fun getApiService(baseUrl: String = BASE_URL): RestApiService {
+        val service = retrofitService ?: getClient(baseUrl).create(RestApiService::class.java)
+        if(retrofitService == null) {
+            retrofitService = service
+        }
+
+        return service
+    }
+
+    private fun getClient(baseUrl: String): Retrofit {
+        return Retrofit.Builder()
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .addCallAdapterFactory(CoroutineCallAdapterFactory())
+            .baseUrl(baseUrl)
+            .build()
     }
 }
