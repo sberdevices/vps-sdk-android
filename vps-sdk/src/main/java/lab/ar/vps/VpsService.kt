@@ -10,7 +10,7 @@ class VpsService(
     private val coroutineScope: CoroutineScope,
     private val vpsArFragment: VpsArFragment,
     private val modelRenderable: ModelRenderable,
-    private val url: String,
+    private val url: String? = null,
     private val locationID: String,
     private val onlyForce: Boolean = true,
     private val locationManager: LocationManager
