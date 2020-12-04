@@ -1,5 +1,6 @@
 package lab.ar.vps
 
+import android.location.LocationManager
 import com.google.ar.sceneform.rendering.ModelRenderable
 import kotlinx.coroutines.CoroutineScope
 import lab.ar.network.dto.ResponseDto
@@ -11,7 +12,9 @@ class VpsService(
     private val modelRenderable: ModelRenderable,
     private val url: String,
     private val locationID: String,
-    private val onlyForce: Boolean = true) {
+    private val onlyForce: Boolean = true,
+    private val locationManager: LocationManager
+) {
 
     private val vpsService: VpsService by lazy { initVps() }
 
@@ -32,6 +35,6 @@ class VpsService(
     }
 
     private fun initVps() =
-        VpsService(coroutineScope, vpsArFragment, modelRenderable, url, locationID, onlyForce)
+        VpsService(coroutineScope, vpsArFragment, modelRenderable, url, locationID, onlyForce, locationManager)
 
 }

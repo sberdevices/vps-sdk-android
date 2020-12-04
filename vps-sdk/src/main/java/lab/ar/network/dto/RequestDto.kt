@@ -2,6 +2,7 @@ package lab.ar.network.dto
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
+import java.util.*
 
 @JsonClass(generateAdapter = true)
 data class RequestDto(
@@ -14,7 +15,7 @@ data class RequestDataDto(
     @Json(name = "attributes")
     var attributes: RequestAttributesDto = RequestAttributesDto(),
     @Json(name = "id")
-    var jobId: String = "123456",
+    var jobId: String = UUID.randomUUID().toString(),
     @Json(name = "type")
     var type: String = "job"
 )
