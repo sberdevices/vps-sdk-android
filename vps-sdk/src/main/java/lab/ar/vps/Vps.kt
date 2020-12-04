@@ -2,10 +2,14 @@ package lab.ar.vps
 
 import android.graphics.*
 import android.media.Image
+import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
 import com.google.ar.sceneform.ArSceneView
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
+import com.google.ar.sceneform.rendering.EngineInstance
+import com.google.ar.sceneform.rendering.ModelRenderable
+import com.google.ar.sceneform.ux.TransformableNode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -14,21 +18,100 @@ import lab.ar.network.RestApi
 import lab.ar.network.dto.RequestDataDto
 import lab.ar.network.dto.RequestDto
 import lab.ar.network.dto.ResponseDto
+import lab.ar.ui.VpsArFragment
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 
-class Vps(val coroutineScope: CoroutineScope) {
+class Vps(
+    private val coroutineScope: CoroutineScope,
+    private val vpsArFragment: VpsArFragment,
+    private val modelRenderable: ModelRenderable,
+    private val url: String,
+    private val locationID: String,
+    private var onlyForce: Boolean = true
+) {
 
-    val error = MutableLiveData<String>()
-    val newDataForNodes = MutableLiveData<Pair<Quaternion, Vector3>>()
+    private var error = ""
+    private var newDataForNodes = Pair(Quaternion(), Vector3())
 
-    var cameraStartRotation = Quaternion()
-    var cameraStartPosition = Vector3()
-    var isModelCreated = false
+    private var cameraStartRotation = Quaternion()
+    private var cameraStartPosition = Vector3()
+    private var isModelCreated = false
 
-    fun takePhotoAndSendRequestToServer(view: ArSceneView) {
+    private var politechParentParentNode: TransformableNode? = null
+    private var politechParentNode: TransformableNode? = null
+    private var politechTransformableNode: TransformableNode? = null
+
+    private val engine = EngineInstance.getEngine().filamentEngine
+    private val rm = engine.renderableManager
+
+    private fun createNodeHierarchy() {
+        politechParentParentNode = TransformableNode(vpsArFragment.transformationSystem)
+
+        politechParentNode = TransformableNode(vpsArFragment.transformationSystem)
+
+        politechTransformableNode = TransformableNode(vpsArFragment.transformationSystem).apply {
+            renderable = modelRenderable
+            scaleController.isEnabled = true
+            scaleController.minScale = 0.01f
+            scaleController.maxScale = 1f
+        }
+
+        vpsArFragment.arSceneView.scene.addChild(politechParentParentNode)
+        politechParentParentNode?.addChild(politechParentNode)
+        politechParentNode?.addChild(politechTransformableNode)
+
+    }
+
+    private fun setAlpha() {
+        politechTransformableNode?.renderableInstance?.filamentAsset?.let { asset ->
+            for (entity in asset.entities) {
+                val renderable = rm.getInstance(entity)
+                if (renderable != 0) {
+                    val r = 7f / 255
+                    val g = 7f / 225
+                    val b = 143f / 225
+                    val materialInstance = rm.getMaterialInstanceAt(renderable, 0)
+                    materialInstance.setParameter("baseColorFactor", r, g, b, 0.6f)
+                }
+            }
+        }
+    }
+
+    private fun onSendPhoto() {
+            cameraStartPosition = vpsArFragment.arSceneView.scene.camera.worldPosition
+            cameraStartRotation = vpsArFragment.arSceneView.scene.camera.worldRotation
+            takePhotoAndSendRequestToServer(vpsArFragment.arSceneView)
+    }
+
+    private fun onGetResponse() {
+        localize(newDataForNodes.first, newDataForNodes.second)
+    }
+
+    private fun localize(newRotation: Quaternion, newPosition: Vector3) {
+        if (!isModelCreated) {
+            createNodeHierarchy()
+            setAlpha()
+            isModelCreated = true
+        }
+
+        politechParentParentNode?.worldRotation = convert(cameraStartRotation)
+        politechParentParentNode?.worldPosition = cameraStartPosition
+
+        politechParentNode?.localRotation = newRotation
+
+        politechTransformableNode?.localPosition = newPosition
+    }
+
+    private fun convert(cameraRotation: Quaternion): Quaternion {
+        val dir = Quaternion.rotateVector(cameraRotation, Vector3(0f, 0f, 1f))
+        dir.y = 0f
+        return Quaternion.rotationBetweenVectors(Vector3(0f, 0f, 1f), dir)
+    }
+
+    private fun takePhotoAndSendRequestToServer(view: ArSceneView) {
         coroutineScope.launch {
             val imageName = "sceneform_photo"
             var image: Image? = null
@@ -111,13 +194,14 @@ class Vps(val coroutineScope: CoroutineScope) {
                 val deferredResponse = RestApi.retrofitService.process(json, imageMultipart)
                 extractResponseData(deferredResponse.await())
             } catch (e: Exception) {
-                error.postValue(e.toString())
+                error = e.toString()
             }
         }
     }
 
     private fun extractResponseData(response: ResponseDto) {
-        val coordinateData = response.responseData?.responseAttributes?.responseLocation?.responseRelative ?: return
+        val coordinateData =
+            response.responseData?.responseAttributes?.responseLocation?.responseRelative ?: return
 
         val yaw = coordinateData.yaw ?: 0f
         val x = 0 - (coordinateData.x ?: 0f)
@@ -132,6 +216,23 @@ class Vps(val coroutineScope: CoroutineScope) {
             Quaternion(Vector3(0f, yaw, 0f)).inverted()
         }
 
-        newDataForNodes.postValue(Pair(newRotation, newPosition))
+        newDataForNodes = Pair(newRotation, newPosition)
+    }
+
+
+    fun start() {
+
+    }
+
+    fun stop() {
+
+    }
+
+    fun enableForceLocalization(enabled: Boolean) {
+
+    }
+
+    fun localizeWithMockData(mockData: ResponseDto) {
+
     }
 }
