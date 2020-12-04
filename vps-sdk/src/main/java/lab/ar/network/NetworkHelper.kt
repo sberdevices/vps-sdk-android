@@ -10,19 +10,19 @@ import kotlinx.coroutines.withContext
 import lab.ar.extentions.getResizedBitmap
 import lab.ar.extentions.toNewPositionAndLocationPair
 import lab.ar.network.dto.RequestDto
-import lab.ar.network.dto.ResponseDto
+import lab.ar.vps.VpsCallback
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 import java.lang.Exception
 
-object NetworkHelper {
+class NetworkHelper(private val url: String? = null,
+                    private val callback: VpsCallback? = null) {
 
     suspend fun takePhotoAndSendRequestToServer(
         view: ArSceneView,
-        jsonToSend: RequestDto,
-        url: String? = null
+        jsonToSend: RequestDto
     ): Pair<Quaternion, Vector3> {
         return withContext(Dispatchers.IO) {
             var image: Image? = null
@@ -31,7 +31,7 @@ object NetworkHelper {
                 val resizedBitmap = getResizedBitmap(image)
                 val imageMultipart = getImageMultipart(resizedBitmap)
 
-                sendRequestToServer(imageMultipart, jsonToSend, url)
+                sendRequestToServer(imageMultipart, jsonToSend)
             } finally {
                 image?.close()
             }
@@ -53,12 +53,13 @@ object NetworkHelper {
      */
     private suspend fun sendRequestToServer(
         imageMultipart: MultipartBody.Part,
-        jsonToSend: RequestDto,
-        url: String?
+        jsonToSend: RequestDto
     ): Pair<Quaternion, Vector3> {
         return withContext(Dispatchers.IO) {
             val deferredResponse = RestApi.getApiService(url).process(jsonToSend, imageMultipart)
-            deferredResponse.await().toNewPositionAndLocationPair()
+            val responseDto = deferredResponse.await()
+            callback?.positionVps(responseDto)
+            responseDto.toNewPositionAndLocationPair()
         }
     }
 

@@ -21,17 +21,16 @@ import lab.ar.ui.VpsArFragment
 import java.util.*
 
 
-class Vps(
+class VpsDelegate(
     private val coroutineScope: CoroutineScope,
     private val vpsArFragment: VpsArFragment,
     private val modelRenderable: ModelRenderable,
-    private val url: String? = null,
+    url: String? = null,
     private val locationID: String,
     private var onlyForce: Boolean = true,
-    private val locationManager: LocationManager
+    private val locationManager: LocationManager,
+    private var callback: VpsCallback? = null
 ) {
-
-    private var error = ""
 
     private var cameraStartRotation = Quaternion()
     private var cameraStartPosition = Vector3()
@@ -40,6 +39,8 @@ class Vps(
     private var politechParentParentNode: TransformableNode? = null
     private var politechParentNode: TransformableNode? = null
     private var politechTransformableNode: TransformableNode? = null
+
+    private val networkHelper = NetworkHelper(url, callback)
 
     private var timer: Timer? = Timer()
 
@@ -71,13 +72,13 @@ class Vps(
 
             try {
                 val newLocationData =
-                    NetworkHelper.takePhotoAndSendRequestToServer(vpsArFragment.arSceneView, createJsonToSend(location), url)
+                    networkHelper.takePhotoAndSendRequestToServer(vpsArFragment.arSceneView, createJsonToSend(location))
                 val newRotation = newLocationData.first
                 val newPosition = newLocationData.second
 
                 localize(newRotation, newPosition)
             } catch (e: Exception) {
-                error = e.toString()
+                callback?.error(e)
             }
         }
     }

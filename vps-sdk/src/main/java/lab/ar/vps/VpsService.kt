@@ -7,34 +7,44 @@ import lab.ar.network.dto.ResponseDto
 import lab.ar.ui.VpsArFragment
 
 class VpsService(
-    private val coroutineScope: CoroutineScope,
-    private val vpsArFragment: VpsArFragment,
-    private val modelRenderable: ModelRenderable,
-    private val url: String? = null,
-    private val locationID: String,
-    private val onlyForce: Boolean = true,
-    private val locationManager: LocationManager
+    coroutineScope: CoroutineScope,
+    vpsArFragment: VpsArFragment,
+    modelRenderable: ModelRenderable,
+    url: String? = null,
+    locationID: String,
+    onlyForce: Boolean = true,
+    locationManager: LocationManager,
+    callback: VpsCallback
 ) {
 
-    private val vpsService: Vps by lazy { initVps() }
+    private val vpsDelegate: VpsDelegate by lazy {
+        VpsDelegate(
+            coroutineScope,
+            vpsArFragment,
+            modelRenderable,
+            url,
+            locationID,
+            onlyForce,
+            locationManager,
+            callback
+        )
+    }
 
     fun start() {
-        vpsService.start()
+        vpsDelegate.start()
     }
 
     fun stop() {
-        vpsService.stop()
+        vpsDelegate.stop()
     }
 
     fun enableForceLocalization(enabled: Boolean) {
-        vpsService.enableForceLocalization(enabled)
+        vpsDelegate.enableForceLocalization(enabled)
     }
 
     fun localizeWithMockData(mockData: ResponseDto) {
-        vpsService.localizeWithMockData(mockData)
+        vpsDelegate.localizeWithMockData(mockData)
     }
 
-    private fun initVps() =
-        Vps(coroutineScope, vpsArFragment, modelRenderable, url, locationID, onlyForce, locationManager)
 
 }
