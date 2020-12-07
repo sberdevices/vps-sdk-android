@@ -2,15 +2,13 @@ package lab.ar.vps
 
 import android.location.LocationManager
 import com.google.ar.sceneform.rendering.ModelRenderable
-import kotlinx.coroutines.CoroutineScope
 import lab.ar.network.dto.ResponseDto
 import lab.ar.ui.VpsArFragment
 
 class VpsService(
-    coroutineScope: CoroutineScope,
     vpsArFragment: VpsArFragment,
     modelRenderable: ModelRenderable,
-    url: String? = null,
+    url: String,
     locationID: String,
     onlyForce: Boolean = true,
     locationManager: LocationManager,
@@ -19,7 +17,6 @@ class VpsService(
 
     private val vpsDelegate: VpsDelegate by lazy {
         VpsDelegate(
-            coroutineScope,
             vpsArFragment,
             modelRenderable,
             url,
@@ -44,6 +41,10 @@ class VpsService(
 
     fun localizeWithMockData(mockData: ResponseDto) {
         vpsDelegate.localizeWithMockData(mockData)
+    }
+
+    fun destroy() {
+        vpsDelegate.destroy()
     }
 
 

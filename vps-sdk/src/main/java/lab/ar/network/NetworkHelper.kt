@@ -17,7 +17,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 import java.lang.Exception
 
-class NetworkHelper(private val url: String? = null,
+class NetworkHelper(private val url: String,
                     private val callback: VpsCallback? = null) {
 
     suspend fun takePhotoAndSendRequestToServer(

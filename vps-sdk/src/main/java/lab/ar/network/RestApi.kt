@@ -26,7 +26,7 @@ interface RestApiService {
 
 object RestApi {
 
-    private var BASE_URL = "https://api.polytech.vps.arvr.sberlabs.com/polytech/vps/api/v1/"
+    var BASE_URL = "https://api.polytech.vps.arvr.sberlabs.com/polytech/vps/api/v1/"
 
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
@@ -34,8 +34,8 @@ object RestApi {
 
     var retrofitService: RestApiService? = null
 
-    fun getApiService(baseUrl: String?): RestApiService {
-        val service = retrofitService ?: getClient(baseUrl ?: BASE_URL).create(RestApiService::class.java)
+    fun getApiService(baseUrl: String): RestApiService {
+        val service = retrofitService ?: getClient(baseUrl).create(RestApiService::class.java)
         if(retrofitService == null) {
             retrofitService = service
         }

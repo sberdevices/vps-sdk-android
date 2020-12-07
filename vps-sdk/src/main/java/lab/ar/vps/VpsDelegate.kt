@@ -9,6 +9,8 @@ import com.google.ar.sceneform.math.Vector3
 import com.google.ar.sceneform.rendering.ModelRenderable
 import com.google.ar.sceneform.ux.TransformableNode
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import lab.ar.extentions.getConvertedCameraStartRotation
 import lab.ar.extentions.setAlpha
@@ -22,10 +24,9 @@ import java.util.*
 
 
 class VpsDelegate(
-    private val coroutineScope: CoroutineScope,
     private val vpsArFragment: VpsArFragment,
     private val modelRenderable: ModelRenderable,
-    url: String? = null,
+    url: String,
     private val locationID: String,
     private var onlyForce: Boolean = true,
     private val locationManager: LocationManager,
@@ -43,6 +44,9 @@ class VpsDelegate(
     private val networkHelper = NetworkHelper(url, callback)
 
     private var timer: Timer? = Timer()
+
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+
 
     fun start() {
         if(timer == null) {
@@ -154,5 +158,9 @@ class VpsDelegate(
     private fun stopTimer() {
         timer?.cancel()
         timer = null
+    }
+
+    fun destroy() {
+        coroutineScope.cancel()
     }
 }
