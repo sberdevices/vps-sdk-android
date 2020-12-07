@@ -15,17 +15,15 @@ class VpsService(
     callback: VpsCallback
 ) {
 
-    private val vpsDelegate: VpsDelegate by lazy {
-        VpsDelegate(
-            vpsArFragment,
-            modelRenderable,
-            url,
-            locationID,
-            onlyForce,
-            locationManager,
-            callback
-        )
-    }
+    private val vpsDelegate = VpsDelegate(
+        vpsArFragment,
+        modelRenderable,
+        url,
+        locationID,
+        onlyForce,
+        locationManager,
+        callback
+    )
 
     fun start() {
         vpsDelegate.start()
