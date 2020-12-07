@@ -9,8 +9,13 @@ import com.google.ar.sceneform.ux.TransformableNode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import lab.ar.network.dto.ResponseDto
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
-import java.lang.Exception
+
+private const val BITMAP_WIDTH = 960
+private const val BITMAP_HEIGHT = 540
 
 fun Image.toByteArray(): ByteArray {
     val yBuffer = planes[0].buffer
@@ -53,10 +58,10 @@ fun Bitmap.toBlackAndWhiteBitmap(): Bitmap {
 }
 
 suspend fun getResizedBitmap(image: Image): Bitmap {
-    return withContext(Dispatchers.Default) {
+    return withContext(Dispatchers.IO) {
         val bytes = image.toByteArray()
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size).toBlackAndWhiteBitmap()
-        Bitmap.createScaledBitmap(bitmap, 960, 540, false)
+        Bitmap.createScaledBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT, false)
     }
 }
 
@@ -66,32 +71,15 @@ fun getConvertedCameraStartRotation(cameraRotation: Quaternion): Quaternion {
     return Quaternion.rotationBetweenVectors(Vector3(0f, 0f, 1f), dir)
 }
 
-fun TransformableNode.setAlpha() {
-    val engine = EngineInstance.getEngine().filamentEngine
-    val rm = engine.renderableManager
+fun ResponseDto.toNewRotationAndPositionPair(): Pair<Quaternion, Vector3> {
+    val coordinateData = responseData?.responseAttributes?.responseLocation?.responseRelative
+            ?: throw IllegalArgumentException("Failed to convert ResponseDto to new position and rotation, ResponseDto is null")
 
-    renderableInstance?.filamentAsset?.let { asset ->
-        for (entity in asset.entities) {
-            val renderable = rm.getInstance(entity)
-            if (renderable != 0) {
-                val r = 7f / 255
-                val g = 7f / 225
-                val b = 143f / 225
-                val materialInstance = rm.getMaterialInstanceAt(renderable, 0)
-                materialInstance.setParameter("baseColorFactor", r, g, b, 0.6f)
-            }
-        }
-    }
-}
-
-fun ResponseDto.toNewPositionAndLocationPair(): Pair<Quaternion, Vector3> {
-    val coordinateData =
-        responseData?.responseAttributes?.responseLocation?.responseRelative ?: throw Exception("Fail")
-
+    // TODO() проверить это
     val yaw = coordinateData.yaw ?: 0f
-    val x = 0 - (coordinateData.x ?: 0f)
-    val y = 0 - (coordinateData.y ?: 0f)
-    val z = 0 - (coordinateData.z ?: 0f)
+    val x = (coordinateData.x ?: 0f).unaryMinus()
+    val y = (coordinateData.y ?: 0f).unaryMinus()
+    val z = (coordinateData.z ?: 0f).unaryMinus()
 
     val newPosition = Vector3(x, y, z)
 

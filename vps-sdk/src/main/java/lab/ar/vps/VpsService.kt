@@ -2,27 +2,26 @@ package lab.ar.vps
 
 import android.location.LocationManager
 import com.google.ar.sceneform.rendering.ModelRenderable
+import kotlinx.coroutines.CoroutineScope
 import lab.ar.network.dto.ResponseDto
 import lab.ar.ui.VpsArFragment
 
 class VpsService(
+    coroutineScope: CoroutineScope,
     vpsArFragment: VpsArFragment,
     modelRenderable: ModelRenderable,
-    url: String,
-    locationID: String,
-    onlyForce: Boolean = true,
     locationManager: LocationManager,
-    callback: VpsCallback
+    callback: VpsCallback,
+    vpsSettings: VpsSettings
 ) {
 
     private val vpsDelegate = VpsDelegate(
+        coroutineScope,
         vpsArFragment,
         modelRenderable,
-        url,
-        locationID,
-        onlyForce,
         locationManager,
-        callback
+        callback,
+        vpsSettings
     )
 
     fun start() {
@@ -45,5 +44,5 @@ class VpsService(
         vpsDelegate.destroy()
     }
 
-
+    fun getRenderableNode() = vpsDelegate.getRenderableNode()
 }

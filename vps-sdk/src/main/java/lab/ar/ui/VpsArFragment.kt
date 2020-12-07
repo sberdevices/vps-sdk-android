@@ -21,21 +21,17 @@ import java.util.*
 class VpsArFragment : ArFragment() {
 
     companion object {
-        private const val TAG = "VpsArFragment"
-        private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
+        private const val FAR_CLIP_PLANE = 1000f
     }
 
+    override fun getAdditionalPermissions(): Array<String> {
+        return arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        arSceneView.scene.camera.farClipPlane = 1000f
-
-        if (foregroundPermissionApproved()) {
-            Log.d(TAG, "foreground Permission is Approved")
-        } else {
-            requestForegroundPermissions()
-        }
+        arSceneView.scene.camera.farClipPlane = FAR_CLIP_PLANE
     }
 
     override fun onResume() {
@@ -48,52 +44,10 @@ class VpsArFragment : ArFragment() {
     override fun getSessionConfiguration(session: Session): Config {
         session.cameraConfig = getHighestResolution(session)
 
-        val config = Config(session)
-        config.focusMode = Config.FocusMode.AUTO
-
-        return config
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        Log.d(TAG, "onRequestPermissionResult")
-        if (ActivityCompat.checkSelfPermission(
-                requireActivity(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            return
+        return Config(session).apply {
+            focusMode = Config.FocusMode.AUTO
         }
-
-        AlertDialog.Builder(requireActivity(), android.R.style.Theme_Material_Dialog_Alert)
-            .setTitle("Location permission required")
-            .setMessage("Add location permission via Settings?")
-            .setPositiveButton(android.R.string.ok) { dialog, which ->
-                val intent = Intent()
-                intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                intent.data = Uri.fromParts("package", requireActivity().packageName, null)
-                requireActivity().startActivity(intent)
-                // When the user closes the Settings app, allow the app to resume.
-                // Allow the app to ask for permissions again now.
-                canRequestDangerousPermissions = true
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .setIcon(android.R.drawable.ic_dialog_alert)
-            .setOnDismissListener { // canRequestDangerousPermissions will be true if "OK" was selected from the dialog,
-                // false otherwise.  If "OK" was selected do nothing on dismiss, the app will
-                // continue and may ask for permission again if needed.
-                // If anything else happened, finish the activity when this dialog is
-                // dismissed.
-                if (!canRequestDangerousPermissions) {
-                    requireActivity().finish()
-                }
-            }
-            .show()
     }
-
 
     private fun getHighestResolution(session: Session): CameraConfig? {
         val cameraConfigFilter = CameraConfigFilter(session)
@@ -107,39 +61,5 @@ class VpsArFragment : ArFragment() {
         val cameraConfigs = session.getSupportedCameraConfigs(cameraConfigFilter)
 
         return cameraConfigs.maxBy { it.imageSize.height }
-    }
-
-    private fun foregroundPermissionApproved(): Boolean {
-        return PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
-            requireContext(),
-            Manifest.permission.ACCESS_FINE_LOCATION
-        )
-    }
-
-    private fun requestForegroundPermissions() {
-        val provideRationale = foregroundPermissionApproved()
-
-        if (provideRationale) {
-            // If the user denied a previous request, but didn't check "Don't ask again", provide
-            // additional rationale.
-            AlertDialog.Builder(requireActivity(), android.R.style.Theme_Material_Dialog_Alert)
-                .setTitle("Location permission required")
-                .setMessage(R.string.permission_rationale)
-                .setPositiveButton(android.R.string.ok) { _, _ ->
-                    ActivityCompat.requestPermissions(
-                        requireActivity(),
-                        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                        REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE
-                    )
-                }
-                .show()
-        } else {
-            Log.d(TAG, "Request foreground only permission")
-            ActivityCompat.requestPermissions(
-                requireActivity(),
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE
-            )
-        }
     }
 }
