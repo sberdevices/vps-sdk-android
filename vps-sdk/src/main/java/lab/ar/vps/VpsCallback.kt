@@ -6,5 +6,5 @@ import java.lang.Exception
 interface VpsCallback {
     fun onPositionVps(responseDto: ResponseDto)
     fun onError(error: Exception)
-    fun onFailToStartService()
+    fun onRequestPermission()
 }

@@ -2,7 +2,6 @@ package lab.ar.vps
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
@@ -13,7 +12,6 @@ import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 import com.google.ar.sceneform.rendering.ModelRenderable
 import com.google.ar.sceneform.ux.TransformableNode
-import com.lab.android.vps_android_sdk.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,10 +32,14 @@ class VpsDelegate(
     private val modelRenderable: ModelRenderable,
     private val locationManager: LocationManager,
     private var callback: VpsCallback? = null,
-    private val vpsSettings: VpsSettings
+    private val vpsSettings: VpsSettings,
+    private val onCreateHierarchy: ((tranformableNode: TransformableNode) -> Unit)? = null
 ) {
 
-    private val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
+    companion object{
+        private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
+        private const val TAG = "VpsDelegate"
+    }
 
     private val networkHelper = NetworkHelper(vpsSettings.url, callback)
     private var cameraStartRotation = Quaternion()
@@ -55,16 +57,41 @@ class VpsDelegate(
 
     private val locationListener: LocationListener = LocationListener { location ->
         lastLocation = location
-        showLocation(location)
+        logLocation(location)
+    }
+
+    private fun logLocation(location: Location) {
+        if (location.provider == LocationManager.GPS_PROVIDER) {
+            Log.i(TAG, getFormattedLocation(location))
+        } else if (location.provider == LocationManager.NETWORK_PROVIDER) {
+            Log.i(TAG, getFormattedLocation(location))
+        }
+    }
+
+    private fun getFormattedLocation(location: Location): String {
+        return "Coordinates: lat = ${location.latitude}, lon = ${location.longitude}, time = ${location.elapsedRealtimeNanos}," +
+                "altitude = ${location.altitude}, accuracy = ${location.accuracy}"
     }
 
     fun start() {
-        if (!foregroundPermissionApproved() && vpsSettings.needLocation) {
-            callback?.onFailToStartService()
-            requestForegroundPermissions()
-            return
+        if(vpsSettings.needLocation) {
+            requestLocationPermissionAndInitTimer()
+        } else {
+            initTimer()
         }
+    }
 
+    private fun requestLocationPermissionAndInitTimer() {
+        if (!foregroundPermissionApproved()) {
+            callback?.onRequestPermission()
+            requestForegroundPermissions()
+        }else if (isProvidersEnabled()) {
+            requestLocationUpdate()
+            initTimer()
+        }
+    }
+
+    private fun initTimer() {
         timer = timer ?: Timer()
 
         if (!isTimerRunning) {
@@ -76,8 +103,20 @@ class VpsDelegate(
 
             isTimerRunning = true
         }
+    }
 
-        requestLocationUpdate()
+    private fun requestForegroundPermissions() {
+        ActivityCompat.requestPermissions(
+            vpsArFragment.requireActivity(),
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+            REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE
+        )
+    }
+
+    @SuppressLint("MissingPermission")
+    fun requestLocationUpdate() {
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1f, locationListener)
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1f, locationListener)
     }
 
     @SuppressLint("MissingPermission")
@@ -87,15 +126,18 @@ class VpsDelegate(
             cameraStartPosition = vpsArFragment.arSceneView.scene.camera.worldPosition
             cameraStartRotation = vpsArFragment.arSceneView.scene.camera.worldRotation
 
-            val json = if(vpsSettings.needLocation && isProvidersEnabled()) createJsonToSend(lastLocation) else createJsonToSend(null)
-            networkHelper.takePhotoAndSendRequestToServer(
-                vpsArFragment.arSceneView, json)?.run {
+            val json = if(vpsSettings.needLocation && isProvidersEnabled() && foregroundPermissionApproved()){
+                createJsonToSend(lastLocation)
+            } else {
+                createJsonToSend()
+            }
+            networkHelper.takePhotoAndSendRequestToServer(vpsArFragment.arSceneView, json)?.run {
                 localize(this)
             }
         }
     }
 
-    private fun createJsonToSend(location: Location?): RequestDto {
+    private fun createJsonToSend(location: Location? = null): RequestDto {
         val request = RequestDto(RequestDataDto())
 
         request.data.attributes.forcedLocalisation = vpsSettings.onlyForce
@@ -112,11 +154,6 @@ class VpsDelegate(
         }
 
         return request
-    }
-
-    private fun formatLocation(location: Location): String {
-        return "Coordinates: lat = ${location.latitude}, lon = ${location.longitude}, time = ${location.elapsedRealtimeNanos}," +
-                "altitude = ${location.altitude}, accuracy = ${location.accuracy}"
     }
 
     private fun localize(newRotationAndPosition: Pair<Quaternion, Vector3>) {
@@ -142,6 +179,7 @@ class VpsDelegate(
             scaleController.isEnabled = true
             scaleController.minScale = 0.01f
             scaleController.maxScale = 1f
+            onCreateHierarchy?.let { it(this) }
         }
 
         vpsArFragment.arSceneView.scene.addChild(cameraAlternativeNode)
@@ -194,58 +232,14 @@ class VpsDelegate(
         vpsSettings.onlyForce = enabled
     }
 
-    @SuppressLint("MissingPermission")
-    fun requestLocationUpdate() {
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1f, locationListener)
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1f, locationListener)
-    }
-
-    private fun showLocation(location: Location) {
-        if (location.provider == LocationManager.GPS_PROVIDER) {
-            Log.e("qwerty",formatLocation(location))
-        } else if (location.provider == LocationManager.NETWORK_PROVIDER) {
-            Log.e("qwerty",formatLocation(location))
-        }
-    }
-
     private fun isProvidersEnabled() =
         locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
                 || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-
-    fun getRenderableNode() = positionSettableNode
 
     private fun foregroundPermissionApproved(): Boolean {
         return PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
             vpsArFragment.requireContext(),
             Manifest.permission.ACCESS_FINE_LOCATION
         )
-    }
-
-    private fun requestForegroundPermissions() {
-        val provideRationale = foregroundPermissionApproved()
-
-        if (provideRationale) {
-            AlertDialog.Builder(vpsArFragment.context, android.R.style.Theme_Material_Dialog_Alert)
-                .setTitle("Location permission required")
-                .setMessage(R.string.permission_rationale)
-                .setPositiveButton(android.R.string.ok) { _, _ ->
-                    ActivityCompat.requestPermissions(
-                        vpsArFragment.requireActivity(),
-                        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                        REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE
-                    )
-                }
-                .setNegativeButton(android.R.string.cancel) { dialog, _ ->
-                    dialog.cancel()
-                }
-                .setCancelable(false)
-                .show()
-        } else {
-            ActivityCompat.requestPermissions(
-                vpsArFragment.requireActivity(),
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE
-            )
-        }
     }
 }

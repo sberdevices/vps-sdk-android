@@ -2,6 +2,7 @@ package lab.ar.vps
 
 import android.location.LocationManager
 import com.google.ar.sceneform.rendering.ModelRenderable
+import com.google.ar.sceneform.ux.TransformableNode
 import kotlinx.coroutines.CoroutineScope
 import lab.ar.network.dto.ResponseDto
 import lab.ar.ui.VpsArFragment
@@ -12,7 +13,8 @@ class VpsService(
     modelRenderable: ModelRenderable,
     locationManager: LocationManager,
     callback: VpsCallback,
-    vpsSettings: VpsSettings
+    vpsSettings: VpsSettings,
+    onCreateHierarchy: ((tranformableNode: TransformableNode) -> Unit)? = null
 ) {
 
     private val vpsDelegate = VpsDelegate(
@@ -21,7 +23,8 @@ class VpsService(
         modelRenderable,
         locationManager,
         callback,
-        vpsSettings
+        vpsSettings,
+        onCreateHierarchy
     )
 
     fun start() {
@@ -44,5 +47,4 @@ class VpsService(
         vpsDelegate.destroy()
     }
 
-    fun getRenderableNode() = vpsDelegate.getRenderableNode()
 }

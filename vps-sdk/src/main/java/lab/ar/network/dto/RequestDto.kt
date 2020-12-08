@@ -61,7 +61,7 @@ data class RequestLocationDto(
     @Json(name = "compass")
     var compass: RequestCompassDto = RequestCompassDto(),
     @Json(name = "gps")
-    var gps: RequestGpsDto = RequestGpsDto(),
+    var gps: RequestGpsDto? = null,
     @Json(name = "localPos")
     var localPos: RequestLocalPosDto = RequestLocalPosDto(),
     @Json(name = "location_id")
