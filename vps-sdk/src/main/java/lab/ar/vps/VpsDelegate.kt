@@ -10,7 +10,7 @@ import android.util.Log
 import androidx.core.app.ActivityCompat
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
-import com.google.ar.sceneform.rendering.ModelRenderable
+import com.google.ar.sceneform.rendering.Renderable
 import com.google.ar.sceneform.ux.TransformableNode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,9 +28,9 @@ import java.util.*
 
 class VpsDelegate(
     private val coroutineScope: CoroutineScope,
-    private val vpsArFragment: VpsArFragment,
-    private val modelRenderable: ModelRenderable,
-    private val locationManager: LocationManager,
+    private var vpsArFragment: VpsArFragment,
+    private var renderableModel: Renderable,
+    private var locationManager: LocationManager?,
     private var callback: VpsCallback? = null,
     private val vpsSettings: VpsSettings,
     private val onCreateHierarchy: ((tranformableNode: TransformableNode) -> Unit)? = null
@@ -40,6 +40,9 @@ class VpsDelegate(
         private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
         private const val TAG = "VpsDelegate"
     }
+
+    private var timer: Timer? = null
+    private var lastLocation: Location? = null
 
     private val networkHelper = NetworkHelper(vpsSettings.url, callback)
     private var cameraStartRotation = Quaternion()
@@ -51,9 +54,6 @@ class VpsDelegate(
     private var cameraAlternativeNode: TransformableNode? = null
     private var rotationSettableNode: TransformableNode? = null
     private var positionSettableNode: TransformableNode? = null
-
-    private var timer: Timer? = null
-    private var lastLocation: Location? = null
 
     private val locationListener: LocationListener = LocationListener { location ->
         lastLocation = location
@@ -83,7 +83,7 @@ class VpsDelegate(
 
     private fun requestLocationPermissionAndInitTimer() {
         if (!foregroundPermissionApproved()) {
-            callback?.onRequestPermission()
+            callback?.onVpsServiceWasNotStarted()
             requestForegroundPermissions()
         }else if (isProvidersEnabled()) {
             requestLocationUpdate()
@@ -115,8 +115,8 @@ class VpsDelegate(
 
     @SuppressLint("MissingPermission")
     fun requestLocationUpdate() {
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1f, locationListener)
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1f, locationListener)
+        locationManager?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1f, locationListener)
+        locationManager?.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1f, locationListener)
     }
 
     @SuppressLint("MissingPermission")
@@ -175,7 +175,7 @@ class VpsDelegate(
         rotationSettableNode = TransformableNode(vpsArFragment.transformationSystem)
 
         positionSettableNode = TransformableNode(vpsArFragment.transformationSystem).apply {
-            renderable = modelRenderable
+            renderable = renderableModel
             scaleController.isEnabled = true
             scaleController.minScale = 0.01f
             scaleController.maxScale = 1f
@@ -191,7 +191,7 @@ class VpsDelegate(
     fun stop() {
         stopTimer()
         vpsSettings.onlyForce = true
-        locationManager.removeUpdates(locationListener)
+        locationManager?.removeUpdates(locationListener)
     }
 
     fun localizeWithMockData(mockData: ResponseDto) {
@@ -233,8 +233,8 @@ class VpsDelegate(
     }
 
     private fun isProvidersEnabled() =
-        locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-                || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) ?: false
+                || locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ?: false
 
     private fun foregroundPermissionApproved(): Boolean {
         return PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
@@ -242,4 +242,5 @@ class VpsDelegate(
             Manifest.permission.ACCESS_FINE_LOCATION
         )
     }
+
 }
