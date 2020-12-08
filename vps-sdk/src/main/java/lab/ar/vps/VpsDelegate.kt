@@ -6,24 +6,25 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.media.Image
 import android.util.Log
 import androidx.core.app.ActivityCompat
+import com.google.ar.core.exceptions.NotYetAvailableException
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 import com.google.ar.sceneform.rendering.Renderable
 import com.google.ar.sceneform.ux.TransformableNode
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import lab.ar.extentions.getConvertedCameraStartRotation
+import lab.ar.extentions.toMultipartBody
 import lab.ar.extentions.toNewRotationAndPositionPair
-import lab.ar.network.NetworkHelper
+import lab.ar.network.VpsApi
 import lab.ar.network.dto.RequestDataDto
 import lab.ar.network.dto.RequestDto
 import lab.ar.network.dto.RequestGpsDto
 import lab.ar.network.dto.ResponseDto
 import lab.ar.ui.VpsArFragment
-import java.util.*
+import okhttp3.MultipartBody
 
 
 class VpsDelegate(
@@ -32,19 +33,13 @@ class VpsDelegate(
     private var renderableModel: Renderable,
     private var locationManager: LocationManager?,
     private var callback: VpsCallback? = null,
-    private val vpsSettings: VpsSettings,
+    private val settings: Settings,
     private val onCreateHierarchy: ((tranformableNode: TransformableNode) -> Unit)? = null
 ) {
-
-    companion object{
-        private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
-        private const val TAG = "VpsDelegate"
-    }
-
-    private var timer: Timer? = null
     private var lastLocation: Location? = null
 
-    private val networkHelper = NetworkHelper(vpsSettings.url, callback)
+    private var timerJob: Job? = null
+
     private var cameraStartRotation = Quaternion()
     private var cameraStartPosition = Vector3()
 
@@ -52,12 +47,12 @@ class VpsDelegate(
     private var isTimerRunning = false
 
     private var cameraAlternativeNode: TransformableNode? = null
-    private var rotationSettableNode: TransformableNode? = null
-    private var positionSettableNode: TransformableNode? = null
+    private var rotationNode: TransformableNode? = null
+    private var positionNode: TransformableNode? = null
 
     private val locationListener: LocationListener = LocationListener { location ->
         lastLocation = location
-        logLocation(location)
+        //  logLocation(location)
     }
 
     private fun logLocation(location: Location) {
@@ -74,35 +69,41 @@ class VpsDelegate(
     }
 
     fun start() {
-        if(vpsSettings.needLocation) {
-            requestLocationPermissionAndInitTimer()
+        if(isTimerRunning) {
+            return
+        }
+
+        if (settings.needLocation) {
+            checkPermissionAndLaunchLocalizationUpdate()
         } else {
-            initTimer()
+            launchLocatizationUpdate()
         }
     }
 
-    private fun requestLocationPermissionAndInitTimer() {
+    private fun checkPermissionAndLaunchLocalizationUpdate() {
         if (!foregroundPermissionApproved()) {
             callback?.onVpsServiceWasNotStarted()
             requestForegroundPermissions()
-        }else if (isProvidersEnabled()) {
+        } else if (isProvidersEnabled()) {
             requestLocationUpdate()
-            initTimer()
+            launchLocatizationUpdate()
         }
     }
 
-    private fun initTimer() {
-        timer = timer ?: Timer()
-
+    private fun launchLocatizationUpdate() {
         if (!isTimerRunning) {
-            timer?.schedule(object : TimerTask() {
-                override fun run() {
-                    updateLocalization()
-                }
-            }, 1000, vpsSettings.timerInterval)
-
-            isTimerRunning = true
+            updateLocalization()
         }
+
+        timerJob = coroutineScope.launch {
+            while (true) {
+                delay(settings.timerInterval)
+                ensureActive()
+                updateLocalization()
+            }
+        }
+
+        isTimerRunning = true
     }
 
     private fun requestForegroundPermissions() {
@@ -115,8 +116,18 @@ class VpsDelegate(
 
     @SuppressLint("MissingPermission")
     fun requestLocationUpdate() {
-        locationManager?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1f, locationListener)
-        locationManager?.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1f, locationListener)
+        locationManager?.requestLocationUpdates(
+            LocationManager.GPS_PROVIDER,
+            MIN_INTERVAL_MS,
+            MIN_DISTANCE_IN_METERS,
+            locationListener
+        )
+        locationManager?.requestLocationUpdates(
+            LocationManager.NETWORK_PROVIDER,
+            MIN_INTERVAL_MS,
+            MIN_DISTANCE_IN_METERS,
+            locationListener
+        )
     }
 
     @SuppressLint("MissingPermission")
@@ -124,24 +135,51 @@ class VpsDelegate(
         coroutineScope.launch(Dispatchers.Main) {
 
             cameraStartPosition = vpsArFragment.arSceneView.scene.camera.worldPosition
+
             cameraStartRotation = vpsArFragment.arSceneView.scene.camera.worldRotation
 
-            val json = if(vpsSettings.needLocation && isProvidersEnabled() && foregroundPermissionApproved()){
-                createJsonToSend(lastLocation)
-            } else {
-                createJsonToSend()
-            }
-            networkHelper.takePhotoAndSendRequestToServer(vpsArFragment.arSceneView, json)?.run {
+            sendRequest()?.run {
                 localize(this)
             }
         }
     }
 
-    private fun createJsonToSend(location: Location? = null): RequestDto {
+    private suspend fun getMultipart(): MultipartBody.Part {
+        val image: Image = vpsArFragment.arSceneView.arFrame?.acquireCameraImage() ?: throw NotYetAvailableException("Failed to acquire camera image")
+        val multipartBody = image.toMultipartBody()
+        image.close()
+        return multipartBody
+    }
+
+    private suspend fun sendRequest(): Pair<Quaternion, Vector3>? {
+        return withContext(Dispatchers.Main) {
+            try {
+                val responseDto = VpsApi.getApiService(settings.url).process(getRequestDto(), getMultipart())
+                callback?.onPositionVps(responseDto)
+                responseDto.toNewRotationAndPositionPair()
+            }catch (e: NotYetAvailableException) {
+                null
+            } catch (e: Exception) {
+                stop()
+                callback?.onError(e)
+                null
+            }
+        }
+    }
+
+    private fun getRequestDto(): RequestDto {
+        return if (settings.needLocation && isProvidersEnabled() && foregroundPermissionApproved()) {
+            createRequestDto(lastLocation)
+        } else {
+            createRequestDto()
+        }
+    }
+
+    private fun createRequestDto(location: Location? = null): RequestDto {
         val request = RequestDto(RequestDataDto())
 
-        request.data.attributes.forcedLocalisation = vpsSettings.onlyForce
-        request.data.attributes.location.locationId = vpsSettings.locationID
+        request.data.attributes.forcedLocalisation = settings.onlyForce
+        request.data.attributes.location.locationId = settings.locationID
 
         location?.run {
             request.data.attributes.location.gps = RequestGpsDto(
@@ -157,6 +195,10 @@ class VpsDelegate(
     }
 
     private fun localize(newRotationAndPosition: Pair<Quaternion, Vector3>) {
+        if(!isTimerRunning) {
+            return
+        }
+
         if (!isModelCreated) {
             createNodeHierarchy()
             isModelCreated = true
@@ -165,71 +207,24 @@ class VpsDelegate(
         cameraAlternativeNode?.worldRotation = getConvertedCameraStartRotation(cameraStartRotation)
         cameraAlternativeNode?.worldPosition = cameraStartPosition
 
-        rotationSettableNode?.localRotation = newRotationAndPosition.first
-        positionSettableNode?.localPosition = newRotationAndPosition.second
+        rotationNode?.localRotation = newRotationAndPosition.first
+        positionNode?.localPosition = newRotationAndPosition.second
     }
 
     private fun createNodeHierarchy() {
         cameraAlternativeNode = TransformableNode(vpsArFragment.transformationSystem)
 
-        rotationSettableNode = TransformableNode(vpsArFragment.transformationSystem)
+        rotationNode = TransformableNode(vpsArFragment.transformationSystem)
 
-        positionSettableNode = TransformableNode(vpsArFragment.transformationSystem).apply {
+        positionNode = TransformableNode(vpsArFragment.transformationSystem).apply {
             renderable = renderableModel
-            scaleController.isEnabled = true
-            scaleController.minScale = 0.01f
-            scaleController.maxScale = 1f
             onCreateHierarchy?.let { it(this) }
         }
 
         vpsArFragment.arSceneView.scene.addChild(cameraAlternativeNode)
-        cameraAlternativeNode?.addChild(rotationSettableNode)
-        rotationSettableNode?.addChild(positionSettableNode)
+        cameraAlternativeNode?.addChild(rotationNode)
+        rotationNode?.addChild(positionNode)
 
-    }
-
-    fun stop() {
-        stopTimer()
-        vpsSettings.onlyForce = true
-        locationManager?.removeUpdates(locationListener)
-    }
-
-    fun localizeWithMockData(mockData: ResponseDto) {
-        stopTimer()
-
-        try {
-            localize(mockData.toNewRotationAndPositionPair())
-        } catch (e: Exception) {
-            callback?.onError(e)
-        }
-    }
-
-    private fun stopTimer() {
-        isTimerRunning = false
-        timer?.cancel()
-        timer = null
-    }
-
-    fun destroy() {
-        stopTimer()
-        destroyHierarchy()
-    }
-
-    private fun destroyHierarchy() {
-        cameraAlternativeNode?.setParent(null)
-        rotationSettableNode?.setParent(null)
-        cameraAlternativeNode?.setParent(null)
-        positionSettableNode?.renderable = null
-
-        cameraAlternativeNode = null
-        rotationSettableNode = null
-        positionSettableNode = null
-
-        isModelCreated = false
-    }
-
-    fun enableForceLocalization(enabled: Boolean) {
-        vpsSettings.onlyForce = enabled
     }
 
     private fun isProvidersEnabled() =
@@ -243,4 +238,52 @@ class VpsDelegate(
         )
     }
 
+    fun stop() {
+        stopLocalizationUpdate()
+        locationManager?.removeUpdates(locationListener)
+    }
+
+    fun localizeWithMockData(mockData: ResponseDto) {
+        stopLocalizationUpdate()
+
+        try {
+            localize(mockData.toNewRotationAndPositionPair())
+        } catch (e: Exception) {
+            callback?.onError(e)
+        }
+    }
+
+    private fun stopLocalizationUpdate() {
+        timerJob?.cancel()
+        isTimerRunning = false
+    }
+
+    fun destroy() {
+        stop()
+        destroyHierarchy()
+    }
+
+    private fun destroyHierarchy() {
+        cameraAlternativeNode?.setParent(null)
+        rotationNode?.setParent(null)
+        cameraAlternativeNode?.setParent(null)
+        positionNode?.renderable = null
+
+        cameraAlternativeNode = null
+        rotationNode = null
+        positionNode = null
+
+        isModelCreated = false
+    }
+
+    fun enableForceLocalization(enabled: Boolean) {
+        settings.onlyForce = enabled
+    }
+
+    companion object {
+        private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
+        private const val TAG = "VpsDelegate"
+        private const val MIN_INTERVAL_MS = 1000L
+        private const val MIN_DISTANCE_IN_METERS = 1f
+    }
 }

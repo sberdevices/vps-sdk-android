@@ -16,6 +16,7 @@ import java.io.ByteArrayOutputStream
 
 private const val BITMAP_WIDTH = 960
 private const val BITMAP_HEIGHT = 540
+private const val QUALITY = 100
 
 fun Image.toByteArray(): ByteArray {
     val yBuffer = planes[0].buffer
@@ -34,7 +35,7 @@ fun Image.toByteArray(): ByteArray {
 
     val yuvImage = YuvImage(nv21, ImageFormat.NV21, this.width, this.height, null)
     val out = ByteArrayOutputStream()
-    yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), 100, out)
+    yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), QUALITY, out)
     return out.toByteArray()
 }
 
@@ -89,4 +90,20 @@ fun ResponseDto.toNewRotationAndPositionPair(): Pair<Quaternion, Vector3> {
     }
 
     return Pair(newRotation, newPosition)
+}
+
+suspend fun Image.toMultipartBody(): MultipartBody.Part {
+    return withContext(Dispatchers.IO) {
+        val resizedBitmap = getResizedBitmap(this@toMultipartBody)
+
+        val byteArray = ByteArrayOutputStream().use { stream ->
+            resizedBitmap.compress(Bitmap.CompressFormat.JPEG, QUALITY, stream)
+            stream.toByteArray()
+        }
+
+        resizedBitmap.recycle()
+
+        val requestBody = byteArray.toRequestBody("*/*".toMediaTypeOrNull(), 0, byteArray.size)
+        MultipartBody.Part.createFormData("image", "sceneform_photo", requestBody)
+    }
 }

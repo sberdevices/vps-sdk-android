@@ -7,13 +7,13 @@ import kotlinx.coroutines.CoroutineScope
 import lab.ar.network.dto.ResponseDto
 import lab.ar.ui.VpsArFragment
 
-class VpsService(
+class VpsService private constructor(
     coroutineScope: CoroutineScope,
     vpsArFragment: VpsArFragment,
     renderable: Renderable,
     locationManager: LocationManager?,
     callback: VpsCallback?,
-    vpsSettings: VpsSettings,
+    settings: Settings,
     onCreateHierarchy: ((tranformableNode: TransformableNode) -> Unit)? = null
 ) {
 
@@ -23,7 +23,7 @@ class VpsService(
         renderable,
         locationManager,
         callback,
-        vpsSettings,
+        settings,
         onCreateHierarchy
     )
 
@@ -51,7 +51,7 @@ class VpsService(
         private var coroutineScope: CoroutineScope? = null
         private var vpsArFragment: VpsArFragment? = null
         private var renderable: Renderable? = null
-        private var vpsSettings: VpsSettings? = null
+        private var settings: Settings? = null
         private var locationManager: LocationManager? = null
         private var callback: VpsCallback? = null
         private var onCreateHierarchy: ((tranformableNode: TransformableNode) -> Unit)? = null
@@ -71,8 +71,8 @@ class VpsService(
             return this
         }
 
-        fun setVpsSettings(vpsSettings: VpsSettings): Builder {
-            this.vpsSettings = vpsSettings
+        fun setSettings(settings: Settings): Builder {
+            this.settings = settings
             return this
         }
 
@@ -101,7 +101,7 @@ class VpsService(
                 renderable ?: throw Exception("No Renderable was set in VpsDelegate.Builder"),
                 locationManager,
                 callback,
-                vpsSettings ?: throw Exception("No VpsSettings was set in VpsDelegate.Builder"),
+                settings ?: throw Exception("No VpsSettings was set in VpsDelegate.Builder"),
                 onCreateHierarchy
             )
         }

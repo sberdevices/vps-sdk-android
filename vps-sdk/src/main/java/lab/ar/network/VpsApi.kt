@@ -3,7 +3,6 @@ package lab.ar.network
 import com.jakewharton.retrofit2.adapter.kotlin.coroutines.CoroutineCallAdapterFactory
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import kotlinx.coroutines.Deferred
 import lab.ar.network.dto.RequestDto
 import lab.ar.network.dto.ResponseDto
 import okhttp3.MultipartBody
@@ -13,18 +12,18 @@ import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
 
-interface RestApiService {
+interface VpsApiService {
 
     @Multipart
     @POST("job")
-    fun process(
+    suspend fun process(
         @Part("json") json: RequestDto,
         @Part image: MultipartBody.Part
-    ): Deferred<ResponseDto>
+    ): ResponseDto
 
 }
 
-object RestApi {
+object VpsApi {
 
     var BASE_URL = "https://api.polytech.vps.arvr.sberlabs.com/polytech/vps/api/v1/"
 
@@ -32,10 +31,10 @@ object RestApi {
         .add(KotlinJsonAdapterFactory())
         .build()
 
-    var retrofitService: RestApiService? = null
+    var retrofitService: VpsApiService? = null
 
-    fun getApiService(baseUrl: String): RestApiService {
-        val service = retrofitService ?: getClient(baseUrl).create(RestApiService::class.java)
+    fun getApiService(baseUrl: String): VpsApiService {
+        val service = retrofitService ?: getClient(baseUrl).create(VpsApiService::class.java)
         if(retrofitService == null) {
             retrofitService = service
         }
