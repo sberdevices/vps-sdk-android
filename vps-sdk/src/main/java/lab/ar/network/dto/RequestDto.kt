@@ -27,7 +27,7 @@ data class RequestAttributesDto(
     @Json(name = "imageTransform")
     var imageTransform: RequestImageTransformDto = RequestImageTransformDto(),
     @Json(name = "intrinsics")
-    var intrinsics: RequestIntrinsicsDto? = null,
+    var intrinsics: RequestIntrinsicsDto = RequestIntrinsicsDto(),
     @Json(name = "location")
     var location: RequestLocationDto = RequestLocationDto()
 )
@@ -61,7 +61,7 @@ data class RequestLocationDto(
     @Json(name = "compass")
     var compass: RequestCompassDto = RequestCompassDto(),
     @Json(name = "gps")
-    var gps: RequestGpsDto? = null,
+    var gps: RequestGpsDto = RequestGpsDto(),
     @Json(name = "localPos")
     var localPos: RequestLocalPosDto = RequestLocalPosDto(),
     @Json(name = "location_id")
@@ -83,15 +83,15 @@ data class RequestCompassDto(
 @JsonClass(generateAdapter = true)
 data class RequestGpsDto(
     @Json(name = "accuracy")
-    var accuracy: Double?,
+    var accuracy: Double = 0.0,
     @Json(name = "altitude")
-    var altitude: Double?,
+    var altitude: Double = 0.0,
     @Json(name = "latitude")
-    var latitude: Double?,
+    var latitude: Double = 0.0,
     @Json(name = "longitude")
-    var longitude: Double?,
+    var longitude: Double = 0.0,
     @Json(name = "timestamp")
-    var timestamp: Double?
+    var timestamp: Double = 0.0
 )
 
 @JsonClass(generateAdapter = true)

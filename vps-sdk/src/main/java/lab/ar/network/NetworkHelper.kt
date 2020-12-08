@@ -2,6 +2,7 @@ package lab.ar.network
 
 import android.graphics.Bitmap
 import android.media.Image
+import android.util.Log
 import com.google.ar.sceneform.ArSceneView
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
@@ -10,6 +11,7 @@ import kotlinx.coroutines.withContext
 import lab.ar.extentions.getResizedBitmap
 import lab.ar.extentions.toNewRotationAndPositionPair
 import lab.ar.network.dto.RequestDto
+import lab.ar.network.dto.ResponseDto
 import lab.ar.vps.VpsCallback
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -24,15 +26,19 @@ class NetworkHelper(private val url: String,
         jsonToSend: RequestDto
     ): Pair<Quaternion, Vector3>? {
         return withContext(Dispatchers.Main) {
-            var image: Image? = null
             try {
-                image = view.arFrame?.acquireCameraImage() ?: throw Exception("Failed to acquire camera image")
-                sendRequestToServer(getImageMultipart(image), jsonToSend)
+                Log.i("qwerty", jsonToSend.toString())
+
+                val image: Image = view.arFrame?.acquireCameraImage() ?: throw Exception("Failed to acquire camera image")
+                val multipartBody = getImageMultipart(image)
+                image.close()
+
+                val responseDto = sendRequestToServer(multipartBody, jsonToSend)
+                callback?.onPositionVps(responseDto)
+                responseDto.toNewRotationAndPositionPair()
             } catch (e: Exception) {
-                callback?.onError(e)
+               // callback?.onError(e)
                 null
-            } finally {
-                image?.close()
             }
         }
     }
@@ -40,7 +46,7 @@ class NetworkHelper(private val url: String,
     private suspend fun getImageMultipart(image: Image): MultipartBody.Part {
         return withContext(Dispatchers.IO) {
             val resizedBitmap = getResizedBitmap(image)
-
+            Log.i("qwerty1", resizedBitmap.byteCount.toString())
             val byteArray = ByteArrayOutputStream().use { stream ->
                 resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
                 stream.toByteArray()
@@ -48,7 +54,9 @@ class NetworkHelper(private val url: String,
 
             resizedBitmap.recycle()
 
+
             val requestBody = byteArray.toRequestBody("*/*".toMediaTypeOrNull(), 0, byteArray.size)
+
             MultipartBody.Part.createFormData("image", "sceneform_photo", requestBody)
         }
     }
@@ -56,12 +64,10 @@ class NetworkHelper(private val url: String,
     private suspend fun sendRequestToServer(
         imageMultipart: MultipartBody.Part,
         jsonToSend: RequestDto
-    ): Pair<Quaternion, Vector3> {
+    ): ResponseDto {
         return withContext(Dispatchers.IO) {
             val deferredResponse = RestApi.getApiService(url).process(jsonToSend, imageMultipart)
-            val responseDto = deferredResponse.await()
-            callback?.onPositionVps(responseDto)
-            responseDto.toNewRotationAndPositionPair()
+            deferredResponse.await()
         }
     }
 }

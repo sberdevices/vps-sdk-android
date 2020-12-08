@@ -75,11 +75,10 @@ fun ResponseDto.toNewRotationAndPositionPair(): Pair<Quaternion, Vector3> {
     val coordinateData = responseData?.responseAttributes?.responseLocation?.responseRelative
             ?: throw IllegalArgumentException("Failed to convert ResponseDto to new position and rotation, ResponseDto is null")
 
-    // TODO() проверить это
     val yaw = coordinateData.yaw ?: 0f
-    val x = (coordinateData.x ?: 0f).unaryMinus()
-    val y = (coordinateData.y ?: 0f).unaryMinus()
-    val z = (coordinateData.z ?: 0f).unaryMinus()
+    val x = -(coordinateData.x ?: 0f)
+    val y = -(coordinateData.y ?: 0f)
+    val z = -(coordinateData.z ?: 0f)
 
     val newPosition = Vector3(x, y, z)
 
