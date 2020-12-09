@@ -1,6 +1,7 @@
 package ru.arvrlab.vps.service
 
 import android.location.LocationManager
+import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.rendering.Renderable
 import com.google.ar.sceneform.ux.TransformableNode
 import kotlinx.coroutines.CoroutineScope
@@ -10,21 +11,19 @@ import ru.arvrlab.vps.ui.VpsArFragment
 class VpsService private constructor(
     coroutineScope: CoroutineScope,
     vpsArFragment: VpsArFragment,
-    renderable: Renderable,
+    node: Node,
     locationManager: LocationManager?,
     callback: VpsCallback?,
-    settings: Settings,
-    onCreateHierarchy: ((tranformableNode: TransformableNode) -> Unit)? = null
+    settings: Settings
 ) {
 
     private val vpsDelegate = VpsDelegate(
         coroutineScope,
         vpsArFragment,
-        renderable,
+        node,
         locationManager,
         callback,
-        settings,
-        onCreateHierarchy
+        settings
     )
 
     fun start() {
@@ -50,11 +49,10 @@ class VpsService private constructor(
     class Builder {
         private var coroutineScope: CoroutineScope? = null
         private var vpsArFragment: VpsArFragment? = null
-        private var renderable: Renderable? = null
+        private var node: Node? = null
         private var settings: Settings? = null
         private var locationManager: LocationManager? = null
         private var callback: VpsCallback? = null
-        private var onCreateHierarchy: ((tranformableNode: TransformableNode) -> Unit)? = null
 
         fun setCoroutineScope(coroutineScope: CoroutineScope): Builder {
             this.coroutineScope = coroutineScope
@@ -66,8 +64,8 @@ class VpsService private constructor(
             return this
         }
 
-        fun setRenderable(renderable: Renderable): Builder {
-            this.renderable = renderable
+        fun setNode(node: Node): Builder {
+            this.node = node
             return this
         }
 
@@ -89,20 +87,14 @@ class VpsService private constructor(
             return this
         }
 
-        fun setActionOnCreateHierarchy(onCreateHierarchy: ((tranformableNode: TransformableNode) -> Unit)): Builder {
-            this.onCreateHierarchy = onCreateHierarchy
-            return this
-        }
-
         fun build(): VpsService {
             return VpsService(
                 coroutineScope ?: throw Exception("No CoroutineScope was set in VpsDelegate.Builder"),
                 vpsArFragment ?: throw Exception("No VpsArFragment was set in VpsDelegate.Builder"),
-                renderable ?: throw Exception("No Renderable was set in VpsDelegate.Builder"),
+                node ?: throw Exception("No Renderable was set in VpsDelegate.Builder"),
                 locationManager,
                 callback,
-                settings ?: throw Exception("No VpsSettings was set in VpsDelegate.Builder"),
-                onCreateHierarchy
+                settings ?: throw Exception("No VpsSettings was set in VpsDelegate.Builder")
             )
         }
     }

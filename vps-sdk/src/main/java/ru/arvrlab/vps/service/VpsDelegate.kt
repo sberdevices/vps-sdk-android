@@ -10,9 +10,10 @@ import android.media.Image
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import com.google.ar.core.exceptions.NotYetAvailableException
+import com.google.ar.sceneform.AnchorNode
+import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
-import com.google.ar.sceneform.rendering.Renderable
 import com.google.ar.sceneform.ux.TransformableNode
 import kotlinx.coroutines.*
 import ru.arvrlab.vps.extentions.getConvertedCameraStartRotation
@@ -30,11 +31,10 @@ import okhttp3.MultipartBody
 class VpsDelegate(
     private val coroutineScope: CoroutineScope,
     private var vpsArFragment: VpsArFragment,
-    private var renderableModel: Renderable,
+    private var positionNode: Node,
     private var locationManager: LocationManager?,
     private var callback: VpsCallback? = null,
-    private val settings: Settings,
-    private val onCreateHierarchy: ((tranformableNode: TransformableNode) -> Unit)? = null
+    private val settings: Settings
 ) {
     private var lastLocation: Location? = null
 
@@ -46,9 +46,8 @@ class VpsDelegate(
     private var isModelCreated = false
     private var isTimerRunning = false
 
-    private var cameraAlternativeNode: TransformableNode? = null
-    private var rotationNode: TransformableNode? = null
-    private var positionNode: TransformableNode? = null
+    private var cameraAlternativeNode: AnchorNode? = null
+    private var rotationNode: AnchorNode? = null
 
     private val locationListener: LocationListener = LocationListener { location ->
         lastLocation = location
@@ -82,9 +81,9 @@ class VpsDelegate(
 
     private fun checkPermissionAndLaunchLocalizationUpdate() {
         if (!foregroundPermissionApproved()) {
-            callback?.onVpsServiceWasNotStarted()
+            //кинуть эксепшн и аннотацию поставить чтобы клиент обрабатывал пермишн
             requestForegroundPermissions()
-        } else if (isProvidersEnabled()) {
+        } else if (isGpsProviderEnabled()) {
             requestLocationUpdate()
             launchLocatizationUpdate()
         }
@@ -122,12 +121,6 @@ class VpsDelegate(
             MIN_DISTANCE_IN_METERS,
             locationListener
         )
-        locationManager?.requestLocationUpdates(
-            LocationManager.NETWORK_PROVIDER,
-            MIN_INTERVAL_MS,
-            MIN_DISTANCE_IN_METERS,
-            locationListener
-        )
     }
 
     @SuppressLint("MissingPermission")
@@ -144,17 +137,11 @@ class VpsDelegate(
         }
     }
 
-    private suspend fun getMultipart(): MultipartBody.Part {
-        val image: Image = vpsArFragment.arSceneView.arFrame?.acquireCameraImage() ?: throw NotYetAvailableException("Failed to acquire camera image")
-        val multipartBody = image.toMultipartBody()
-        image.close()
-        return multipartBody
-    }
-
     private suspend fun sendRequest(): Pair<Quaternion, Vector3>? {
         return withContext(Dispatchers.Main) {
             try {
                 val responseDto = VpsApi.getApiService(settings.url).process(getRequestDto(), getMultipart())
+                //если "done"
                 callback?.onPositionVps(responseDto)
                 responseDto.toNewRotationAndPositionPair()
             }catch (e: NotYetAvailableException) {
@@ -167,8 +154,16 @@ class VpsDelegate(
         }
     }
 
+    // создать функцию которая сохраняла последнюю битмапу
+    private suspend fun getMultipart(): MultipartBody.Part {
+        val image: Image = vpsArFragment.arSceneView.arFrame?.acquireCameraImage() ?: throw NotYetAvailableException("Failed to acquire camera image")
+        val multipartBody = image.toMultipartBody()
+        image.close()
+        return multipartBody
+    }
+
     private fun getRequestDto(): RequestDto {
-        return if (settings.needLocation && isProvidersEnabled() && foregroundPermissionApproved()) {
+        return if (settings.needLocation && isGpsProviderEnabled() && foregroundPermissionApproved()) {
             createRequestDto(lastLocation)
         } else {
             createRequestDto()
@@ -208,18 +203,13 @@ class VpsDelegate(
         cameraAlternativeNode?.worldPosition = cameraStartPosition
 
         rotationNode?.localRotation = newRotationAndPosition.first
-        positionNode?.localPosition = newRotationAndPosition.second
+        positionNode.localPosition = newRotationAndPosition.second
     }
 
     private fun createNodeHierarchy() {
-        cameraAlternativeNode = TransformableNode(vpsArFragment.transformationSystem)
+        cameraAlternativeNode = AnchorNode()
 
-        rotationNode = TransformableNode(vpsArFragment.transformationSystem)
-
-        positionNode = TransformableNode(vpsArFragment.transformationSystem).apply {
-            renderable = renderableModel
-            onCreateHierarchy?.let { it(this) }
-        }
+        rotationNode = AnchorNode()
 
         vpsArFragment.arSceneView.scene.addChild(cameraAlternativeNode)
         cameraAlternativeNode?.addChild(rotationNode)
@@ -227,9 +217,8 @@ class VpsDelegate(
 
     }
 
-    private fun isProvidersEnabled() =
+    private fun isGpsProviderEnabled() =
         locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) ?: false
-                || locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ?: false
 
     private fun foregroundPermissionApproved(): Boolean {
         return PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
@@ -267,11 +256,10 @@ class VpsDelegate(
         cameraAlternativeNode?.setParent(null)
         rotationNode?.setParent(null)
         cameraAlternativeNode?.setParent(null)
-        positionNode?.renderable = null
+        positionNode.renderable = null
 
         cameraAlternativeNode = null
         rotationNode = null
-        positionNode = null
 
         isModelCreated = false
     }

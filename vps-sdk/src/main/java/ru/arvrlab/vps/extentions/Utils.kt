@@ -14,7 +14,7 @@ import java.io.ByteArrayOutputStream
 
 private const val BITMAP_WIDTH = 960
 private const val BITMAP_HEIGHT = 540
-private const val QUALITY = 100
+private const val QUALITY = 90 //TODO проверить размер
 
 fun Image.toByteArray(): ByteArray {
     val yBuffer = planes[0].buffer
