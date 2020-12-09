@@ -1,6 +1,7 @@
 package ru.arvrlab.vps.service
 
 import android.Manifest
+import android.Manifest.permission
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.location.Location
@@ -8,14 +9,15 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.media.Image
 import android.util.Log
+import androidx.annotation.RequiresPermission
 import androidx.core.app.ActivityCompat
 import com.google.ar.core.exceptions.NotYetAvailableException
 import com.google.ar.sceneform.AnchorNode
 import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
-import com.google.ar.sceneform.ux.TransformableNode
 import kotlinx.coroutines.*
+import okhttp3.MultipartBody
 import ru.arvrlab.vps.extentions.getConvertedCameraStartRotation
 import ru.arvrlab.vps.extentions.toMultipartBody
 import ru.arvrlab.vps.extentions.toNewRotationAndPositionPair
@@ -25,11 +27,9 @@ import ru.arvrlab.vps.network.dto.RequestDto
 import ru.arvrlab.vps.network.dto.RequestGpsDto
 import ru.arvrlab.vps.network.dto.ResponseDto
 import ru.arvrlab.vps.ui.VpsArFragment
-import okhttp3.MultipartBody
 
 
 class VpsDelegate(
-    private val coroutineScope: CoroutineScope,
     private var vpsArFragment: VpsArFragment,
     private var positionNode: Node,
     private var locationManager: LocationManager?,
@@ -51,21 +51,10 @@ class VpsDelegate(
 
     private val locationListener: LocationListener = LocationListener { location ->
         lastLocation = location
-        //  logLocation(location)
     }
 
-    private fun logLocation(location: Location) {
-        if (location.provider == LocationManager.GPS_PROVIDER) {
-            Log.i(TAG, getFormattedLocation(location))
-        } else if (location.provider == LocationManager.NETWORK_PROVIDER) {
-            Log.i(TAG, getFormattedLocation(location))
-        }
-    }
+    private var coroutineScope: CoroutineScope? = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    private fun getFormattedLocation(location: Location): String {
-        return "Coordinates: lat = ${location.latitude}, lon = ${location.longitude}, time = ${location.elapsedRealtimeNanos}," +
-                "altitude = ${location.altitude}, accuracy = ${location.accuracy}"
-    }
 
     fun start() {
         if(isTimerRunning) {
@@ -80,10 +69,7 @@ class VpsDelegate(
     }
 
     private fun checkPermissionAndLaunchLocalizationUpdate() {
-        if (!foregroundPermissionApproved()) {
-            //кинуть эксепшн и аннотацию поставить чтобы клиент обрабатывал пермишн
-            requestForegroundPermissions()
-        } else if (isGpsProviderEnabled()) {
+        if (isGpsProviderEnabled()) {
             requestLocationUpdate()
             launchLocatizationUpdate()
         }
@@ -94,7 +80,7 @@ class VpsDelegate(
             updateLocalization()
         }
 
-        timerJob = coroutineScope.launch {
+        timerJob = coroutineScope?.launch {
             while (true) {
                 delay(settings.timerInterval)
                 ensureActive()
@@ -103,14 +89,6 @@ class VpsDelegate(
         }
 
         isTimerRunning = true
-    }
-
-    private fun requestForegroundPermissions() {
-        ActivityCompat.requestPermissions(
-            vpsArFragment.requireActivity(),
-            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-            REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE
-        )
     }
 
     @SuppressLint("MissingPermission")
@@ -123,9 +101,8 @@ class VpsDelegate(
         )
     }
 
-    @SuppressLint("MissingPermission")
     private fun updateLocalization() {
-        coroutineScope.launch(Dispatchers.Main) {
+        coroutineScope?.launch(Dispatchers.Main) {
 
             cameraStartPosition = vpsArFragment.arSceneView.scene.camera.worldPosition
 
@@ -140,7 +117,10 @@ class VpsDelegate(
     private suspend fun sendRequest(): Pair<Quaternion, Vector3>? {
         return withContext(Dispatchers.Main) {
             try {
-                val responseDto = VpsApi.getApiService(settings.url).process(getRequestDto(), getMultipart())
+                val responseDto = VpsApi.getApiService(settings.url).process(
+                    getRequestDto(),
+                    getMultipart()
+                )
                 //если "done"
                 callback?.onPositionVps(responseDto)
                 responseDto.toNewRotationAndPositionPair()
@@ -156,14 +136,16 @@ class VpsDelegate(
 
     // создать функцию которая сохраняла последнюю битмапу
     private suspend fun getMultipart(): MultipartBody.Part {
-        val image: Image = vpsArFragment.arSceneView.arFrame?.acquireCameraImage() ?: throw NotYetAvailableException("Failed to acquire camera image")
+        val image: Image = vpsArFragment.arSceneView.arFrame?.acquireCameraImage() ?: throw NotYetAvailableException(
+            "Failed to acquire camera image"
+        )
         val multipartBody = image.toMultipartBody()
         image.close()
         return multipartBody
     }
 
     private fun getRequestDto(): RequestDto {
-        return if (settings.needLocation && isGpsProviderEnabled() && foregroundPermissionApproved()) {
+        return if (settings.needLocation && isGpsProviderEnabled()) {
             createRequestDto(lastLocation)
         } else {
             createRequestDto()
@@ -220,13 +202,6 @@ class VpsDelegate(
     private fun isGpsProviderEnabled() =
         locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) ?: false
 
-    private fun foregroundPermissionApproved(): Boolean {
-        return PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
-            vpsArFragment.requireContext(),
-            Manifest.permission.ACCESS_FINE_LOCATION
-        )
-    }
-
     fun stop() {
         stopLocalizationUpdate()
         locationManager?.removeUpdates(locationListener)
@@ -249,7 +224,9 @@ class VpsDelegate(
 
     fun destroy() {
         stop()
-        destroyHierarchy()
+        //destroyHierarchy()
+        coroutineScope?.cancel()
+        coroutineScope = null
     }
 
     private fun destroyHierarchy() {
@@ -269,7 +246,6 @@ class VpsDelegate(
     }
 
     companion object {
-        private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
         private const val TAG = "VpsDelegate"
         private const val MIN_INTERVAL_MS = 1000L
         private const val MIN_DISTANCE_IN_METERS = 1f

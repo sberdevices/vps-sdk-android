@@ -2,14 +2,10 @@ package ru.arvrlab.vps.service
 
 import android.location.LocationManager
 import com.google.ar.sceneform.Node
-import com.google.ar.sceneform.rendering.Renderable
-import com.google.ar.sceneform.ux.TransformableNode
-import kotlinx.coroutines.CoroutineScope
 import ru.arvrlab.vps.network.dto.ResponseDto
 import ru.arvrlab.vps.ui.VpsArFragment
 
 class VpsService private constructor(
-    coroutineScope: CoroutineScope,
     vpsArFragment: VpsArFragment,
     node: Node,
     locationManager: LocationManager?,
@@ -18,7 +14,6 @@ class VpsService private constructor(
 ) {
 
     private val vpsDelegate = VpsDelegate(
-        coroutineScope,
         vpsArFragment,
         node,
         locationManager,
@@ -47,17 +42,11 @@ class VpsService private constructor(
     }
 
     class Builder {
-        private var coroutineScope: CoroutineScope? = null
         private var vpsArFragment: VpsArFragment? = null
         private var node: Node? = null
         private var settings: Settings? = null
         private var locationManager: LocationManager? = null
         private var callback: VpsCallback? = null
-
-        fun setCoroutineScope(coroutineScope: CoroutineScope): Builder {
-            this.coroutineScope = coroutineScope
-            return this
-        }
 
         fun setVpsArFragment(vpsArFragment: VpsArFragment): Builder {
             this.vpsArFragment = vpsArFragment
@@ -89,7 +78,6 @@ class VpsService private constructor(
 
         fun build(): VpsService {
             return VpsService(
-                coroutineScope ?: throw Exception("No CoroutineScope was set in VpsDelegate.Builder"),
                 vpsArFragment ?: throw Exception("No VpsArFragment was set in VpsDelegate.Builder"),
                 node ?: throw Exception("No Renderable was set in VpsDelegate.Builder"),
                 locationManager,
