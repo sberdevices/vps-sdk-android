@@ -1,4 +1,4 @@
-package lab.ar.vps
+package ru.arvrlab.vps.service
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -15,15 +15,15 @@ import com.google.ar.sceneform.math.Vector3
 import com.google.ar.sceneform.rendering.Renderable
 import com.google.ar.sceneform.ux.TransformableNode
 import kotlinx.coroutines.*
-import lab.ar.extentions.getConvertedCameraStartRotation
-import lab.ar.extentions.toMultipartBody
-import lab.ar.extentions.toNewRotationAndPositionPair
-import lab.ar.network.VpsApi
-import lab.ar.network.dto.RequestDataDto
-import lab.ar.network.dto.RequestDto
-import lab.ar.network.dto.RequestGpsDto
-import lab.ar.network.dto.ResponseDto
-import lab.ar.ui.VpsArFragment
+import ru.arvrlab.vps.extentions.getConvertedCameraStartRotation
+import ru.arvrlab.vps.extentions.toMultipartBody
+import ru.arvrlab.vps.extentions.toNewRotationAndPositionPair
+import ru.arvrlab.vps.network.VpsApi
+import ru.arvrlab.vps.network.dto.RequestDataDto
+import ru.arvrlab.vps.network.dto.RequestDto
+import ru.arvrlab.vps.network.dto.RequestGpsDto
+import ru.arvrlab.vps.network.dto.ResponseDto
+import ru.arvrlab.vps.ui.VpsArFragment
 import okhttp3.MultipartBody
 
 

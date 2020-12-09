@@ -1,4 +1,4 @@
-package lab.ar.vps
+package ru.arvrlab.vps.service
 
 data class Settings(
     val url: String,

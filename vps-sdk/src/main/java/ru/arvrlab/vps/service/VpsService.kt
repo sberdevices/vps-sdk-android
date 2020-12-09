@@ -1,11 +1,11 @@
-package lab.ar.vps
+package ru.arvrlab.vps.service
 
 import android.location.LocationManager
 import com.google.ar.sceneform.rendering.Renderable
 import com.google.ar.sceneform.ux.TransformableNode
 import kotlinx.coroutines.CoroutineScope
-import lab.ar.network.dto.ResponseDto
-import lab.ar.ui.VpsArFragment
+import ru.arvrlab.vps.network.dto.ResponseDto
+import ru.arvrlab.vps.ui.VpsArFragment
 
 class VpsService private constructor(
     coroutineScope: CoroutineScope,

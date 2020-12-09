@@ -1,21 +1,13 @@
-package lab.ar.ui
+package ru.arvrlab.vps.ui
 
 import android.Manifest
-import android.app.AlertDialog
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
-import android.provider.Settings
-import android.util.Log
 import android.view.View
-import androidx.core.app.ActivityCompat
 import com.google.ar.core.CameraConfig
 import com.google.ar.core.CameraConfigFilter
 import com.google.ar.core.Config
 import com.google.ar.core.Session
 import com.google.ar.sceneform.ux.ArFragment
-import com.lab.android.vps_android_sdk.R
 import java.util.*
 
 class VpsArFragment : ArFragment() {

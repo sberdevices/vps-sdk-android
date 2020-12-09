@@ -1,14 +1,12 @@
-package lab.ar.extentions
+package ru.arvrlab.vps.extentions
 
 import android.graphics.*
 import android.media.Image
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
-import com.google.ar.sceneform.rendering.EngineInstance
-import com.google.ar.sceneform.ux.TransformableNode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import lab.ar.network.dto.ResponseDto
+import ru.arvrlab.vps.network.dto.ResponseDto
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody

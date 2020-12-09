@@ -1,10 +1,10 @@
-package lab.ar.network
+package ru.arvrlab.vps.network
 
 import com.jakewharton.retrofit2.adapter.kotlin.coroutines.CoroutineCallAdapterFactory
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import lab.ar.network.dto.RequestDto
-import lab.ar.network.dto.ResponseDto
+import ru.arvrlab.vps.network.dto.RequestDto
+import ru.arvrlab.vps.network.dto.ResponseDto
 import okhttp3.MultipartBody
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
