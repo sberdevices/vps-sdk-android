@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.ar.core.CameraConfig
 import com.google.ar.core.CameraConfigFilter
@@ -16,6 +17,8 @@ import com.google.ar.core.Config
 import com.google.ar.core.Session
 import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.ux.ArFragment
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import ru.arvrlab.vps.network.dto.ResponseDto
 import ru.arvrlab.vps.service.Settings
 import ru.arvrlab.vps.service.VpsCallback
@@ -74,6 +77,7 @@ class VpsArFragment : ArFragment() {
         needLocation = settings.needLocation
 
         vpsService = VpsService.Builder()
+            .setCoroutineScope(CoroutineScope(lifecycleScope.coroutineContext + Dispatchers.IO))
             .setVpsArFragment(this)
             .setNode(positionNode)
             .setLocationManager(locationManager)

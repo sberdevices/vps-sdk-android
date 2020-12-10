@@ -1,16 +1,10 @@
 package ru.arvrlab.vps.service
 
-import android.Manifest
-import android.Manifest.permission
 import android.annotation.SuppressLint
-import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.media.Image
-import android.util.Log
-import androidx.annotation.RequiresPermission
-import androidx.core.app.ActivityCompat
 import com.google.ar.core.exceptions.NotYetAvailableException
 import com.google.ar.sceneform.AnchorNode
 import com.google.ar.sceneform.Node
@@ -30,6 +24,7 @@ import ru.arvrlab.vps.ui.VpsArFragment
 
 
 class VpsDelegate(
+    private val coroutineScope: CoroutineScope,
     private var vpsArFragment: VpsArFragment,
     private var positionNode: Node,
     private var locationManager: LocationManager?,
@@ -52,9 +47,6 @@ class VpsDelegate(
     private val locationListener: LocationListener = LocationListener { location ->
         lastLocation = location
     }
-
-    private var coroutineScope: CoroutineScope? = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
 
     fun start() {
         if(isTimerRunning) {
@@ -80,11 +72,12 @@ class VpsDelegate(
             updateLocalization()
         }
 
-        timerJob = coroutineScope?.launch {
+        timerJob = coroutineScope.launch {
             while (true) {
                 delay(settings.timerInterval)
-                ensureActive()
-                updateLocalization()
+                if(isActive) {
+                    updateLocalization()
+                }
             }
         }
 
@@ -102,7 +95,7 @@ class VpsDelegate(
     }
 
     private fun updateLocalization() {
-        coroutineScope?.launch(Dispatchers.Main) {
+        coroutineScope.launch(Dispatchers.Main) {
 
             cameraStartPosition = vpsArFragment.arSceneView.scene.camera.worldPosition
 
@@ -125,6 +118,8 @@ class VpsDelegate(
                 callback?.onPositionVps(responseDto)
                 responseDto.toNewRotationAndPositionPair()
             }catch (e: NotYetAvailableException) {
+                null
+            }catch (e: CancellationException) {
                 null
             } catch (e: Exception) {
                 stop()
@@ -225,8 +220,6 @@ class VpsDelegate(
     fun destroy() {
         stop()
         //destroyHierarchy()
-        coroutineScope?.cancel()
-        coroutineScope = null
     }
 
     private fun destroyHierarchy() {

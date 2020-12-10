@@ -52,6 +52,8 @@ dependencies {
     api "com.squareup.moshi:moshi-kotlin:1.9.3"
     api"com.squareup.okhttp3:okhttp:4.6.0"
 
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.2.0"
+
     api 'com.google.android.gms:play-services-location:17.1.0'
 
 
