@@ -11,6 +11,8 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import ru.arvrlab.vps.network.dto.ResponseDto
 import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import kotlin.math.PI
 import kotlin.math.asin
 import kotlin.math.atan2
@@ -133,4 +135,29 @@ fun Quaternion.toEulerAngles(): Vector3 {
     val x = atan2(2 * x * w - 2 * y * z, 1 - 2 * sqx - 2 * sqz)
 
     return Vector3((x * 180 / PI).toFloat(), (y * 180 / PI).toFloat(), (z * 180 / PI).toFloat())
+}
+
+fun Bitmap.toGrayScaledByteBuffer(batchSize: Int): ByteBuffer {
+    val byteBuffer = ByteBuffer.allocateDirect(batchSize)
+    byteBuffer.order(ByteOrder.nativeOrder())
+
+    val pixels = IntArray(this.width * this.height)
+    this.getPixels(pixels, 0, this.width, 0, 0, this.width, this.height)
+
+    for (pixelValue in pixels) {
+        val r = (pixelValue shr 16 and 0xFF)
+        val g = (pixelValue shr 8 and 0xFF)
+        val b = (pixelValue and 0xFF)
+
+        // Convert RGB to grayscale and normalize pixel value to [0..1].
+        val normalizedPixelValue = (r + g + b) / 3.0f / 255.0f
+        byteBuffer.putFloat(normalizedPixelValue)
+    }
+
+    return byteBuffer
+}
+
+fun Bitmap.rotate(degrees: Float): Bitmap {
+    val matrix = Matrix().apply { postRotate(degrees) }
+    return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
 }

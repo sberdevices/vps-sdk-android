@@ -31,6 +31,11 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+
+
+    aaptOptions {
+        noCompress "tflite"
+    }
 }
 
 dependencies {
@@ -60,4 +65,8 @@ dependencies {
 //    api 'com.google.ar.sceneform.ux:sceneform-ux:1.16.0'
 //    api 'com.google.ar.sceneform:core:1.17.1'
     api 'com.google.ar:core:1.19.0'
+
+    implementation 'org.tensorflow:tensorflow-lite:0.0.0-nightly'
+    implementation 'org.tensorflow:tensorflow-lite-gpu:0.0.0-nightly'
+    implementation 'org.tensorflow:tensorflow-lite-support:0.0.0-nightly'
 }
