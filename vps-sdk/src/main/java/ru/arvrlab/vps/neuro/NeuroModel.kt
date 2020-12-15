@@ -2,10 +2,10 @@ package ru.arvrlab.vps.neuro
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.util.Log
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.common.FileUtil
-import ru.arvrlab.vps.extentions.rotate
-import ru.arvrlab.vps.extentions.toGrayScaledByteBuffer
+import ru.arvrlab.vps.extentions.convertBitmapToBuffer
 
 class NeuroModel(
     private val context: Context,
@@ -26,27 +26,22 @@ class NeuroModel(
 
     fun run(bitmap: Bitmap): NeuroResult? {
         initInterpreter()
-        val resizedImage = Bitmap.createScaledBitmap(
-            bitmap,
-            inputImageWidth,
-            inputImageHeight,
-            true
-        ).rotate(90f)
 
-        val byteBuffer = resizedImage.toGrayScaledByteBuffer(batchSize)
+        val byteBuffer = convertBitmapToBuffer(bitmap, inputImageWidth, inputImageHeight)
 
         val outputMap = interpreter?.let { initOutputMap(it) }
 
         interpreter?.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap ?: return null)
 
-        val resultMap = outputMap as HashMap<Int, Array<Array<Array<FloatArray>>>>
+        val globalDescriptor: FloatArray = outputMap?.get(0) as FloatArray
+        val keyPoints: FloatArray = (outputMap[1] as Array<FloatArray>)[0]
+        val localDescriptors: FloatArray = (outputMap[2] as Array<FloatArray>)[0]
+        val scores: FloatArray = outputMap[3] as FloatArray
 
-        val globalDescriptor: FloatArray = resultMap[0]?.get(0)?.get(0)?.get(0) ?: floatArrayOf()
-        val keyPoints: FloatArray = resultMap[1]?.get(0)?.get(0)?.get(0) ?: floatArrayOf()
-        val localDescriptors: FloatArray = resultMap[2]?.get(0)?.get(0)?.get(0) ?: floatArrayOf()
-        val scores: FloatArray = resultMap[3]?.get(0)?.get(0)?.get(0) ?: floatArrayOf()
+        val result = NeuroResult(globalDescriptor, keyPoints, localDescriptors, scores)
+        Log.i("Vps", "result = $result")
 
-        return NeuroResult(globalDescriptor, keyPoints, localDescriptors, scores)
+        return result
     }
 
     private fun initInterpreter() {
@@ -74,37 +69,19 @@ class NeuroModel(
     }
 
     private fun initOutputMap(interpreter: Interpreter): HashMap<Int, Any> {
-        val outputMap = HashMap<Int, Any>()
+        val outputMap = hashMapOf<Int, Any>()
 
-        // 1 * 9 * 9 * 32
-        val globalDescriptorShape = interpreter.getOutputTensor(3).shape()
-        outputMap[0] = Array(globalDescriptorShape[0]) {
-            Array(globalDescriptorShape[1]) {
-                Array(globalDescriptorShape[2]) { FloatArray(globalDescriptorShape[3]) }
-            }
-        }
-
-        // 1 * 9 * 9 * 17
         val keyPointsShape = interpreter.getOutputTensor(0).shape()
-        outputMap[1] = Array(keyPointsShape[0]) {
-            Array(keyPointsShape[1]) {
-                Array(keyPointsShape[2]) { FloatArray(keyPointsShape[3]) }
-            }
-        }
+        outputMap[0] =  FloatArray(keyPointsShape[0])
 
-        // 1 * 9 * 9 * 32
-        val localDescriptorsShape = interpreter.getOutputTensor(2).shape()
-        outputMap[2] = Array(localDescriptorsShape[0]) {
-            Array(localDescriptorsShape[1]) {
-                Array(localDescriptorsShape[2]) { FloatArray(localDescriptorsShape[3]) }
-            }
-        }
-
-        // 1 * 9 * 9 * 34
         val scoresShape = interpreter.getOutputTensor(1).shape()
-        outputMap[3] = Array(scoresShape[0]) {
-            Array(scoresShape[1]) { Array(scoresShape[2]) { FloatArray(scoresShape[3]) } }
-        }
+         outputMap[1] = Array(scoresShape[0])  { FloatArray(scoresShape[1]) }
+
+        val localDescriptorsShape = interpreter.getOutputTensor(2).shape()
+        outputMap[2] = Array(localDescriptorsShape[0]) { FloatArray(localDescriptorsShape[1]) }
+
+        val globalDescriptorShape = interpreter.getOutputTensor(3).shape()
+         outputMap[3] =  FloatArray(globalDescriptorShape[0])
 
         return outputMap
     }

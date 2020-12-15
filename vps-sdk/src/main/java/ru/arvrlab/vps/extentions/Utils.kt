@@ -2,6 +2,8 @@ package ru.arvrlab.vps.extentions
 
 import android.graphics.*
 import android.media.Image
+import android.util.Log
+import android.util.Size
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +21,9 @@ import kotlin.math.atan2
 
 private const val BITMAP_WIDTH = 960
 private const val BITMAP_HEIGHT = 540
-private const val QUALITY = 90 //TODO проверить размер
+private const val QUALITY = 90
+private const val IMAGE_MEAN = 127.5f
+private const val IMAGE_STD = 127.5f
 
 fun Image.toByteArray(): ByteArray {
     val yBuffer = planes[0].buffer
@@ -65,6 +69,14 @@ suspend fun getResizedBitmap(image: Image): Bitmap {
     return withContext(Dispatchers.IO) {
         val bytes = image.toByteArray()
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size).toBlackAndWhiteBitmap()
+        Bitmap.createScaledBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT, false)
+    }
+}
+
+suspend fun getResizedBitmapRotated(image: Image): Bitmap {
+    return withContext(Dispatchers.IO) {
+        val bytes = image.toByteArray()
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size).toBlackAndWhiteBitmap().rotate(90f)
         Bitmap.createScaledBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT, false)
     }
 }
@@ -137,24 +149,63 @@ fun Quaternion.toEulerAngles(): Vector3 {
     return Vector3((x * 180 / PI).toFloat(), (y * 180 / PI).toFloat(), (z * 180 / PI).toFloat())
 }
 
-fun Bitmap.toGrayScaledByteBuffer(batchSize: Int): ByteBuffer {
-    val byteBuffer = ByteBuffer.allocateDirect(batchSize)
-    byteBuffer.order(ByteOrder.nativeOrder())
+//fun Bitmap.toGrayScaledByteBuffer(batchSize: Int, inputImageWidth: Int, inputImageHeight: Int): ByteBuffer {
+//    val byteBuffer = ByteBuffer.allocateDirect(batchSize * 4 * this.height * this.width * 3)
+//    byteBuffer.order(ByteOrder.nativeOrder())
+//
+//    val pixels = IntArray(inputImageWidth * inputImageHeight)
+//    this.getPixels(pixels, 0, this.width, 0, 0, this.width, this.height)
+//
+//    for (pixelValue in pixels) {
+//        val r = (pixelValue shr 16 and 0xFF)
+//        val g = (pixelValue shr 8 and 0xFF)
+//        val b = (pixelValue and 0xFF)
+//
+//        // Convert RGB to grayscale and normalize pixel value to [0..1].
+//        val normalizedPixelValue = (r + g + b) / 3.0f / 255.0f
+//        byteBuffer.putFloat(normalizedPixelValue)
+//    }
+//
+//    return byteBuffer
+//}
 
-    val pixels = IntArray(this.width * this.height)
-    this.getPixels(pixels, 0, this.width, 0, 0, this.width, this.height)
+fun convertBitmapToBuffer(image: Bitmap, inputImageWidth: Int, inputImageHeight: Int): ByteBuffer {
+    val imageByteBuffer = ByteBuffer.allocateDirect(1 * inputImageWidth * inputImageHeight * 4)
+    imageByteBuffer.rewind()
 
-    for (pixelValue in pixels) {
-        val r = (pixelValue shr 16 and 0xFF)
-        val g = (pixelValue shr 8 and 0xFF)
-        val b = (pixelValue and 0xFF)
+    val resizedImage = Bitmap.createScaledBitmap(image, inputImageWidth, inputImageHeight, false)
 
-        // Convert RGB to grayscale and normalize pixel value to [0..1].
-        val normalizedPixelValue = (r + g + b) / 3.0f / 255.0f
-        byteBuffer.putFloat(normalizedPixelValue)
+    resizedImage.apply {
+        val pixels = IntArray(width * height)
+        getPixels(pixels, 0, width, 0, 0, width, height)
+        fillBuffer(imageByteBuffer, pixels, inputImageWidth, inputImageHeight, true)
     }
 
-    return byteBuffer
+    return imageByteBuffer
+}
+
+private fun fillBuffer(
+    imgData: ByteBuffer,
+    pixels: IntArray,
+    width: Int,
+    height: Int,
+    isModelQuantized: Boolean
+) {
+
+    for (i in 0 until height) {
+        for (j in 0 until width) {
+            val pixelValue = pixels[i * height + j]
+            if (isModelQuantized) {
+                imgData.put((pixelValue shr 16 and 0xFF).toByte())
+                imgData.put((pixelValue shr 8 and 0xFF).toByte())
+                imgData.put((pixelValue and 0xFF).toByte())
+            } else {
+                imgData.putFloat(((pixelValue shr 16 and 0xFF) - IMAGE_MEAN) / IMAGE_STD)
+                imgData.putFloat(((pixelValue shr 8 and 0xFF) - IMAGE_MEAN) / IMAGE_STD)
+                imgData.putFloat(((pixelValue and 0xFF) - IMAGE_MEAN) / IMAGE_STD)
+            }
+        }
+    }
 }
 
 fun Bitmap.rotate(degrees: Float): Bitmap {

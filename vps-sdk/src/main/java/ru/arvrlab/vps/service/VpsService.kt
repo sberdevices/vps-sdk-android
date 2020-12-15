@@ -15,7 +15,7 @@ class VpsService private constructor(
     settings: Settings
 ) {
 
-    private val vpsDelegate = VpsDelegate(
+    private val vpsDelegate = VpsDelegateNeuro(
         coroutineScope,
         vpsArFragment,
         node,
