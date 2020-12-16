@@ -29,7 +29,9 @@ import ru.arvrlab.vps.neuro.NeuroResult
 import ru.arvrlab.vps.ui.VpsArFragment
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.nio.Buffer
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 
 class VpsDelegateNeuro(
@@ -129,7 +131,7 @@ class VpsDelegateNeuro(
                 Log.i(TAG, "failureCount = $failureCount")
                 val responseDto = VpsApi.getApiService(settings.url).process(
                     getRequestDto(),
-                    getMultipart()
+                    getMultipart() ?: return@withContext null
                 )
 
                 Log.i(TAG, "status = ${responseDto.responseData?.responseAttributes?.status}")
@@ -161,7 +163,7 @@ class VpsDelegateNeuro(
     }
 
     // создать функцию которая сохраняла последнюю битмапу
-    private suspend fun getMultipart(): MultipartBody.Part {
+    private suspend fun getMultipart(): MultipartBody.Part? {
         val image: Image = vpsArFragment.arSceneView.arFrame?.acquireCameraImage()
             ?: throw NotYetAvailableException(
                 "Failed to acquire camera image"
@@ -171,7 +173,7 @@ class VpsDelegateNeuro(
         return multipartBody
     }
 
-    private suspend fun multipartBody(image: Image): MultipartBody.Part {
+    private suspend fun multipartBody(image: Image): MultipartBody.Part? {
         return withContext(Dispatchers.IO) {
 
             val bytes = image.toByteArray()
@@ -179,15 +181,12 @@ class VpsDelegateNeuro(
 
             val neuroResult = neuro.run(bitmap)
             Log.i(TAG, "neuroResult = " + neuroResult.toString())
-            val file = neuroResult?.let { createTextFile(it) }
-
-            val byteArray = byteArrayOf()
-            file?.inputStream()?.read(byteArray)
+            val byteArray = neuroResult?.let { createTextFile(it) }
 
             bitmap.recycle()
 
-            val requestBody = byteArray.toRequestBody("*/*".toMediaTypeOrNull(), 0, byteArray.size)
-            MultipartBody.Part.createFormData("embedding", "sceneform_photo", requestBody)
+            val requestBody = byteArray?.toRequestBody("*/*".toMediaTypeOrNull(), 0, byteArray.size) ?: return@withContext null
+            MultipartBody.Part.createFormData("embedding", "embedding.embd", requestBody)
         }
     }
 
@@ -333,34 +332,43 @@ class VpsDelegateNeuro(
         }
     }
 
-    private suspend fun createTextFile(neuroResult: NeuroResult) : File {
+    private suspend fun createTextFile(neuroResult: NeuroResult) : ByteArray {
         return withContext(Dispatchers.IO) {
-            val sb = StringBuilder()
+            var filedata = byteArrayOf()
             val array = arrayOf(
-                neuroResult.globalDescriptor,
                 neuroResult.keyPoints,
                 neuroResult.scores,
-                neuroResult.localDescriptors
+                neuroResult.localDescriptors,
+                neuroResult.globalDescriptor
             )
 
             val version: Byte = 0x0
             val indentificator: Byte = 0x0
-            sb.append(version)
-                .append("\n")
-                .append(indentificator)
+
+            val versionBuffer = ByteBuffer.allocate(Int.SIZE_BYTES)
+            versionBuffer.put(version)
+            filedata += versionBuffer.array()
+
+            val indentificatorBuffer = ByteBuffer.allocate(Int.SIZE_BYTES)
+            indentificatorBuffer.put(indentificator)
+            filedata += indentificatorBuffer.array()
 
             for (arr in array) {
-                val base64Str = convertToBase64Bytes(arr)
-                val base64StrByteArray = base64Str?.toByteArray()
-                val count = base64StrByteArray?.count()
-                sb.append(count)
-                    .append("\n")
-                    .append(base64Str)
-                    .append("\n")
+                val base64Str = convertToBase64Bytes(arr)?.toByteArray()
+                val count = base64Str?.count()
+
+                filedata += base64Str ?: byteArrayOf()
+
+                val buffer = ByteBuffer.allocate(Int.SIZE_BYTES)
+                buffer.order(ByteOrder.BIG_ENDIAN)
+                buffer.putInt(count ?: 0)
+
+                filedata += buffer.array()
+
             }
 
-            Log.i(TAG, "sb = $sb")
-            saveFileExternalStorage(sb.toString())
+            Log.i(TAG, "sb = ${filedata.size}")
+            filedata
         }
     }
 
