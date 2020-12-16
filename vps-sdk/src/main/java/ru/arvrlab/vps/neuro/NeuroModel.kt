@@ -2,7 +2,6 @@ package ru.arvrlab.vps.neuro
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.util.Log
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.common.FileUtil
 import ru.arvrlab.vps.extentions.convertBitmapToBuffer
@@ -24,6 +23,25 @@ class NeuroModel(
         interpreter = null
     }
 
+//    fun run(bitmap: Bitmap): NeuroResult? {
+//        initInterpreter()
+//
+//        val byteBuffer = convertBitmapToBuffer(bitmap, inputImageWidth, inputImageHeight)
+//
+//        val outputMap = interpreter?.let { initOutputMap(it) }
+//
+//        interpreter?.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap ?: return null)
+//
+//        val globalDescriptor: FloatArray = outputMap?.get(0) as FloatArray
+//        val keyPoints: FloatArray = (outputMap[1] as Array<FloatArray>)[0]
+//        val localDescriptors: FloatArray = (outputMap[2] as Array<FloatArray>)[0]
+//        val scores: FloatArray = outputMap[3] as FloatArray
+//        val result = NeuroResult(globalDescriptor, keyPoints, localDescriptors, scores)
+//        Log.i("Vps", "result = $result")
+//
+//        return result
+//    }
+
     fun run(bitmap: Bitmap): NeuroResult? {
         initInterpreter()
 
@@ -34,14 +52,21 @@ class NeuroModel(
         interpreter?.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap ?: return null)
 
         val globalDescriptor: FloatArray = outputMap?.get(0) as FloatArray
-        val keyPoints: FloatArray = (outputMap[1] as Array<FloatArray>)[0]
-        val localDescriptors: FloatArray = (outputMap[2] as Array<FloatArray>)[0]
+        val keyPoints: FloatArray = (outputMap[1] as Array<FloatArray>).flatten()
+        val localDescriptors: FloatArray = (outputMap[2] as Array<FloatArray>).flatten()
         val scores: FloatArray = outputMap[3] as FloatArray
 
-        val result = NeuroResult(globalDescriptor, keyPoints, localDescriptors, scores)
-        Log.i("Vps", "result = $result")
+        return NeuroResult(globalDescriptor, keyPoints, localDescriptors, scores)
+    }
 
-        return result
+    private fun Array<FloatArray>.flatten() : FloatArray{
+        val list = mutableListOf<Float>()
+        this.forEach { floats ->
+            floats.forEach { f ->
+                list.add(f)
+            }
+        }
+        return list.toFloatArray()
     }
 
     private fun initInterpreter() {

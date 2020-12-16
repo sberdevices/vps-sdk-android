@@ -1,12 +1,12 @@
 package ru.arvrlab.vps.service
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.media.Image
+import android.renderscript.Float4
 import android.util.Base64
 import android.util.Log
 import com.google.ar.core.exceptions.NotYetAvailableException
@@ -27,11 +27,10 @@ import ru.arvrlab.vps.network.dto.ResponseDto
 import ru.arvrlab.vps.neuro.NeuroModel
 import ru.arvrlab.vps.neuro.NeuroResult
 import ru.arvrlab.vps.ui.VpsArFragment
-import java.io.ByteArrayOutputStream
 import java.io.File
-import java.nio.Buffer
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.math.log
 
 
 class VpsDelegateNeuro(
@@ -180,12 +179,12 @@ class VpsDelegateNeuro(
             val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size).toBlackAndWhiteBitmap().rotate(90f)
 
             val neuroResult = neuro.run(bitmap)
-            Log.i(TAG, "neuroResult = " + neuroResult.toString())
-            val byteArray = neuroResult?.let { createTextFile(it) }
+            Log.i(TAG, "neuroResult = $neuroResult")
+            val byteArray = neuroResult?.let { createFile(it) }
 
             bitmap.recycle()
 
-            val requestBody = byteArray?.toRequestBody("*/*".toMediaTypeOrNull(), 0, byteArray.size) ?: return@withContext null
+            val requestBody = byteArray?.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, byteArray.size) ?: return@withContext null
             MultipartBody.Part.createFormData("embedding", "embedding.embd", requestBody)
         }
     }
@@ -332,9 +331,10 @@ class VpsDelegateNeuro(
         }
     }
 
-    private suspend fun createTextFile(neuroResult: NeuroResult) : ByteArray {
+    private suspend fun createFile(neuroResult: NeuroResult) : ByteArray {
         return withContext(Dispatchers.IO) {
             var filedata = byteArrayOf()
+
             val array = arrayOf(
                 neuroResult.keyPoints,
                 neuroResult.scores,
@@ -345,16 +345,16 @@ class VpsDelegateNeuro(
             val version: Byte = 0x0
             val indentificator: Byte = 0x0
 
-            val versionBuffer = ByteBuffer.allocate(Int.SIZE_BYTES)
+            val versionBuffer = ByteBuffer.allocate(Byte.SIZE_BYTES)
             versionBuffer.put(version)
             filedata += versionBuffer.array()
 
-            val indentificatorBuffer = ByteBuffer.allocate(Int.SIZE_BYTES)
+            val indentificatorBuffer = ByteBuffer.allocate(Byte.SIZE_BYTES)
             indentificatorBuffer.put(indentificator)
             filedata += indentificatorBuffer.array()
 
             for (arr in array) {
-                val base64Str = convertToBase64Bytes(arr)?.toByteArray()
+                val base64Str = convertToBase64Bytes(arr)
                 val count = base64Str?.count()
 
                 filedata += base64Str ?: byteArrayOf()
@@ -364,6 +364,8 @@ class VpsDelegateNeuro(
                 buffer.putInt(count ?: 0)
 
                 filedata += buffer.array()
+
+                Log.i(TAG, "arr = " + base64Str?.size)
 
             }
 
@@ -380,13 +382,13 @@ class VpsDelegateNeuro(
         }
     }
 
-    private fun convertToBase64Bytes(floatArray: FloatArray): String? {
-        val buff: ByteBuffer = ByteBuffer.allocate(4 * floatArray.size)
-        for (i in floatArray.indices) {
-            val amplitude = floatArray[i]
-            buff.putFloat(amplitude)
+    private fun convertToBase64Bytes(floatArray: FloatArray): ByteArray? {
+        val buff: ByteBuffer = ByteBuffer.allocate( 4 * floatArray.size)
+        for (value in floatArray) {
+            buff.putFloat(value)
         }
-        return Base64.encodeToString(buff.array(), Base64.NO_WRAP)
+
+       return Base64.encode(buff.array(), Base64.NO_WRAP)
     }
 
     companion object {
