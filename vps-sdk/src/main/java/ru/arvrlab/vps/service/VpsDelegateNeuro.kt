@@ -2,9 +2,6 @@ package ru.arvrlab.vps.service
 
 import android.annotation.SuppressLint
 import android.graphics.BitmapFactory
-import android.graphics.ImageFormat
-import android.graphics.Rect
-import android.graphics.YuvImage
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -30,7 +27,6 @@ import ru.arvrlab.vps.neuro.NeuroModel
 import ru.arvrlab.vps.neuro.NeuroResult
 import ru.arvrlab.vps.ui.VpsArFragment
 import java.io.ByteArrayOutputStream
-import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -177,42 +173,16 @@ class VpsDelegateNeuro(
     private suspend fun multipartBody(image: Image): MultipartBody.Part? {
         return withContext(Dispatchers.IO) {
 
-           // val b = image.planes[0].buffer
-           // val bA = ByteArray(b.remaining())
-           // b.get(bA)//попробовать байт буффер.array
-           // val bytes = image.toByteArray()
-           // val a = YuvImage().compressToJpeg() //погуглить
-        //    val bitmap = BitmapFactory.decodeByteArray(bA, 0, bA.size)
-           //     val b2 = bitmap.rotate(90f)
+            val imageInByteArray = image.toByteArrayNeuroVersion()
+            val bitmap = BitmapFactory.decodeByteArray(imageInByteArray, 0, imageInByteArray.size)
 
-            //////////-----//////
-            val out = ByteArrayOutputStream().use { out ->
-                val bA = ByteBuffer.allocateDirect(image.width * image.height * 2)
-                image.planes.forEach { image ->
-                    bA.put(image.buffer)
-                }
-                val yuv = YuvImage(bA.array(), ImageFormat.NV21, image.width, image.height, null)
-                yuv.compressToJpeg(Rect(0, 0, image.width, image.height), 90, out)
-                out.toByteArray()
-
-            }
-
-            //hardcode
-          //  val out = vpsArFragment.requireActivity().assets.open("bootcamp.jpg").readBytes()
-            //todo измерь скорость
-            val bitmap = BitmapFactory.decodeByteArray(out, 0, out.size).toBlackAndWhiteBitmap().rotate(90f)
-
-            val neuroResult = neuro.run(bitmap)
-            Log.i(TAG, "neuroResult = $neuroResult")
-            val byteArray = neuroResult?.let { createFile(it) }
+            val neuroResult = neuro.getFeatures(bitmap)
+            val byteArray = getFileAsByteArray(neuroResult)
 
             bitmap.recycle()
 
-            val requestBody = byteArray?.toRequestBody(
-                "image/jpeg".toMediaTypeOrNull(),
-                0,
-                byteArray.size
-            ) ?: return@withContext null
+            val requestBody =
+                byteArray.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, byteArray.size)
             MultipartBody.Part.createFormData("embedding", "embedding.embd", requestBody)
         }
     }
@@ -359,75 +329,45 @@ class VpsDelegateNeuro(
         }
     }
 
-    private suspend fun createFile(neuroResult: NeuroResult) : ByteArray {
+    private suspend fun getFileAsByteArray(neuroResult: NeuroResult): ByteArray {
         return withContext(Dispatchers.IO) {
 
-            ByteArrayOutputStream().use { filedata ->
+            ByteArrayOutputStream().use { fileData ->
                 val version: Byte = 0x0
                 val id: Byte = 0x0
-
-                val bA = byteArrayOf(version, id)
-                filedata.write(bA)
+                fileData.write(byteArrayOf(version, id))
 
                 val keyPoints = getByteFrom2(neuroResult.keyPoints)
-                Log.i(TAG, "keyPoints = " + keyPoints.size)
-                val buffer1 = ByteBuffer.allocate(Int.SIZE_BYTES)
-                buffer1.putInt(keyPoints.size)
-                filedata.write(buffer1.array())
-                filedata.write(keyPoints)
+                fileData.write(keyPoints.size.toByteArray())
+                fileData.write(keyPoints)
 
                 val scores = getByteFrom1(neuroResult.scores)
-                Log.i(TAG, "scores = " + scores.size)
-                val buffer2 = ByteBuffer.allocate(Int.SIZE_BYTES)
-                buffer2.putInt(scores.size)
-                filedata.write(buffer2.array())
-                filedata.write(scores)
+                fileData.write(scores.size.toByteArray())
+                fileData.write(scores)
 
                 val localDescriptors = getByteFrom2(neuroResult.localDescriptors)
-                Log.i(TAG, "localDescriptors = " + localDescriptors.size)
-                val buffer3 = ByteBuffer.allocate(Int.SIZE_BYTES)
-                buffer3.putInt(localDescriptors.size)
-                filedata.write(buffer3.array())
-                filedata.write(localDescriptors)
+                fileData.write(localDescriptors.size.toByteArray())
+                fileData.write(localDescriptors)
 
                 val globalDescriptor = getByteFrom1(neuroResult.globalDescriptor)
-                Log.i(TAG, "globalDescriptor = " + globalDescriptor.size)
-                val buffer4 = ByteBuffer.allocate(Int.SIZE_BYTES)
-                buffer4.putInt( globalDescriptor.size)
-                filedata.write(buffer4.array())
-                filedata.write(globalDescriptor)
+                fileData.write(globalDescriptor.size.toByteArray())
+                fileData.write(globalDescriptor)
 
-                val byteArray = filedata.toByteArray()
-                Log.i(TAG, "byteArray.size = ${byteArray.count()}")
-                byteArray
+                fileData.toByteArray()
             }
         }
     }
 
-    private fun getByteFrom1(floatArray: FloatArray) : ByteArray {
+    private fun getByteFrom1(floatArray: FloatArray): ByteArray {
         return ByteArrayOutputStream().use { out ->
             val buff = getBuffer(floatArray)
-            val base64Str = convertToBase64Bytes(buff)
+            val base64Str = convertToBase64Bytes(buff.array())
             out.write(base64Str)
 
-            Log.i(TAG, "fun1 = " + out.size())
             out.toByteArray()
         }
 
     }
-
-//    private fun getByteFrom2(array: Array<FloatArray>) : ByteArray {
-//        return ByteArrayOutputStream().use { out ->
-//            array.forEach { floatArray ->
-//                val buff = getBuffer(floatArray)
-//                val base64Str = convertToBase64Bytes(buff)
-//                out.write(base64Str)
-//            }
-//
-//            Log.i(TAG, "fun2 = " + out.size())
-//            out.toByteArray()
-//        }
-//    }
 
     private fun getByteFrom2(array: Array<FloatArray>): ByteArray {
         val arr = ByteArrayOutputStream().use { out ->
@@ -439,205 +379,14 @@ class VpsDelegateNeuro(
             out.toByteArray()
         }
 
-        return convertToBase64Bytes2(arr)
+        return convertToBase64Bytes(arr)
     }
 
-
-
-//    private suspend fun createFile(neuroResult: NeuroResult) : ByteArray {
-//        return withContext(Dispatchers.IO) {
-//
-//            val array = arrayOf(
-//                neuroResult.keyPoints,
-//                neuroResult.scores,
-//                neuroResult.localDescriptors,
-//                neuroResult.globalDescriptor
-//            )
-//
-//            val version: Byte = 0x0
-//            val indentificator: Byte = 0x0
-//
-//            val bA = byteArrayOf(version, indentificator)
-//
-//            val byteArray = ByteArrayOutputStream().use { stream ->
-//                stream.write(bA)
-//                for (arr in array) {
-//                    val buff = getBuffer(arr)
-//                    val base64Str = convertToBase64Bytes(buff)
-//
-//                    val count = base64Str.size
-//
-//                    val buffer = ByteBuffer.allocate(Int.SIZE_BYTES)
-//                    buffer.putInt(count)
-//
-//                    Log.i(TAG, "c = " + buffer.array().fold("") { str, i -> "$str $i" })
-//
-//                    stream.write(buffer.array())
-//                    stream.write(base64Str)
-//                }
-//                stream.toByteArray()
-//            }
-//
-//            Log.i(TAG, "sb = ${byteArray.size}")
-//            byteArray
-//        }
-//    }
-
-//
-//    private suspend fun createFile(neuroResult: NeuroResult) : ByteArray {
-//        return withContext(Dispatchers.IO) {
-//            var filedata = byteArrayOf()
-//
-//            val array = arrayOf(
-//                neuroResult.keyPoints,
-//                neuroResult.scores,
-//                neuroResult.localDescriptors,
-//                neuroResult.globalDescriptor
-//            )
-//
-//            val version: Byte = 0x0
-//            val indentificator: Byte = 0x0
-//
-//            filedata += version
-//            filedata += indentificator
-//
-//            for (arr in array) {
-//                val buff = getBuffer(arr)
-//                val base64Str = convertToBase64Bytes(buff)
-//               // val count = (base64Str?.size)?.toBigInteger()?.toByteArray()
-//                //val count = buff.capacity()
-//
-//                val count = base64Str?.size ?: 0
-//
-//                val buffer = ByteBuffer.allocate(4)
-//                buffer.order(ByteOrder.BIG_ENDIAN)
-//                buffer.putInt(count)
-//
-//                filedata += buffer.array()
-//                //filedata += count ?: byteArrayOf()
-//                filedata += base64Str ?: byteArrayOf()
-//
-//                Log.i(TAG,  "buffff = " + buffer.array().fold("") {str, i -> "$str $i" })
-//
-//                //Log.i(TAG,  "buffff = " + count?.fold("") {str, i -> "$str $i" })
-//
-//                Log.i(TAG, "arr = " + base64Str?.size)
-//
-//            }
-//
-//            Log.i(TAG, "sb = ${filedata.size}")
-//            filedata
-//        }
-//    }
-
-//    private suspend fun createFile(neuroResult: NeuroResult) : ByteArray {
-//        return withContext(Dispatchers.IO) {
-//            var filedata = byteArrayOf()
-//
-//            val array = arrayOf(
-//                neuroResult.keyPoints,
-//                neuroResult.scores,
-//                neuroResult.localDescriptors,
-//                neuroResult.globalDescriptor
-//            )
-//
-//            val version: Byte = 0x0
-//            val indentificator: Byte = 0x0
-//
-//            filedata += version
-//            filedata += indentificator
-//
-//            for (arr in array) {
-//                val buff = getBuffer(arr)
-//                val base64Str = convertToBase64Bytes(buff)
-//                val count = base64Str?.size ?: 0
-//                //val count = buff.capacity()
-//
-//                val buffer = ByteBuffer.allocate(Int.SIZE_BYTES)
-//                buffer.order(ByteOrder.BIG_ENDIAN)
-//                buffer.putInt(count)
-//
-//                filedata += buffer.array()
-//                filedata += base64Str ?: byteArrayOf()
-//
-//                Log.i(TAG,  "buffff = " + buffer.array().fold("") {str, i -> "$str $i" })
-//
-//                Log.i(TAG, "arr = " + base64Str?.size)
-//
-//            }
-//
-//            Log.i(TAG, "sb = ${filedata.size}")
-//            filedata
-//        }
-//    }
-
-
-//    private suspend fun createFile(neuroResult: NeuroResult) : ByteArray {
-//        return withContext(Dispatchers.IO) {
-//            val filedata = ByteBuffer.allocate(574406)
-//
-//            val array = arrayOf(
-//                neuroResult.keyPoints,
-//                neuroResult.scores,
-//                neuroResult.localDescriptors,
-//                neuroResult.globalDescriptor
-//            )
-//
-//            val version: Byte = 0x0
-//            val indentificator: Byte = 0x0
-//
-//            filedata.put(version)
-//            filedata.put(indentificator)
-//
-//            for (arr in array) {
-//                val buff = getBuffer(arr)
-//                val base64Str = convertToBase64Bytes(buff)
-//                val count = buff.capacity()
-//
-//                Log.i(TAG, "capacity = $count")
-//
-//                filedata.putInt(count)
-//                filedata.put(base64Str ?: byteArrayOf())
-//
-//                Log.i(TAG, "arr = " + base64Str?.size)
-//
-//            }
-//
-//            Log.i(TAG, "sb = ${filedata.array().size}")
-//            filedata.array()
-//        }
-//    }
-
-    private suspend fun saveFileExternalStorage(text: String): File {
-        return withContext(Dispatchers.IO) {
-            val file = File(vpsArFragment.requireContext().filesDir, "embedding.embd")
-            file.appendText(text)
-            file
-        }
-    }
-
-//    private fun convertToBase64Bytes(floatArray: FloatArray): ByteArray? {
-//        val buff: ByteBuffer = ByteBuffer.allocate( 4 * floatArray.size)
-//        for (value in floatArray) {
-//            buff.putFloat(value)
-//        }
-//
-//        val array = Base64.encode(buff.array(), Base64.NO_WRAP)
-//
-//        Log.i(TAG, "array= ${buff.capacity()}")
-//
-//       return array
-//    }
-
-    private fun convertToBase64Bytes(buff: ByteBuffer): ByteArray {
-        return Base64.encode(buff.array(), Base64.NO_WRAP)
-    }
-
-    private fun convertToBase64Bytes2(buff: ByteArray): ByteArray {
+    private fun convertToBase64Bytes(buff: ByteArray): ByteArray {
         return Base64.encode(buff, Base64.NO_WRAP)
     }
 
-    private fun getBuffer(floatArray: FloatArray) : ByteBuffer {
+    private fun getBuffer(floatArray: FloatArray): ByteBuffer {
         val buff: ByteBuffer = ByteBuffer.allocate(4 * floatArray.size)
         buff.order(ByteOrder.LITTLE_ENDIAN)
         for (value in floatArray) {
@@ -647,7 +396,7 @@ class VpsDelegateNeuro(
         return buff
     }
 
-    private fun getByteArrayFromFloatArray(floatArray: FloatArray) : ByteArray {
+    private fun getByteArrayFromFloatArray(floatArray: FloatArray): ByteArray {
         val buff: ByteBuffer = ByteBuffer.allocate(4 * floatArray.size)
         buff.order(ByteOrder.LITTLE_ENDIAN)
         for (value in floatArray) {

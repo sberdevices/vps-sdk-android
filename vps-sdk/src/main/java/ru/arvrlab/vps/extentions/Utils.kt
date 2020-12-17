@@ -21,10 +21,36 @@ import kotlin.math.atan2
 private const val BITMAP_WIDTH = 960
 private const val BITMAP_HEIGHT = 540
 private const val QUALITY = 90
-private const val IMAGE_MEAN = 127.5f
-private const val IMAGE_STD = 127.5f
+private const val FLOAT_SIZE = 4
 
-fun Image.toByteArray(): ByteArray {
+fun Image.toByteArrayNeuroVersion(): ByteArray {
+    return ByteArrayOutputStream().use { out ->
+
+        val yBuffer = this.planes[0].buffer
+        val ySize = yBuffer.remaining()
+        val nv21 = ByteArray(ySize)
+
+        yBuffer.get(nv21, 0, ySize)
+
+        val yuv = YuvImage(nv21, ImageFormat.NV21, this.width, this.height, null)
+        yuv.compressToJpeg(Rect(0, 0, this.width, this.height), QUALITY, out)
+        out.toByteArray()
+    }
+}
+
+suspend fun getResizedBitmap(image: Image): Bitmap {
+    return withContext(Dispatchers.IO) {
+        val bytes = image.toByteArrayServerVersion()
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size).toBlackAndWhiteBitmap()
+        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT, false)
+
+        bitmap.recycle()
+
+        scaledBitmap
+    }
+}
+
+fun Image.toByteArrayServerVersion(): ByteArray {
     val yBuffer = planes[0].buffer
     val uBuffer = planes[1].buffer
     val vBuffer = planes[2].buffer
@@ -40,9 +66,10 @@ fun Image.toByteArray(): ByteArray {
     uBuffer.get(nv21, ySize + vSize, uSize)
 
     val yuvImage = YuvImage(nv21, ImageFormat.NV21, this.width, this.height, null)
-    val out = ByteArrayOutputStream()
-    yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), QUALITY, out)
-    return out.toByteArray()
+    return ByteArrayOutputStream().use { out ->
+        yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), QUALITY, out)
+        out.toByteArray()
+    }
 }
 
 fun Bitmap.toBlackAndWhiteBitmap(): Bitmap {
@@ -62,24 +89,6 @@ fun Bitmap.toBlackAndWhiteBitmap(): Bitmap {
         }
     }
     return blackAndWhieBitmap
-}
-
-suspend fun getResizedBitmap(image: Image): Bitmap {
-    return withContext(Dispatchers.IO) {
-        val bytes = image.toByteArray()
-        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size).toBlackAndWhiteBitmap()
-        Bitmap.createScaledBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT, false)
-    }
-}
-
-suspend fun getResizedBitmapRotated(image: Image): Bitmap {
-    return withContext(Dispatchers.IO) {
-        val bytes = image.toByteArray()
-        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size).toBlackAndWhiteBitmap().rotate(
-            90f
-        )
-        Bitmap.createScaledBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT, false)
-    }
 }
 
 fun getConvertedCameraStartRotation(cameraRotation: Quaternion): Quaternion {
@@ -150,87 +159,52 @@ fun Quaternion.toEulerAngles(): Vector3 {
     return Vector3((x * 180 / PI).toFloat(), (y * 180 / PI).toFloat(), (z * 180 / PI).toFloat())
 }
 
-//fun Bitmap.toGrayScaledByteBuffer(batchSize: Int, inputImageWidth: Int, inputImageHeight: Int): ByteBuffer {
-//    val byteBuffer = ByteBuffer.allocateDirect(batchSize * 4 * this.height * this.width * 3)
-//    byteBuffer.order(ByteOrder.nativeOrder())
-//
-//    val pixels = IntArray(inputImageWidth * inputImageHeight)
-//    this.getPixels(pixels, 0, this.width, 0, 0, this.width, this.height)
-//
-//    for (pixelValue in pixels) {
-//        val r = (pixelValue shr 16 and 0xFF)
-//        val g = (pixelValue shr 8 and 0xFF)
-//        val b = (pixelValue and 0xFF)
-//
-//        // Convert RGB to grayscale and normalize pixel value to [0..1].
-//        val normalizedPixelValue = (r + g + b) / 3.0f / 255.0f
-//        byteBuffer.putFloat(normalizedPixelValue)
-//    }
-//
-//    return byteBuffer
-//}
-
-fun convertBitmapToBuffer(image: Bitmap, inputImageWidth: Int, inputImageHeight: Int): ByteBuffer {
-    val imageByteBuffer = ByteBuffer.allocateDirect(1 * inputImageWidth * inputImageHeight * 4)
+fun convertBitmapToBuffer(bitmap: Bitmap): ByteBuffer {
+    val imageByteBuffer = ByteBuffer
+        .allocateDirect(1 * BITMAP_WIDTH * BITMAP_HEIGHT * FLOAT_SIZE)
         .order(ByteOrder.nativeOrder())
     imageByteBuffer.rewind()
 
-    val resizedImage = Bitmap.createScaledBitmap(image, inputImageHeight, inputImageWidth, false)
+    val resizedBitmap = getPreProcessedBitmap(90f, bitmap, BITMAP_WIDTH, BITMAP_HEIGHT)
+    bitmap.recycle()
 
-    convertITT(resizedImage, imageByteBuffer)
-//    resizedImage.apply {
-//        val pixels = IntArray(width * height)
-//        getPixels(pixels, 0, width, 0, 0, width, height)
-//        fillBuffer(imageByteBuffer, pixels, inputImageWidth, inputImageHeight, false)
-//    }
+    fillBuffer(resizedBitmap, imageByteBuffer)
 
     return imageByteBuffer
 }
 
-private fun convertITT(bitmap: Bitmap, imgData: ByteBuffer) {
+fun getPreProcessedBitmap(
+    degrees: Float,
+    src: Bitmap, dstWidth: Int, dstHeight: Int
+): Bitmap {
+    val matrix = Matrix()
+    val width = src.width
+    val height = src.height
+
+    if (width != dstWidth || height != dstHeight) {
+        val sx = dstWidth / width.toFloat()
+        val sy = dstHeight / height.toFloat()
+        matrix.setScale(sx, sy)
+    }
+    matrix.postRotate(degrees)
+
+    return Bitmap.createBitmap(src, 0, 0, width, height, matrix, true)
+}
+
+private fun fillBuffer(bitmap: Bitmap, imgData: ByteBuffer) {
     for (y in 0 until bitmap.height) {
         for (x in 0 until bitmap.width) {
-            val pixelColor = bitmap.getPixel(x, y)
-            val pixelAlpha: Int = Color.green(pixelColor)
-            imgData.putFloat(pixelAlpha.toFloat())
-        }
-    }
-}
-
-private fun fillBuffer(
-    imgData: ByteBuffer,
-    pixels: IntArray,
-    width: Int,
-    height: Int,
-    isModelQuantized: Boolean
-) {
-
-    for (i in 0 until height) {
-        for (j in 0 until width) {
-            val pixelValue = pixels[i * height + j]
-            imgData.putFloat(pixelValue.toFloat())
-//            if (isModelQuantized) {
-//                imgData.put((pixelValue shr 16 and 0xFF).toByte())
-//                imgData.put((pixelValue shr 8 and 0xFF).toByte())
-//                imgData.put((pixelValue and 0xFF).toByte())
-//            } else {
-//               val r =  pixelValue shr 16 and 0xFF
-//                val g = pixelValue shr 8 and 0xFF
-//                val b = pixelValue and 0xFF
-//
-//                  // Convert RGB to grayscale and normalize pixel value to [0..1].
-//                val normalizedPixelValue = (r + g + b).toFloat()
-//                imgData.putFloat(normalizedPixelValue)
-//            }
+            val pixel = Color.green(bitmap.getPixel(x, y))
+            imgData.putFloat(pixel.toFloat())
         }
     }
 
+    bitmap.recycle()
 }
 
-fun Bitmap.rotate(degrees: Float): Bitmap {
-    val matrix = Matrix()
-    matrix.preRotate(degrees)
-    val rotatedBitmap = Bitmap.createBitmap(this, 0, 0, this.width, this.height, matrix, true)
-    this.recycle()
-    return rotatedBitmap
-}
+fun Int.toByteArray(): ByteArray = byteArrayOf(
+    (this ushr 24).toByte(),
+    (this ushr 16).toByte(),
+    (this ushr 8).toByte(),
+    this.toByte()
+)

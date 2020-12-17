@@ -13,60 +13,26 @@ class NeuroModel(
 
     private var interpreter: Interpreter? = null
 
-    private var batchSize = 0
-    private var inputImageWidth = 0
-    private var inputImageHeight = 0
-    private var inputPixelSize = 0
-
     fun close() {
         interpreter?.close()
         interpreter = null
     }
 
-//    fun run(bitmap: Bitmap): NeuroResult? {
-//        initInterpreter()
-//
-//        val byteBuffer = convertBitmapToBuffer(bitmap, inputImageWidth, inputImageHeight)
-//
-//        val outputMap = interpreter?.let { initOutputMap(it) }
-//
-//        interpreter?.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap ?: return null)
-//
-//        val globalDescriptor: FloatArray = outputMap?.get(0) as FloatArray
-//        val keyPoints: FloatArray = (outputMap[1] as Array<FloatArray>)[0]
-//        val localDescriptors: FloatArray = (outputMap[2] as Array<FloatArray>)[0]
-//        val scores: FloatArray = outputMap[3] as FloatArray
-//        val result = NeuroResult(globalDescriptor, keyPoints, localDescriptors, scores)
-//        Log.i("Vps", "result = $result")
-//
-//        return result
-//    }
-
-    fun run(bitmap: Bitmap): NeuroResult? {
+    fun getFeatures(bitmap: Bitmap): NeuroResult {
         initInterpreter()
 
-        val byteBuffer = convertBitmapToBuffer(bitmap, inputImageWidth, inputImageHeight)
+        val byteBuffer = convertBitmapToBuffer(bitmap)
 
-        val outputMap = interpreter?.let { initOutputMap(it) }
+        val outputMap = initOutputMap(interpreter)
 
-        interpreter?.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap ?: return null)
+        interpreter?.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap )
 
-        val globalDescriptor = outputMap?.get(0) as FloatArray
+        val globalDescriptor = outputMap[0] as FloatArray
         val keyPoints= (outputMap[1] as Array<FloatArray>)
         val localDescriptors = (outputMap[2] as Array<FloatArray>)
         val scores = outputMap[3] as FloatArray
 
         return NeuroResult(globalDescriptor, keyPoints, localDescriptors, scores)
-    }
-
-    private fun Array<FloatArray>.flatten() : FloatArray{
-        val list = mutableListOf<Float>()
-        this.forEach { floats ->
-            floats.forEach { f ->
-                list.add(f)
-            }
-        }
-        return list.toFloatArray()
     }
 
     private fun initInterpreter() {
@@ -80,22 +46,15 @@ class NeuroModel(
                 interpreterOptions
             )
 
-            initProperties()
         }
     }
 
-    private fun initProperties() {
-        val inputShape: IntArray? = interpreter?.getInputTensor(0)?.shape()
-
-        batchSize = inputShape?.get(0) ?: 0
-        inputImageWidth = inputShape?.get(1) ?: 0
-        inputImageHeight = inputShape?.get(2) ?: 0
-        inputPixelSize = inputShape?.get(3) ?: 0
-    }
-
-    private fun initOutputMap(interpreter: Interpreter): Map<Int, Any> {
+    private fun initOutputMap(interpreter: Interpreter?): Map<Int, Any> {
         val outputMap = mutableMapOf<Int, Any>()
 
+        if (interpreter == null) {
+            return mapOf()
+        }
         val keyPointsShape = interpreter.getOutputTensor(0).shape()
         outputMap[0] =  FloatArray(keyPointsShape[0])
 
@@ -108,7 +67,7 @@ class NeuroModel(
         val globalDescriptorShape = interpreter.getOutputTensor(3).shape()
          outputMap[3] =  FloatArray(globalDescriptorShape[0])
 
-        return outputMap.toMap()
+        return outputMap
     }
 
     companion object{
