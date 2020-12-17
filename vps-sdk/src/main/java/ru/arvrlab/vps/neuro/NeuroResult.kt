@@ -2,8 +2,8 @@ package ru.arvrlab.vps.neuro
 
 data class NeuroResult(
     var globalDescriptor: FloatArray = floatArrayOf(),
-    var keyPoints: FloatArray = floatArrayOf(),
-    var localDescriptors: FloatArray = floatArrayOf(),
+    var keyPoints: Array<FloatArray> = arrayOf(),
+    var localDescriptors: Array<FloatArray> = arrayOf(),
     var scores: FloatArray = floatArrayOf()
 ) {
     override fun equals(other: Any?): Boolean {

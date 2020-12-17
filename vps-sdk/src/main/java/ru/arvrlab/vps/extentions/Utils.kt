@@ -2,8 +2,6 @@ package ru.arvrlab.vps.extentions
 
 import android.graphics.*
 import android.media.Image
-import android.util.Log
-import android.util.Size
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +16,7 @@ import java.nio.ByteOrder
 import kotlin.math.PI
 import kotlin.math.asin
 import kotlin.math.atan2
+
 
 private const val BITMAP_WIDTH = 960
 private const val BITMAP_HEIGHT = 540
@@ -76,7 +75,9 @@ suspend fun getResizedBitmap(image: Image): Bitmap {
 suspend fun getResizedBitmapRotated(image: Image): Bitmap {
     return withContext(Dispatchers.IO) {
         val bytes = image.toByteArray()
-        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size).toBlackAndWhiteBitmap().rotate(90f)
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size).toBlackAndWhiteBitmap().rotate(
+            90f
+        )
         Bitmap.createScaledBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT, false)
     }
 }
@@ -171,17 +172,29 @@ fun Quaternion.toEulerAngles(): Vector3 {
 
 fun convertBitmapToBuffer(image: Bitmap, inputImageWidth: Int, inputImageHeight: Int): ByteBuffer {
     val imageByteBuffer = ByteBuffer.allocateDirect(1 * inputImageWidth * inputImageHeight * 4)
+        .order(ByteOrder.nativeOrder())
     imageByteBuffer.rewind()
 
-    val resizedImage = Bitmap.createScaledBitmap(image, inputImageWidth, inputImageHeight, false)
+    val resizedImage = Bitmap.createScaledBitmap(image, inputImageHeight, inputImageWidth, false)
 
-    resizedImage.apply {
-        val pixels = IntArray(width * height)
-        getPixels(pixels, 0, width, 0, 0, width, height)
-        fillBuffer(imageByteBuffer, pixels, inputImageWidth, inputImageHeight, true)
-    }
+    convertITT(resizedImage, imageByteBuffer)
+//    resizedImage.apply {
+//        val pixels = IntArray(width * height)
+//        getPixels(pixels, 0, width, 0, 0, width, height)
+//        fillBuffer(imageByteBuffer, pixels, inputImageWidth, inputImageHeight, false)
+//    }
 
     return imageByteBuffer
+}
+
+private fun convertITT(bitmap: Bitmap, imgData: ByteBuffer) {
+    for (y in 0 until bitmap.height) {
+        for (x in 0 until bitmap.width) {
+            val pixelColor = bitmap.getPixel(x, y)
+            val pixelAlpha: Int = Color.green(pixelColor)
+            imgData.putFloat(pixelAlpha.toFloat())
+        }
+    }
 }
 
 private fun fillBuffer(
@@ -195,20 +208,29 @@ private fun fillBuffer(
     for (i in 0 until height) {
         for (j in 0 until width) {
             val pixelValue = pixels[i * height + j]
-            if (isModelQuantized) {
-                imgData.put((pixelValue shr 16 and 0xFF).toByte())
-                imgData.put((pixelValue shr 8 and 0xFF).toByte())
-                imgData.put((pixelValue and 0xFF).toByte())
-            } else {
-                imgData.putFloat(((pixelValue shr 16 and 0xFF) - IMAGE_MEAN) / IMAGE_STD)
-                imgData.putFloat(((pixelValue shr 8 and 0xFF) - IMAGE_MEAN) / IMAGE_STD)
-                imgData.putFloat(((pixelValue and 0xFF) - IMAGE_MEAN) / IMAGE_STD)
-            }
+            imgData.putFloat(pixelValue.toFloat())
+//            if (isModelQuantized) {
+//                imgData.put((pixelValue shr 16 and 0xFF).toByte())
+//                imgData.put((pixelValue shr 8 and 0xFF).toByte())
+//                imgData.put((pixelValue and 0xFF).toByte())
+//            } else {
+//               val r =  pixelValue shr 16 and 0xFF
+//                val g = pixelValue shr 8 and 0xFF
+//                val b = pixelValue and 0xFF
+//
+//                  // Convert RGB to grayscale and normalize pixel value to [0..1].
+//                val normalizedPixelValue = (r + g + b).toFloat()
+//                imgData.putFloat(normalizedPixelValue)
+//            }
         }
     }
+
 }
 
 fun Bitmap.rotate(degrees: Float): Bitmap {
-    val matrix = Matrix().apply { postRotate(degrees) }
-    return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
+    val matrix = Matrix()
+    matrix.preRotate(degrees)
+    val rotatedBitmap = Bitmap.createBitmap(this, 0, 0, this.width, this.height, matrix, true)
+    this.recycle()
+    return rotatedBitmap
 }

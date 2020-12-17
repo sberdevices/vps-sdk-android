@@ -51,10 +51,10 @@ class NeuroModel(
 
         interpreter?.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap ?: return null)
 
-        val globalDescriptor: FloatArray = outputMap?.get(0) as FloatArray
-        val keyPoints: FloatArray = (outputMap[1] as Array<FloatArray>).flatten()
-        val localDescriptors: FloatArray = (outputMap[2] as Array<FloatArray>).flatten()
-        val scores: FloatArray = outputMap[3] as FloatArray
+        val globalDescriptor = outputMap?.get(0) as FloatArray
+        val keyPoints= (outputMap[1] as Array<FloatArray>)
+        val localDescriptors = (outputMap[2] as Array<FloatArray>)
+        val scores = outputMap[3] as FloatArray
 
         return NeuroResult(globalDescriptor, keyPoints, localDescriptors, scores)
     }
@@ -93,8 +93,8 @@ class NeuroModel(
         inputPixelSize = inputShape?.get(3) ?: 0
     }
 
-    private fun initOutputMap(interpreter: Interpreter): HashMap<Int, Any> {
-        val outputMap = hashMapOf<Int, Any>()
+    private fun initOutputMap(interpreter: Interpreter): Map<Int, Any> {
+        val outputMap = mutableMapOf<Int, Any>()
 
         val keyPointsShape = interpreter.getOutputTensor(0).shape()
         outputMap[0] =  FloatArray(keyPointsShape[0])
@@ -108,7 +108,7 @@ class NeuroModel(
         val globalDescriptorShape = interpreter.getOutputTensor(3).shape()
          outputMap[3] =  FloatArray(globalDescriptorShape[0])
 
-        return outputMap
+        return outputMap.toMap()
     }
 
     companion object{
