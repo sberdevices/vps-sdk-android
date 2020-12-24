@@ -25,9 +25,7 @@ interface VpsApiService {
 
 object VpsApi {
 
-    var BASE_URL = "https://api.polytech.vps.arvr.sberlabs.com/polytech/vps/api/v1/"
-
-   // var BASE_URL = "http://arvrlab.supercamera.eu.ngrok.io/vps/api/v1/"
+    var BASE_URL = "https://api.bootcamp.vps.arvr.sberlabs.com/eeb38592-4a3c-4d4b-b4c6-38fd68331521/vps/api/v1/"
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()

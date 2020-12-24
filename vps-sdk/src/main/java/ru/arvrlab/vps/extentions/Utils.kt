@@ -10,6 +10,8 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import ru.arvrlab.vps.network.dto.ResponseDto
+import ru.arvrlab.vps.neuro.NeuroHelper
+import ru.arvrlab.vps.neuro.NeuroModel
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -117,9 +119,9 @@ fun ResponseDto.toNewRotationAndPositionPair(): Pair<Quaternion, Vector3> {
     return Pair(newRotation, newPosition)
 }
 
-suspend fun Image.toMultipartBody(): MultipartBody.Part {
+suspend fun Image.toMultipartBodyServer(): MultipartBody.Part {
     return withContext(Dispatchers.IO) {
-        val resizedBitmap = getResizedBitmap(this@toMultipartBody)
+        val resizedBitmap = getResizedBitmap(this@toMultipartBodyServer)
 
         val byteArray = ByteArrayOutputStream().use { stream ->
             resizedBitmap.compress(Bitmap.CompressFormat.JPEG, QUALITY, stream)
@@ -130,6 +132,23 @@ suspend fun Image.toMultipartBody(): MultipartBody.Part {
 
         val requestBody = byteArray.toRequestBody("*/*".toMediaTypeOrNull(), 0, byteArray.size)
         MultipartBody.Part.createFormData("image", "sceneform_photo", requestBody)
+    }
+}
+
+suspend fun Image.multipartBodyNeuro(neuro: NeuroModel): MultipartBody.Part? {
+    return withContext(Dispatchers.IO) {
+
+        val imageInByteArray = toByteArrayNeuroVersion()
+        val bitmap = BitmapFactory.decodeByteArray(imageInByteArray, 0, imageInByteArray.size)
+
+        val neuroResult = neuro.getFeatures(bitmap)
+        val byteArray = NeuroHelper.getFileAsByteArray(neuroResult)
+
+        bitmap.recycle()
+
+        val requestBody =
+            byteArray.toRequestBody("image/jpeg".toMediaTypeOrNull(), 0, byteArray.size)
+        MultipartBody.Part.createFormData("embedding", "embedding.embd", requestBody)
     }
 }
 

@@ -2,6 +2,7 @@ plugins {
     id 'com.android.library'
     id 'kotlin-android'
     id 'kotlin-kapt'
+    id 'kotlin-android-extensions'
 }
 
 android {
@@ -55,7 +56,7 @@ dependencies {
     api 'com.squareup.retrofit2:converter-moshi:2.9.0'
     kapt "com.squareup.moshi:moshi-kotlin-codegen:1.8.0"
     api "com.squareup.moshi:moshi-kotlin:1.9.3"
-    api"com.squareup.okhttp3:okhttp:4.6.0"
+    api "com.squareup.okhttp3:okhttp:4.6.0"
 
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.2.0"
 
