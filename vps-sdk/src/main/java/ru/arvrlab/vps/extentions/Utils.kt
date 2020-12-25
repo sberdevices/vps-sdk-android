@@ -135,7 +135,7 @@ suspend fun Image.toMultipartBodyServer(): MultipartBody.Part {
     }
 }
 
-suspend fun Image.multipartBodyNeuro(neuro: NeuroModel): MultipartBody.Part? {
+suspend fun Image.toMultipartBodyNeuro(neuro: NeuroModel): MultipartBody.Part {
     return withContext(Dispatchers.IO) {
 
         val imageInByteArray = toByteArrayNeuroVersion()

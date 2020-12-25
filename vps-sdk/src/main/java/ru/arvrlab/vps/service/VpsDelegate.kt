@@ -1,7 +1,6 @@
 package ru.arvrlab.vps.service
 
 import android.annotation.SuppressLint
-import android.graphics.BitmapFactory
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -13,16 +12,13 @@ import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 import kotlinx.coroutines.*
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import ru.arvrlab.vps.extentions.*
 import ru.arvrlab.vps.network.VpsApi
 import ru.arvrlab.vps.network.dto.RequestDataDto
 import ru.arvrlab.vps.network.dto.RequestDto
 import ru.arvrlab.vps.network.dto.RequestGpsDto
 import ru.arvrlab.vps.network.dto.ResponseDto
-import ru.arvrlab.vps.neuro.NeuroHelper
 import ru.arvrlab.vps.neuro.NeuroModel
 import ru.arvrlab.vps.ui.VpsArFragment
 
@@ -109,27 +105,18 @@ class VpsDelegate(
 
             cameraStartRotation = vpsArFragment.arSceneView.scene.camera.worldRotation
 
-            if(settings.isNeuro) {
-                sendRequestServer()?.run {
-                    localize(this)
-                }
-            }else{
-                sendRequestNeuro()?.run {
-                    localize(this)
-                }
+            sendRequest()?.run {
+                localize(this)
             }
         }
     }
 
-    private suspend fun sendRequestServer(): Pair<Quaternion, Vector3>? {
+    private suspend fun sendRequest(): Pair<Quaternion, Vector3>? {
         return withContext(Dispatchers.Main) {
             try {
                 Log.i(TAG, "force = $force")
                 Log.i(TAG, "failureCount = $failureCount")
-                val responseDto = VpsApi.getApiService(settings.url).process(
-                    getRequestDto(),
-                    getMultipart()
-                )
+                val responseDto = VpsApi.getApiService(settings.url).process(getRequestDto(), getMultipartBody())
 
                 Log.i(TAG, "status = ${responseDto.responseData?.responseAttributes?.status}")
                 if (responseDto.responseData?.responseAttributes?.status == "done") {
@@ -156,16 +143,6 @@ class VpsDelegate(
                 null
             }
         }
-    }
-
-    private suspend fun getMultipart(): MultipartBody.Part {
-        val image: Image = vpsArFragment.arSceneView.arFrame?.acquireCameraImage()
-            ?: throw NotYetAvailableException(
-                "Failed to acquire camera image"
-            )
-        val multipartBody = image.toMultipartBodyServer()
-        image.close()
-        return multipartBody
     }
 
     private fun getRequestDto(): RequestDto {
@@ -206,8 +183,7 @@ class VpsDelegate(
     }
 
     private fun setLocalPos(request: RequestDto) {
-        val anchor =
-            vpsArFragment.arSceneView.session?.createAnchor(vpsArFragment.arSceneView.arFrame?.camera?.pose)
+        val anchor = vpsArFragment.arSceneView.session?.createAnchor(vpsArFragment.arSceneView.arFrame?.camera?.pose)
         val anchorNode = AnchorNode(anchor)
         anchorNode.setParent(positionNode)
 
@@ -228,6 +204,14 @@ class VpsDelegate(
         anchorNode.setParent(null)
     }
 
+    private suspend fun getMultipartBody(): MultipartBody.Part {
+        val image: Image = vpsArFragment.arSceneView.arFrame?.acquireCameraImage() ?: throw NotYetAvailableException("Failed to acquire camera image")
+
+        val multipartBody = if (settings.isNeuro) image.toMultipartBodyNeuro(neuro) else image.toMultipartBodyServer()
+        image.close()
+        return multipartBody
+    }
+
     private fun localize(newRotationAndPosition: Pair<Quaternion, Vector3>) {
         if (!isModelCreated) {
             createNodeHierarchy()
@@ -237,7 +221,6 @@ class VpsDelegate(
         cameraAlternativeNode?.worldRotation = getConvertedCameraStartRotation(cameraStartRotation)
         cameraAlternativeNode?.worldPosition = cameraStartPosition
         cameraAlternativeNode?.worldPosition?.z = 0f
-
 
         rotationNode?.localRotation = newRotationAndPosition.first
         positionNode.localPosition = newRotationAndPosition.second
@@ -254,8 +237,7 @@ class VpsDelegate(
 
     }
 
-    private fun isGpsProviderEnabled() =
-        locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) ?: false
+    private fun isGpsProviderEnabled() = locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) ?: false
 
     fun stop() {
         firstLocalize = true
@@ -301,55 +283,6 @@ class VpsDelegate(
         if (!enabled) {
             force = true
         }
-    }
-
-
-    private suspend fun sendRequestNeuro(): Pair<Quaternion, Vector3>? {
-        return withContext(Dispatchers.Main) {
-            try {
-                Log.i(TAG, "force = $force")
-                Log.i(TAG, "failureCount = $failureCount")
-                val responseDto = VpsApi.getApiService(settings.url).process(
-                    getRequestDto(),
-                    getMultipartNeuro() ?: return@withContext null
-                )
-
-                Log.i(TAG, "status = ${responseDto.responseData?.responseAttributes?.status}")
-                if (responseDto.responseData?.responseAttributes?.status == "done") {
-                    if (!settings.onlyForce) {
-                        force = false
-                    }
-
-                    firstLocalize = false
-                    failureCount = 0
-                    callback?.onPositionVps(responseDto)
-                    responseDto.toNewRotationAndPositionPair()
-                } else {
-                    failureCount++
-                    null
-                }
-
-            } catch (e: NotYetAvailableException) {
-                null
-            } catch (e: CancellationException) {
-                null
-            } catch (e: Exception) {
-                stop()
-                Log.e(TAG, e.toString())
-                callback?.onError(e)
-                null
-            }
-        }
-    }
-
-    private suspend fun getMultipartNeuro(): MultipartBody.Part? {
-        val image: Image = vpsArFragment.arSceneView.arFrame?.acquireCameraImage()
-            ?: throw NotYetAvailableException(
-                "Failed to acquire camera image"
-            )
-        val multipartBody = image.multipartBodyNeuro(neuro)
-        image.close()
-        return multipartBody
     }
 
     companion object {
