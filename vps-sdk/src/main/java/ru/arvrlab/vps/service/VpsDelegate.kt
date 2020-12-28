@@ -263,7 +263,7 @@ class VpsDelegate(
 
     fun destroy() {
         stop()
-        //destroyHierarchy()
+        destroyHierarchy()
     }
 
     private fun destroyHierarchy() {

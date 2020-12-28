@@ -25,7 +25,7 @@ interface VpsApiService {
 
 object VpsApi {
 
-    var BASE_URL = "https://api.bootcamp.vps.arvr.sberlabs.com/eeb38592-4a3c-4d4b-b4c6-38fd68331521/vps/api/v1/"
+    var BASE_URL: String? = null
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
@@ -33,6 +33,11 @@ object VpsApi {
     var retrofitService: VpsApiService? = null
 
     fun getApiService(baseUrl: String): VpsApiService {
+        if (baseUrl != BASE_URL) {
+            BASE_URL = baseUrl
+            retrofitService = null
+        }
+
         val service = retrofitService ?: getClient(baseUrl).create(VpsApiService::class.java)
         if(retrofitService == null) {
             retrofitService = service
