@@ -54,6 +54,8 @@ class VpsDelegate(
         lastLocation = location
     }
 
+    private var
+
     fun start() {
         if (isTimerRunning) {
             return
@@ -182,13 +184,81 @@ class VpsDelegate(
         return request
     }
 
+//    private fun setLocalPos(request: RequestDto) {
+//        val anchor = vpsArFragment.arSceneView.session?.createAnchor(vpsArFragment.arSceneView.arFrame?.camera?.pose)
+//        val anchorNode = AnchorNode(anchor)
+//        anchorNode.setParent(positionNode)
+//
+//        val localPos = anchorNode.localPosition
+//        val localRot = anchorNode.localRotation.toEulerAngles()
+//
+//        localPos.let {
+//            request.data.attributes.location.localPos.run {
+//                x = it.x
+//                y = it.y
+//                z = it.z
+//                roll = localRot.z
+//                pitch = localRot.x
+//                yaw = localRot.y
+//            }
+//        }
+//
+//        anchorNode.setParent(null)
+//    }
+
+//    private fun setLocalPos(request: RequestDto) {
+//        val anchor = vpsArFragment.arSceneView.session?.createAnchor(vpsArFragment.arSceneView.arFrame?.camera?.pose)
+//        val anchorNode = AnchorNode(anchor)
+//        anchorNode.setParent(positionNode)
+//
+//        val localPos = anchorNode.localPosition
+//        val localRot = anchorNode.localRotation.toEulerAngles()
+//
+//        localRot.y = localRot.y + 180f
+//        localPos.x = -localPos.x
+//        localPos.y = -localPos.y
+//        localPos.z = -localPos.z
+//
+//        localPos.let {
+//            request.data.attributes.location.localPos.run {
+//                x = it.x
+//                y = it.y
+//                z = it.z
+//                roll = localRot.z
+//                pitch = localRot.x
+//                yaw = localRot.y
+//            }
+//        }
+//
+//        anchorNode.setParent(null)
+//    }
+
     private fun setLocalPos(request: RequestDto) {
-        val anchor = vpsArFragment.arSceneView.session?.createAnchor(vpsArFragment.arSceneView.arFrame?.camera?.pose)
-        val anchorNode = AnchorNode(anchor)
-        anchorNode.setParent(positionNode)
+        val data = vpsArFragment.arSceneView.scene.camera.worldModelMatrix.data
+        val m31: Float = data[13]
+        val m32: Float = data[14]
+        val m33: Float = data[15]
+
+        val lastCamera = Node()
+        val newCamera = Node()
+
+        lastCamera.worldPosition = Vector3(m31, m32, m33)
+        newCamera.worldPosition  = vpsArFragment.arSceneView.scene.camera.worldPosition
+        newCamera.worldRotation = vpsArFragment.arSceneView.scene.camera.worldRotation
+
+        val anchor = AnchorNode()
+        anchor.addChild(lastCamera)
+        anchor.addChild(newCamera)
+
+
 
         val localPos = anchorNode.localPosition
         val localRot = anchorNode.localRotation.toEulerAngles()
+
+        localRot.y = localRot.y + 180f
+        localPos.x = -localPos.x
+        localPos.y = -localPos.y
+        localPos.z = -localPos.z
 
         localPos.let {
             request.data.attributes.location.localPos.run {
