@@ -15,12 +15,10 @@ import kotlinx.coroutines.*
 import okhttp3.MultipartBody
 import ru.arvrlab.vps.extentions.*
 import ru.arvrlab.vps.network.VpsApi
-import ru.arvrlab.vps.network.dto.RequestDataDto
-import ru.arvrlab.vps.network.dto.RequestDto
-import ru.arvrlab.vps.network.dto.RequestGpsDto
-import ru.arvrlab.vps.network.dto.ResponseDto
+import ru.arvrlab.vps.network.dto.*
 import ru.arvrlab.vps.neuro.NeuroModel
 import ru.arvrlab.vps.ui.VpsArFragment
+import kotlin.math.PI
 
 
 class VpsDelegate(
@@ -54,7 +52,7 @@ class VpsDelegate(
         lastLocation = location
     }
 
-    private var
+    private var lastResponse: ResponseRelativeDto? = null
 
     fun start() {
         if (isTimerRunning) {
@@ -129,6 +127,7 @@ class VpsDelegate(
                     firstLocalize = false
                     failureCount = 0
                     callback?.onPositionVps(responseDto)
+                    lastResponse = responseDto.responseData.responseAttributes.responseLocation?.responseRelative
                     responseDto.toNewRotationAndPositionPair()
                 } else {
                     failureCount++
@@ -250,28 +249,30 @@ class VpsDelegate(
         anchor.addChild(lastCamera)
         anchor.addChild(newCamera)
 
+        val yangl = Quaternion(Vector3(((lastResponse?.roll ?: 0f) * PI/180f).toFloat(), ((lastResponse?.yaw ?: 0f) * PI/180f).toFloat(), ((lastResponse?.pitch ?: 0f) * PI/180f).toFloat())).toEulerAngles().y
+        val cameraangl = Quaternion(Vector3(m31, m32, m33)).toEulerAngles().y
 
+        val rotationAngle = yangl + cameraangl
 
-        val localPos = anchorNode.localPosition
-        val localRot = anchorNode.localRotation.toEulerAngles()
+        anchor.worldRotation = Quaternion(Vector3(0f, rotationAngle, 0f))
+        val  correct = Vector3(newCamera.worldPosition.x - lastCamera.worldPosition.x,
+            newCamera.worldPosition.y - lastCamera.worldPosition.y, newCamera.worldPosition.z - lastCamera.worldPosition.z)
+        val eulerNode = Node()
+        eulerNode.worldPosition = newCamera.worldPosition
+        eulerNode.worldRotation = newCamera.worldRotation
 
-        localRot.y = localRot.y + 180f
-        localPos.x = -localPos.x
-        localPos.y = -localPos.y
-        localPos.z = -localPos.z
+        val newPos = Vector3(lastResponse?.x ?: 0f + correct.x, lastResponse?.y ?: 0f + correct.y, lastResponse?.z ?: 0f + correct.z)
+        val newAngle = eulerNode.localRotation.toEulerAngles()
 
-        localPos.let {
             request.data.attributes.location.localPos.run {
-                x = it.x
-                y = it.y
-                z = it.z
-                roll = localRot.z
-                pitch = localRot.x
-                yaw = localRot.y
+                x = newPos.x
+                y = newPos.y
+                z = newPos.z
+                roll = newAngle.x
+                pitch = newAngle.z
+                yaw = newAngle.y
             }
-        }
 
-        anchorNode.setParent(null)
     }
 
     private suspend fun getMultipartBody(): MultipartBody.Part {
