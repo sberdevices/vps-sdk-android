@@ -118,32 +118,12 @@ class VpsDelegate(
         return withContext(Dispatchers.Main) {
             photoTransform = vpsArFragment.arSceneView.scene.camera.worldModelMatrix
             try {
-                Log.i(TAG, "force = $force")
                 val responseDto = VpsApi.getApiService(settings.url).process(getRequestDto(), getMultipartBody())
 
                 if (responseDto.responseData?.responseAttributes?.status == "done") {
-                    Log.i(TAG, "done")
-                    if (!settings.onlyForce) {
-                        force = false
-                    }
-
-                    firstLocalize = false
-                    failureCount = 0
-                    callback?.onPositionVps(responseDto)
-                    lastResponse = responseDto.responseData.responseAttributes.responseLocation?.responseRelative
-                    successPhotoTransform = photoTransform
-
-                    val yangl = Quaternion(Vector3(((lastResponse?.roll ?: 0f) * PI/180f).toFloat(), ((lastResponse?.yaw ?: 0f) * PI/180f).toFloat(), ((lastResponse?.pitch ?: 0f) * PI/180f).toFloat())).toEulerAngles().y
-                    val cameraangl = Quaternion(photoTransform?.toPositionVector()).toEulerAngles().y
-
-                    rotationAngle = yangl + cameraangl
-
-                    responseDto.toNewRotationAndPositionPair()
+                    onSuccessResponse(responseDto, responseDto.responseData.responseAttributes)
                 } else {
-                    Log.i(TAG, "fail")
-                    failureCount++
-                    Log.i(TAG, "failureCount = $failureCount")
-                    null
+                    onFailResponse()
                 }
 
             } catch (e: NotYetAvailableException) {
@@ -179,6 +159,7 @@ class VpsDelegate(
             setLocalPosToRequestDto(request)
         }
 
+        Log.i(TAG, "force = $force")
         request.data.attributes.forcedLocalisation = force
         request.data.attributes.location.locationId = settings.locationID
 
@@ -237,6 +218,39 @@ class VpsDelegate(
         val multipartBody = if (settings.isNeuro) image.toMultipartBodyNeuro(neuro) else image.toMultipartBodyServer()
         image.close()
         return multipartBody
+    }
+
+    private fun onSuccessResponse(
+        responseDto: ResponseDto,
+        responseAttributes: ResponseAttributesDto
+    ): Pair<Quaternion, Vector3> {
+        Log.i(TAG, "done")
+        if (!settings.onlyForce) {
+            force = false
+        }
+
+        firstLocalize = false
+        failureCount = 0
+        callback?.onPositionVps(responseDto)
+        lastResponse = responseAttributes.responseLocation?.responseRelative
+        successPhotoTransform = photoTransform
+
+        val yangl = Quaternion(Vector3(
+            ((lastResponse?.roll ?: 0f) * PI / 180f).toFloat(),
+                ((lastResponse?.yaw ?: 0f) * PI / 180f).toFloat(),
+                ((lastResponse?.pitch ?: 0f) * PI / 180f).toFloat())).toEulerAngles().y
+        val cameraangl = Quaternion(photoTransform?.toPositionVector()).toEulerAngles().y
+
+        rotationAngle = yangl + cameraangl
+
+        return responseDto.toNewRotationAndPositionPair()
+    }
+
+    private fun onFailResponse(): Nothing? {
+        Log.i(TAG, "fail")
+        failureCount++
+        Log.i(TAG, "failureCount = $failureCount")
+        return null
     }
 
     private fun localize(newRotationAndPosition: Pair<Quaternion, Vector3>) {
