@@ -9,19 +9,17 @@ import android.util.Log
 import com.google.ar.core.exceptions.NotYetAvailableException
 import com.google.ar.sceneform.AnchorNode
 import com.google.ar.sceneform.Node
+import com.google.ar.sceneform.math.Matrix
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 import kotlinx.coroutines.*
 import okhttp3.MultipartBody
 import ru.arvrlab.vps.extentions.*
 import ru.arvrlab.vps.network.VpsApi
-import ru.arvrlab.vps.network.dto.RequestDataDto
-import ru.arvrlab.vps.network.dto.RequestDto
-import ru.arvrlab.vps.network.dto.RequestGpsDto
-import ru.arvrlab.vps.network.dto.ResponseDto
+import ru.arvrlab.vps.network.dto.*
 import ru.arvrlab.vps.neuro.NeuroModel
 import ru.arvrlab.vps.ui.VpsArFragment
-
+import kotlin.math.PI
 
 class VpsDelegate(
     private val coroutineScope: CoroutineScope,
@@ -47,6 +45,11 @@ class VpsDelegate(
     private var failureCount = 0
     private var force = true
     private var firstLocalize = true
+
+    private var lastResponse: ResponseRelativeDto? = null
+    private var photoTransform: Matrix? = null
+    private var successPhotoTransform: Matrix? = null
+    private var rotationAngle: Float? = null
 
     private val neuro by lazy { NeuroModel(vpsArFragment.requireContext()) }
 
@@ -113,13 +116,13 @@ class VpsDelegate(
 
     private suspend fun sendRequest(): Pair<Quaternion, Vector3>? {
         return withContext(Dispatchers.Main) {
+            photoTransform = vpsArFragment.arSceneView.scene.camera.worldModelMatrix
             try {
                 Log.i(TAG, "force = $force")
-                Log.i(TAG, "failureCount = $failureCount")
                 val responseDto = VpsApi.getApiService(settings.url).process(getRequestDto(), getMultipartBody())
 
-                Log.i(TAG, "status = ${responseDto.responseData?.responseAttributes?.status}")
                 if (responseDto.responseData?.responseAttributes?.status == "done") {
+                    Log.i(TAG, "done")
                     if (!settings.onlyForce) {
                         force = false
                     }
@@ -127,9 +130,19 @@ class VpsDelegate(
                     firstLocalize = false
                     failureCount = 0
                     callback?.onPositionVps(responseDto)
+                    lastResponse = responseDto.responseData.responseAttributes.responseLocation?.responseRelative
+                    successPhotoTransform = photoTransform
+
+                    val yangl = Quaternion(Vector3(((lastResponse?.roll ?: 0f) * PI/180f).toFloat(), ((lastResponse?.yaw ?: 0f) * PI/180f).toFloat(), ((lastResponse?.pitch ?: 0f) * PI/180f).toFloat())).toEulerAngles().y
+                    val cameraangl = Quaternion(photoTransform?.toPositionVector()).toEulerAngles().y
+
+                    rotationAngle = yangl + cameraangl
+
                     responseDto.toNewRotationAndPositionPair()
                 } else {
+                    Log.i(TAG, "fail")
                     failureCount++
+                    Log.i(TAG, "failureCount = $failureCount")
                     null
                 }
 
@@ -163,7 +176,7 @@ class VpsDelegate(
         }
 
         if (!force) {
-            setLocalPos(request)
+            setLocalPosToRequestDto(request)
         }
 
         request.data.attributes.forcedLocalisation = force
@@ -179,29 +192,43 @@ class VpsDelegate(
             )
         }
 
+        Log.i(TAG, "request = $request")
         return request
     }
 
-    private fun setLocalPos(request: RequestDto) {
-        val anchor = vpsArFragment.arSceneView.session?.createAnchor(vpsArFragment.arSceneView.arFrame?.camera?.pose)
-        val anchorNode = AnchorNode(anchor)
-        anchorNode.setParent(positionNode)
+    private fun setLocalPosToRequestDto(request: RequestDto) {
+        val lastCamera = Node()
+        val newCamera = Node()
+        val anchorParent = AnchorNode()
 
-        val localPos = anchorNode.localPosition
-        val localRot = anchorNode.localRotation.toEulerAngles()
+        lastCamera.worldPosition = successPhotoTransform?.toPositionVector()
+        newCamera.worldPosition  = vpsArFragment.arSceneView.scene.camera.worldPosition
+        newCamera.worldRotation = vpsArFragment.arSceneView.scene.camera.worldRotation
 
-        localPos.let {
-            request.data.attributes.location.localPos.run {
-                x = it.x
-                y = it.y
-                z = it.z
-                roll = localRot.z
-                pitch = localRot.x
-                yaw = localRot.y
-            }
+        anchorParent.run {
+            addChild(lastCamera)
+            addChild(newCamera)
+            worldRotation = Quaternion(Vector3(0f, rotationAngle ?: 0f, 0f))
         }
 
-        anchorNode.setParent(null)
+        val  correct = Vector3(newCamera.worldPosition.x - lastCamera.worldPosition.x,
+            newCamera.worldPosition.y - lastCamera.worldPosition.y, newCamera.worldPosition.z - lastCamera.worldPosition.z)
+
+        val eulerNode = Node()
+        eulerNode.worldPosition = newCamera.worldPosition
+        eulerNode.worldRotation = newCamera.worldRotation
+
+        val newPos = Vector3(lastResponse?.x ?: 0f + correct.x, lastResponse?.y ?: 0f + correct.y, lastResponse?.z ?: 0f + correct.z)
+        val newAngle = eulerNode.localRotation.toEulerAngles()
+
+            request.data.attributes.location.localPos.run {
+                x = newPos.x
+                y = newPos.y
+                z = newPos.z
+                roll = newAngle.x
+                pitch = newAngle.z
+                yaw = newAngle.y
+            }
     }
 
     private suspend fun getMultipartBody(): MultipartBody.Part {
