@@ -19,7 +19,6 @@ import kotlin.math.PI
 import kotlin.math.asin
 import kotlin.math.atan2
 
-
 private const val BITMAP_WIDTH = 960
 private const val BITMAP_HEIGHT = 540
 private const val QUALITY = 90
@@ -227,3 +226,11 @@ fun Int.toByteArray(): ByteArray = byteArrayOf(
     (this ushr 8).toByte(),
     this.toByte()
 )
+
+fun com.google.ar.sceneform.math.Matrix.toPositionVector(): Vector3 {
+    val m31: Float = data[13]
+    val m32: Float = data[14]
+    val m33: Float = data[15]
+
+    return Vector3(m31, m32, m33)
+}

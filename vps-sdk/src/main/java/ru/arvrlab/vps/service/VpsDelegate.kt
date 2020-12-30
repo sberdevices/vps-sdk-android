@@ -46,6 +46,7 @@ class VpsDelegate(
     private var force = true
     private var firstLocalize = true
 
+    private var lastResponse: ResponseRelativeDto? = null
     private var photoTransform: Matrix? = null
     private var successPhotoTransform: Matrix? = null
     private var rotationAngle: Float? = null
@@ -55,8 +56,6 @@ class VpsDelegate(
     private val locationListener: LocationListener = LocationListener { location ->
         lastLocation = location
     }
-
-    private var lastResponse: ResponseRelativeDto? = null
 
     fun start() {
         if (isTimerRunning) {
@@ -117,6 +116,7 @@ class VpsDelegate(
 
     private suspend fun sendRequest(): Pair<Quaternion, Vector3>? {
         return withContext(Dispatchers.Main) {
+            photoTransform = vpsArFragment.arSceneView.scene.camera.worldModelMatrix
             try {
                 Log.i(TAG, "force = $force")
                 val responseDto = VpsApi.getApiService(settings.url).process(getRequestDto(), getMultipartBody())
@@ -133,12 +133,8 @@ class VpsDelegate(
                     lastResponse = responseDto.responseData.responseAttributes.responseLocation?.responseRelative
                     successPhotoTransform = photoTransform
 
-                    val m31: Float = photoTransform?.data?.get(13) ?: 0f
-                    val m32: Float = photoTransform?.data?.get(14) ?: 0f
-                    val m33: Float = photoTransform?.data?.get(15) ?: 0f
-
                     val yangl = Quaternion(Vector3(((lastResponse?.roll ?: 0f) * PI/180f).toFloat(), ((lastResponse?.yaw ?: 0f) * PI/180f).toFloat(), ((lastResponse?.pitch ?: 0f) * PI/180f).toFloat())).toEulerAngles().y
-                    val cameraangl = Quaternion(Vector3(m31, m32, m33)).toEulerAngles().y
+                    val cameraangl = Quaternion(photoTransform?.toPositionVector()).toEulerAngles().y
 
                     rotationAngle = yangl + cameraangl
 
@@ -180,8 +176,7 @@ class VpsDelegate(
         }
 
         if (!force) {
-            Log.i(TAG, "send local")
-            setLocalPos(request)
+            setLocalPosToRequestDto(request)
         }
 
         request.data.attributes.forcedLocalisation = force
@@ -201,25 +196,24 @@ class VpsDelegate(
         return request
     }
 
-    private fun setLocalPos(request: RequestDto) {
-        val m31: Float = successPhotoTransform?.data?.get(13) ?: 0f
-        val m32: Float = successPhotoTransform?.data?.get(14) ?: 0f
-        val m33: Float = successPhotoTransform?.data?.get(15) ?: 0f
-
+    private fun setLocalPosToRequestDto(request: RequestDto) {
         val lastCamera = Node()
         val newCamera = Node()
+        val anchorParent = AnchorNode()
 
-        lastCamera.worldPosition = Vector3(m31, m32, m33)
+        lastCamera.worldPosition = successPhotoTransform?.toPositionVector()
         newCamera.worldPosition  = vpsArFragment.arSceneView.scene.camera.worldPosition
         newCamera.worldRotation = vpsArFragment.arSceneView.scene.camera.worldRotation
 
-        val anchor = AnchorNode()
-        anchor.addChild(lastCamera)
-        anchor.addChild(newCamera)
+        anchorParent.run {
+            addChild(lastCamera)
+            addChild(newCamera)
+            worldRotation = Quaternion(Vector3(0f, rotationAngle ?: 0f, 0f))
+        }
 
-        anchor.worldRotation = Quaternion(Vector3(0f, rotationAngle ?: 0f, 0f))
         val  correct = Vector3(newCamera.worldPosition.x - lastCamera.worldPosition.x,
             newCamera.worldPosition.y - lastCamera.worldPosition.y, newCamera.worldPosition.z - lastCamera.worldPosition.z)
+
         val eulerNode = Node()
         eulerNode.worldPosition = newCamera.worldPosition
         eulerNode.worldRotation = newCamera.worldRotation
@@ -235,8 +229,6 @@ class VpsDelegate(
                 pitch = newAngle.z
                 yaw = newAngle.y
             }
-
-        photoTransform = vpsArFragment.arSceneView.scene.camera.worldModelMatrix
     }
 
     private suspend fun getMultipartBody(): MultipartBody.Part {
