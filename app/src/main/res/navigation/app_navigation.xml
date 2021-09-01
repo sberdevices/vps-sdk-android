@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/app_navigation"
+    app:startDestination="@id/selectFragment">
+    <fragment
+        android:id="@+id/sceneformFragment"
+        android:name="com.arvrlab.vps_android_prototype.screens.sceneview.ui.fragment.SceneformFragment"
+        android:label="SceneformFragment" >
+        <argument
+            android:name="settings"
+            app:argType="com.arvrlab.vps_sdk.service.Settings" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/selectFragment"
+        android:name="com.arvrlab.vps_android_prototype.screens.selectmode.fragment.SelectFragment"
+        android:label="SelectFragment" >
+        <action
+            android:id="@+id/action_selectFragment_to_sceneformFragment"
+            app:destination="@id/sceneformFragment" />
+    </fragment>
+</navigation>

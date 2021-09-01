@@ -1,1 +1,4 @@
-include ':vps-sdk', ':sceneform', ':sceneformux'
+include ':app',
+        ':vps-sdk',
+        ':sceneform',
+        ':sceneformux'
