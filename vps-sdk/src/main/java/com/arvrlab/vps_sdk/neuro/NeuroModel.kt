@@ -1,10 +1,10 @@
-package ru.arvrlab.vps.neuro
+package com.arvrlab.vps_sdk.neuro
 
 import android.content.Context
 import android.graphics.Bitmap
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.common.FileUtil
-import ru.arvrlab.vps.extentions.convertBitmapToBuffer
+import com.arvrlab.vps_sdk.extentions.convertBitmapToBuffer
 
 class NeuroModel(
     private val context: Context,

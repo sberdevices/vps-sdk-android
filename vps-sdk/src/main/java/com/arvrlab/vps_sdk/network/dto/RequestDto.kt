@@ -1,4 +1,4 @@
-package ru.arvrlab.vps.network.dto
+package com.arvrlab.vps_sdk.network.dto
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass

@@ -1,9 +1,9 @@
-package ru.arvrlab.vps.neuro
+package com.arvrlab.vps_sdk.neuro
 
 import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import ru.arvrlab.vps.extentions.toByteArray
+import com.arvrlab.vps_sdk.extentions.toByteArray
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder

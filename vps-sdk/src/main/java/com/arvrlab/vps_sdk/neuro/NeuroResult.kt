@@ -1,4 +1,4 @@
-package ru.arvrlab.vps.neuro
+package com.arvrlab.vps_sdk.neuro
 
 data class NeuroResult(
     var globalDescriptor: FloatArray = floatArrayOf(),

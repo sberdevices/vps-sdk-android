@@ -1,6 +1,6 @@
-package ru.arvrlab.vps.service
+package com.arvrlab.vps_sdk.service
 
-import ru.arvrlab.vps.network.dto.ResponseDto
+import com.arvrlab.vps_sdk.network.dto.ResponseDto
 import java.lang.Exception
 
 interface VpsCallback {

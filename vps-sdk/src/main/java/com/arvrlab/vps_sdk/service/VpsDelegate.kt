@@ -1,4 +1,4 @@
-package ru.arvrlab.vps.service
+package com.arvrlab.vps_sdk.service
 
 import android.annotation.SuppressLint
 import android.location.Location
@@ -14,11 +14,11 @@ import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 import kotlinx.coroutines.*
 import okhttp3.MultipartBody
-import ru.arvrlab.vps.extentions.*
-import ru.arvrlab.vps.network.VpsApi
-import ru.arvrlab.vps.network.dto.*
-import ru.arvrlab.vps.neuro.NeuroModel
-import ru.arvrlab.vps.ui.VpsArFragment
+import com.arvrlab.vps_sdk.extentions.*
+import com.arvrlab.vps_sdk.network.VpsApi
+import com.arvrlab.vps_sdk.network.dto.*
+import com.arvrlab.vps_sdk.neuro.NeuroModel
+import com.arvrlab.vps_sdk.ui.VpsArFragment
 import kotlin.math.PI
 
 class VpsDelegate(

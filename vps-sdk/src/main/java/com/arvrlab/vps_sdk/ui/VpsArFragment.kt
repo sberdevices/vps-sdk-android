@@ -1,4 +1,4 @@
-package ru.arvrlab.vps.ui
+package com.arvrlab.vps_sdk.ui
 
 import android.Manifest
 import android.content.Intent
@@ -19,10 +19,10 @@ import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.ux.ArFragment
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import ru.arvrlab.vps.network.dto.ResponseDto
-import ru.arvrlab.vps.service.Settings
-import ru.arvrlab.vps.service.VpsCallback
-import ru.arvrlab.vps.service.VpsService
+import com.arvrlab.vps_sdk.network.dto.ResponseDto
+import com.arvrlab.vps_sdk.service.Settings
+import com.arvrlab.vps_sdk.service.VpsCallback
+import com.arvrlab.vps_sdk.service.VpsService
 import java.util.*
 
 class VpsArFragment : ArFragment() {

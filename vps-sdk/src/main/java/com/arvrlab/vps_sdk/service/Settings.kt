@@ -1,4 +1,4 @@
-package ru.arvrlab.vps.service
+package com.arvrlab.vps_sdk.service
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize

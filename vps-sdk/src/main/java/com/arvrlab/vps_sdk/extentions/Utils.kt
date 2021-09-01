@@ -1,4 +1,4 @@
-package ru.arvrlab.vps.extentions
+package com.arvrlab.vps_sdk.extentions
 
 import android.graphics.*
 import android.media.Image
@@ -9,9 +9,9 @@ import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import ru.arvrlab.vps.network.dto.ResponseDto
-import ru.arvrlab.vps.neuro.NeuroHelper
-import ru.arvrlab.vps.neuro.NeuroModel
+import com.arvrlab.vps_sdk.network.dto.ResponseDto
+import com.arvrlab.vps_sdk.neuro.NeuroHelper
+import com.arvrlab.vps_sdk.neuro.NeuroModel
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
