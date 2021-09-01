@@ -62,7 +62,7 @@ class VpsArFragment : ArFragment() {
 
         val cameraConfigs = session.getSupportedCameraConfigs(cameraConfigFilter)
 
-        return cameraConfigs.maxBy { it.imageSize.height }
+        return cameraConfigs.maxByOrNull { it.imageSize.height }
     }
 
     fun initVpsService(
