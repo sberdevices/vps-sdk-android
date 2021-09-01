@@ -2,8 +2,8 @@ package com.arvrlab.vps_android_prototype.screens.sceneview.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import com.arvrlab.vps_android_prototype.infrastructure.utils.SingleLiveEvent
 import com.arvrlab.vps_sdk.network.dto.ResponseDto
-import com.example.android.ocr.infrastructure.utils.SingleLiveEvent
 
 class SceneformViewModel(app: Application) : AndroidViewModel(app) {
 

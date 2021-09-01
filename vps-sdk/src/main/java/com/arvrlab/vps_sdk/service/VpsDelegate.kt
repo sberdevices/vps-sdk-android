@@ -6,6 +6,11 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.media.Image
 import android.util.Log
+import com.arvrlab.vps_sdk.extentions.*
+import com.arvrlab.vps_sdk.network.VpsApi
+import com.arvrlab.vps_sdk.network.dto.*
+import com.arvrlab.vps_sdk.neuro.NeuroModel
+import com.arvrlab.vps_sdk.ui.VpsArFragment
 import com.google.ar.core.exceptions.NotYetAvailableException
 import com.google.ar.sceneform.AnchorNode
 import com.google.ar.sceneform.Node
@@ -14,11 +19,6 @@ import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 import kotlinx.coroutines.*
 import okhttp3.MultipartBody
-import com.arvrlab.vps_sdk.extentions.*
-import com.arvrlab.vps_sdk.network.VpsApi
-import com.arvrlab.vps_sdk.network.dto.*
-import com.arvrlab.vps_sdk.neuro.NeuroModel
-import com.arvrlab.vps_sdk.ui.VpsArFragment
 import kotlin.math.PI
 
 class VpsDelegate(
@@ -119,13 +119,11 @@ class VpsDelegate(
             photoTransform = vpsArFragment.arSceneView.scene.camera.worldModelMatrix
             try {
                 val responseDto = VpsApi.getApiService(settings.url).process(getRequestDto(), getMultipartBody())
-
                 if (responseDto.responseData?.responseAttributes?.status == "done") {
                     onSuccessResponse(responseDto, responseDto.responseData.responseAttributes)
                 } else {
                     onFailResponse()
                 }
-
             } catch (e: NotYetAvailableException) {
                 null
             } catch (e: CancellationException) {
@@ -183,7 +181,7 @@ class VpsDelegate(
         val anchorParent = AnchorNode()
 
         lastCamera.worldPosition = successPhotoTransform?.toPositionVector()
-        newCamera.worldPosition  = vpsArFragment.arSceneView.scene.camera.worldPosition
+        newCamera.worldPosition = vpsArFragment.arSceneView.scene.camera.worldPosition
         newCamera.worldRotation = vpsArFragment.arSceneView.scene.camera.worldRotation
 
         anchorParent.run {
@@ -192,30 +190,39 @@ class VpsDelegate(
             worldRotation = Quaternion(Vector3(0f, rotationAngle ?: 0f, 0f))
         }
 
-        val  correct = Vector3(newCamera.worldPosition.x - lastCamera.worldPosition.x,
-            newCamera.worldPosition.y - lastCamera.worldPosition.y, newCamera.worldPosition.z - lastCamera.worldPosition.z)
+        val correct = Vector3(
+            newCamera.worldPosition.x - lastCamera.worldPosition.x,
+            newCamera.worldPosition.y - lastCamera.worldPosition.y,
+            newCamera.worldPosition.z - lastCamera.worldPosition.z
+        )
 
         val eulerNode = Node()
         eulerNode.worldPosition = newCamera.worldPosition
         eulerNode.worldRotation = newCamera.worldRotation
 
-        val newPos = Vector3(lastResponse?.x ?: 0f + correct.x, lastResponse?.y ?: 0f + correct.y, lastResponse?.z ?: 0f + correct.z)
+        val newPos = Vector3(
+            lastResponse?.x ?: 0f + correct.x,
+            lastResponse?.y ?: 0f + correct.y,
+            lastResponse?.z ?: 0f + correct.z
+        )
         val newAngle = eulerNode.localRotation.toEulerAngles()
 
-            request.data.attributes.location.localPos.run {
-                x = newPos.x
-                y = newPos.y
-                z = newPos.z
-                roll = newAngle.x
-                pitch = newAngle.z
-                yaw = newAngle.y
-            }
+        request.data.attributes.location.localPos.run {
+            x = newPos.x
+            y = newPos.y
+            z = newPos.z
+            roll = newAngle.x
+            pitch = newAngle.z
+            yaw = newAngle.y
+        }
     }
 
     private suspend fun getMultipartBody(): MultipartBody.Part {
-        val image: Image = vpsArFragment.arSceneView.arFrame?.acquireCameraImage() ?: throw NotYetAvailableException("Failed to acquire camera image")
+        val image: Image = vpsArFragment.arSceneView.arFrame?.acquireCameraImage()
+            ?: throw NotYetAvailableException("Failed to acquire camera image")
 
-        val multipartBody = if (settings.isNeuro) image.toMultipartBodyNeuro(neuro) else image.toMultipartBodyServer()
+        val multipartBody =
+            if (settings.isNeuro) image.toMultipartBodyNeuro(neuro) else image.toMultipartBodyServer()
         image.close()
         return multipartBody
     }
@@ -235,10 +242,13 @@ class VpsDelegate(
         lastResponse = responseAttributes.responseLocation?.responseRelative
         successPhotoTransform = photoTransform
 
-        val yangl = Quaternion(Vector3(
-            ((lastResponse?.roll ?: 0f) * PI / 180f).toFloat(),
+        val yangl = Quaternion(
+            Vector3(
+                ((lastResponse?.roll ?: 0f) * PI / 180f).toFloat(),
                 ((lastResponse?.yaw ?: 0f) * PI / 180f).toFloat(),
-                ((lastResponse?.pitch ?: 0f) * PI / 180f).toFloat())).toEulerAngles().y
+                ((lastResponse?.pitch ?: 0f) * PI / 180f).toFloat()
+            )
+        ).toEulerAngles().y
         val cameraangl = Quaternion(photoTransform?.toPositionVector()).toEulerAngles().y
 
         rotationAngle = yangl + cameraangl
@@ -278,7 +288,8 @@ class VpsDelegate(
 
     }
 
-    private fun isGpsProviderEnabled() = locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) ?: false
+    private fun isGpsProviderEnabled() =
+        locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) ?: false
 
     fun stop() {
         firstLocalize = true

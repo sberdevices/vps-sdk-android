@@ -1,10 +1,10 @@
 package com.arvrlab.vps_sdk.network
 
+import com.arvrlab.vps_sdk.network.dto.RequestDto
+import com.arvrlab.vps_sdk.network.dto.ResponseDto
 import com.jakewharton.retrofit2.adapter.kotlin.coroutines.CoroutineCallAdapterFactory
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import com.arvrlab.vps_sdk.network.dto.RequestDto
-import com.arvrlab.vps_sdk.network.dto.ResponseDto
 import okhttp3.MultipartBody
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
@@ -39,7 +39,7 @@ object VpsApi {
         }
 
         val service = retrofitService ?: getClient(baseUrl).create(VpsApiService::class.java)
-        if(retrofitService == null) {
+        if (retrofitService == null) {
             retrofitService = service
         }
 

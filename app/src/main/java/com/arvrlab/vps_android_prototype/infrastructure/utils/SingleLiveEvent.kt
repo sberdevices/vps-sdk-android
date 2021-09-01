@@ -1,4 +1,4 @@
-package com.example.android.ocr.infrastructure.utils
+package com.arvrlab.vps_android_prototype.infrastructure.utils
 
 import android.util.Log
 import androidx.annotation.MainThread

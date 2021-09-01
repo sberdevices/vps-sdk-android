@@ -16,7 +16,6 @@ class SelectFragment : Fragment(R.layout.select_fragment) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         initOnClickListeners()
     }
 

@@ -123,8 +123,6 @@ class VpsArFragment : ArFragment() {
         vpsService?.destroy()
     }
 
-
-
     private fun foregroundPermissionApproved(): Boolean {
         return PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
             requireContext(),
