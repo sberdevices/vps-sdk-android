@@ -9,7 +9,9 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
 import androidx.navigation.fragment.navArgs
+import by.kirich1409.viewbindingdelegate.viewBinding
 import com.arvrlab.vps_android_prototype.R
+import com.arvrlab.vps_android_prototype.databinding.SceneformFragmentBinding
 import com.arvrlab.vps_android_prototype.infrastructure.utils.POLYTECH_LOCATION_ID
 import com.arvrlab.vps_android_prototype.screens.sceneview.viewmodel.SceneformViewModel
 import com.arvrlab.vps_sdk.network.dto.ResponseDto
@@ -19,9 +21,10 @@ import com.google.ar.sceneform.AnchorNode
 import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.rendering.EngineInstance
 import com.google.ar.sceneform.rendering.ModelRenderable
-import kotlinx.android.synthetic.main.sceneform_fragment.*
 
 class SceneformFragment : Fragment(R.layout.sceneform_fragment) {
+
+    private val binding by viewBinding(SceneformFragmentBinding::bind)
 
     private val viewModel: SceneformViewModel by viewModels()
     private val arFragment: VpsArFragment by lazy { (childFragmentManager.findFragmentById(R.id.sceneform_fargment)) as VpsArFragment }
@@ -122,7 +125,7 @@ class SceneformFragment : Fragment(R.layout.sceneform_fragment) {
             it.setAlpha()
         }
 
-        cbPolytechVisibility.isChecked = true
+        binding.cbPolytechVisibility.isChecked = true
 
 //        sepulkaNode = Node().apply {
 //            renderable = sepulkaRenderable
@@ -149,21 +152,21 @@ class SceneformFragment : Fragment(R.layout.sceneform_fragment) {
     private fun initClickListeners() {
         changeButtonsAvailability(false)
 
-        btnStart.setOnClickListener {
-            changeButtonsAvailability(true)
-            arFragment.startVpsService()
-        }
-
-        btnStop.setOnClickListener {
-            changeButtonsAvailability(false)
-            arFragment.stopVpsService()
-        }
-
-        cbPolytechVisibility.setOnCheckedChangeListener { buttonView, isChecked ->
-            if (isChecked) {
-                modelNode?.setAlpha()
-            } else {
-                modelNode?.setAlpha(0.0f)
+        with(binding) {
+            btnStart.setOnClickListener {
+                changeButtonsAvailability(true)
+                arFragment.startVpsService()
+            }
+            btnStop.setOnClickListener {
+                changeButtonsAvailability(false)
+                arFragment.stopVpsService()
+            }
+            cbPolytechVisibility.setOnCheckedChangeListener { buttonView, isChecked ->
+                if (isChecked) {
+                    modelNode?.setAlpha()
+                } else {
+                    modelNode?.setAlpha(0.0f)
+                }
             }
         }
     }
@@ -187,7 +190,9 @@ class SceneformFragment : Fragment(R.layout.sceneform_fragment) {
     }
 
     private fun changeButtonsAvailability(isStarted: Boolean) {
-        btnStart.isEnabled = !isStarted
-        btnStop.isEnabled = isStarted
+        with(binding) {
+            btnStart.isEnabled = !isStarted
+            btnStop.isEnabled = isStarted
+        }
     }
 }

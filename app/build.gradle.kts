@@ -3,7 +3,6 @@ plugins {
     id(PluginName.kotlinAndroid)
     id(PluginName.kotlinKapt)
     id(PluginName.navigationSafeargs)
-    id(PluginName.kotlinAndroidExtensions)
 }
 
 android {
@@ -30,6 +29,7 @@ android {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_1_8.toString()
     }
+    viewBinding.isEnabled = true
 }
 
 dependencies {
@@ -39,6 +39,8 @@ dependencies {
     implementation(Lib.fragmentKtx)
     implementation(Lib.appcompat)
     implementation(Lib.material)
+
+    implementation(Lib.viewBindingPropertyDelegate)
 
     implementation(Lib.navigationRuntimeKtx)
     implementation(Lib.navigationFragmentKtx)

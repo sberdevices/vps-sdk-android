@@ -23,9 +23,6 @@ object PluginName {
     const val navigationSafeargs = "androidx.navigation.safeargs.kotlin"
     const val library = "com.android.library"
     const val kotlinParcelize = "kotlin-parcelize"
-
-    @Deprecated("")
-    const val kotlinAndroidExtensions = "kotlin-android-extensions"
 }
 
 object Lib {
@@ -53,6 +50,8 @@ object Lib {
     const val lifecycleRuntimeKtx = "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle"
     const val lifecycleViewmodelKtx = "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle"
     const val lifecycleExtensions = "androidx.lifecycle:lifecycle-extensions:2.2.0"
+
+    const val viewBindingPropertyDelegate = "com.github.kirich1409:viewbindingpropertydelegate-noreflection:1.5.0-beta01"
 
     const val okhttp = "com.squareup.okhttp3:okhttp:4.6.0"
 
