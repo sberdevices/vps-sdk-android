@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-apply plugin: 'com.android.library'
+apply plugin: PluginName.library
 
 android {
     compileSdk 30
@@ -21,8 +21,6 @@ android {
         // Sceneform requires minSdkVersion >= 24.
         minSdk 24
         targetSdk 30
-        versionCode 1
-        versionName "1.0"
     }
     compileOptions {
         // Sceneform libraries use language constructs from Java 8.
