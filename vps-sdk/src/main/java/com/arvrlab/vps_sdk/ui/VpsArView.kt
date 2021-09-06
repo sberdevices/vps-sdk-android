@@ -12,11 +12,15 @@ import com.arvrlab.vps_sdk.service.Settings
 import com.arvrlab.vps_sdk.service.VpsCallback
 import com.arvrlab.vps_sdk.util.Logger
 import com.google.ar.sceneform.AnchorNode
+import com.google.ar.sceneform.Node
+import com.google.ar.sceneform.rendering.EngineInstance
 import com.google.ar.sceneform.rendering.ModelRenderable
+import java.util.concurrent.CompletableFuture
 
 class VpsArView : FrameLayout {
 
     private lateinit var vpsArFragment: VpsArFragment
+    private lateinit var modelNode: Node
 
     private val activity: FragmentActivity?
         get() = context as? FragmentActivity
@@ -56,17 +60,22 @@ class VpsArView : FrameLayout {
         }
     }
 
-    fun initVpsService(@RawRes model: Int, callback: VpsCallback, settings: Settings) {
-        ModelRenderable.builder()
+    fun initVpsService(
+        @RawRes model: Int,
+        callback: VpsCallback,
+        settings: Settings
+    ): CompletableFuture<Void> {
+        return ModelRenderable.builder()
             .setSource(context, model)
             .setIsFilamentGltf(true)
             .build()
             .thenAccept { renderable ->
-                val modelNode = AnchorNode().also {
+                modelNode = AnchorNode().also {
                     it.renderable = renderable
                 }
                 vpsArFragment.initVpsService(positionNode = modelNode, callback = callback, settings = settings)
-            }.exceptionally { error ->
+            }
+            .exceptionally { error ->
                 Logger.error(error)
                 return@exceptionally null
             }
@@ -88,22 +97,22 @@ class VpsArView : FrameLayout {
         vpsArFragment.destroy()
     }
 
-//    private fun Node.setAlpha(alpha: Float = 0.1f) {
-//        val engine = EngineInstance.getEngine().filamentEngine
-//        val rm = engine.renderableManager
-//
-//        renderableInstance?.filamentAsset?.let { asset ->
-//            for (entity in asset.entities) {
-//                val renderable = rm.getInstance(entity)
-//                if (renderable != 0) {
-//                    val r = 7f / 255
-//                    val g = 7f / 225
-//                    val b = 143f / 225
-//                    val materialInstance = rm.getMaterialInstanceAt(renderable, 0)
-//                    materialInstance.setParameter("baseColorFactor", r, g, b, alpha)
-//                }
-//            }
-//        }
-//    }
+    fun setArAlpha(alpha: Float) {
+        val engine = EngineInstance.getEngine().filamentEngine
+        val renderableManager = engine.renderableManager
+
+        modelNode.renderableInstance?.filamentAsset?.let { asset ->
+            for (entity in asset.entities) {
+                val renderable = renderableManager.getInstance(entity)
+                if (renderable != 0) {
+                    val r = 7f / 255
+                    val g = 7f / 225
+                    val b = 143f / 225
+                    val materialInstance = renderableManager.getMaterialInstanceAt(renderable, 0)
+                    materialInstance.setParameter("baseColorFactor", r, g, b, alpha)
+                }
+            }
+        }
+    }
 
 }

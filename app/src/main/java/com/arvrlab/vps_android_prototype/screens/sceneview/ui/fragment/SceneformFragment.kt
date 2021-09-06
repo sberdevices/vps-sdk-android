@@ -77,13 +77,14 @@ class SceneformFragment : Fragment(R.layout.sceneform_fragment) {
     }
 
     private fun renderModels() {
-        binding.cbPolytechVisibility.isChecked = true
         val model = if (navArgs.settings.locationID == POLYTECH_LOCATION_ID) R.raw.polytech else R.raw.bootcamp
         binding.vpsArView.initVpsService(
             model = model,
             callback = getVpsCallback(),
             settings = navArgs.settings
-        )
+        ).handle { _, _ ->
+            binding.cbPolytechVisibility.isChecked = true
+        }
     }
 
     private fun initClickListeners() {
@@ -99,11 +100,7 @@ class SceneformFragment : Fragment(R.layout.sceneform_fragment) {
                 binding.vpsArView.stopVpsService()
             }
             cbPolytechVisibility.setOnCheckedChangeListener { _, isChecked ->
-                if (isChecked) {
-//                    modelNode?.setAlpha()
-                } else {
-//                    modelNode?.setAlpha(0.0f)
-                }
+                binding.vpsArView.setArAlpha(if (isChecked) 0.5f else 0.0f)
             }
         }
     }
