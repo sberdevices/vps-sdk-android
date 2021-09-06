@@ -1,14 +1,13 @@
-package com.arvrlab.vps_android_prototype.screens.selectmode.viewmodel
+package com.arvrlab.vps_android_prototype.ui.select_mode
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import com.arvrlab.vps_android_prototype.infrastructure.utils.BOOTCAMP_BASE_URL
-import com.arvrlab.vps_android_prototype.infrastructure.utils.BOOTCAMP_LOCATION_ID
-import com.arvrlab.vps_android_prototype.infrastructure.utils.POLYTECH_BASE_URL
-import com.arvrlab.vps_android_prototype.infrastructure.utils.POLYTECH_LOCATION_ID
+import androidx.lifecycle.ViewModel
+import com.arvrlab.vps_android_prototype.util.BOOTCAMP_BASE_URL
+import com.arvrlab.vps_android_prototype.util.BOOTCAMP_LOCATION_ID
+import com.arvrlab.vps_android_prototype.util.POLYTECH_BASE_URL
+import com.arvrlab.vps_android_prototype.util.POLYTECH_LOCATION_ID
 import com.arvrlab.vps_sdk.service.Settings
 
-class SelectViewModel(app: Application) : AndroidViewModel(app) {
+class SelectModeViewModel : ViewModel() {
 
     val settings = Settings(
         url = BOOTCAMP_BASE_URL,

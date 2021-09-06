@@ -2,22 +2,22 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/app_navigation"
-    app:startDestination="@id/selectFragment">
+    app:startDestination="@id/selectModeFragment">
     <fragment
-        android:id="@+id/sceneformFragment"
-        android:name="com.arvrlab.vps_android_prototype.screens.sceneview.ui.fragment.SceneformFragment"
-        android:label="SceneformFragment" >
+        android:id="@+id/sceneFragment"
+        android:name="com.arvrlab.vps_android_prototype.ui.scene.SceneFragment"
+        android:label="SceneFragment">
         <argument
             android:name="settings"
             app:argType="com.arvrlab.vps_sdk.service.Settings" />
     </fragment>
 
     <fragment
-        android:id="@+id/selectFragment"
-        android:name="com.arvrlab.vps_android_prototype.screens.selectmode.fragment.SelectFragment"
-        android:label="SelectFragment" >
+        android:id="@+id/selectModeFragment"
+        android:name="com.arvrlab.vps_android_prototype.ui.select_mode.SelectModeFragment"
+        android:label="SelectModeFragment">
         <action
-            android:id="@+id/action_selectFragment_to_sceneformFragment"
-            app:destination="@id/sceneformFragment" />
+            android:id="@+id/actionOpenSceneFragment"
+            app:destination="@id/sceneFragment" />
     </fragment>
 </navigation>

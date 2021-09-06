@@ -1,4 +1,4 @@
-package com.arvrlab.vps_android_prototype.infrastructure.container
+package com.arvrlab.vps_android_prototype.ui
 
 import androidx.appcompat.app.AppCompatActivity
 import com.arvrlab.vps_android_prototype.R

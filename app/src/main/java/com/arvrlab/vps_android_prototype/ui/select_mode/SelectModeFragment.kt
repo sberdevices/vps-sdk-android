@@ -1,4 +1,4 @@
-package com.arvrlab.vps_android_prototype.screens.selectmode.fragment
+package com.arvrlab.vps_android_prototype.ui.select_mode
 
 import android.os.Bundle
 import android.view.View
@@ -8,13 +8,12 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import by.kirich1409.viewbindingdelegate.viewBinding
 import com.arvrlab.vps_android_prototype.R
-import com.arvrlab.vps_android_prototype.databinding.SelectFragmentBinding
-import com.arvrlab.vps_android_prototype.screens.selectmode.viewmodel.SelectViewModel
+import com.arvrlab.vps_android_prototype.databinding.FmtSelectModeBinding
 
-class SelectFragment : Fragment(R.layout.select_fragment) {
+class SelectModeFragment : Fragment(R.layout.fmt_select_mode) {
 
-    private val binding by viewBinding(SelectFragmentBinding::bind)
-    private val viewModel: SelectViewModel by viewModels()
+    private val binding by viewBinding(FmtSelectModeBinding::bind)
+    private val viewModel: SelectModeViewModel by viewModels()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -49,9 +48,7 @@ class SelectFragment : Fragment(R.layout.select_fragment) {
 
             btnSubmit.setOnClickListener {
                 findNavController().navigate(
-                    SelectFragmentDirections.actionSelectFragmentToSceneformFragment(
-                        viewModel.settings
-                    )
+                    SelectModeFragmentDirections.actionOpenSceneFragment(viewModel.settings)
                 )
             }
         }

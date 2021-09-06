@@ -1,4 +1,4 @@
-package com.arvrlab.vps_android_prototype.screens.sceneview.ui.fragment
+package com.arvrlab.vps_android_prototype.ui.scene
 
 import android.app.AlertDialog
 import android.os.Bundle
@@ -8,19 +8,18 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
 import by.kirich1409.viewbindingdelegate.viewBinding
 import com.arvrlab.vps_android_prototype.R
-import com.arvrlab.vps_android_prototype.databinding.SceneformFragmentBinding
-import com.arvrlab.vps_android_prototype.infrastructure.utils.POLYTECH_LOCATION_ID
-import com.arvrlab.vps_android_prototype.screens.sceneview.viewmodel.SceneformViewModel
+import com.arvrlab.vps_android_prototype.databinding.FmtSceneBinding
 import com.arvrlab.vps_android_prototype.util.Logger
+import com.arvrlab.vps_android_prototype.util.POLYTECH_LOCATION_ID
 import com.arvrlab.vps_sdk.network.dto.ResponseDto
 import com.arvrlab.vps_sdk.service.VpsCallback
 
-class SceneformFragment : Fragment(R.layout.sceneform_fragment) {
+class SceneFragment : Fragment(R.layout.fmt_scene) {
 
-    private val binding by viewBinding(SceneformFragmentBinding::bind)
+    private val binding by viewBinding(FmtSceneBinding::bind)
 
-    private val viewModel: SceneformViewModel by viewModels()
-    private val navArgs: SceneformFragmentArgs by navArgs()
+    private val viewModel: SceneViewModel by viewModels()
+    private val navArgs: SceneFragmentArgs by navArgs()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

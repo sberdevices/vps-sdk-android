@@ -1,11 +1,10 @@
-package com.arvrlab.vps_android_prototype.screens.sceneview.viewmodel
+package com.arvrlab.vps_android_prototype.ui.scene
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import com.arvrlab.vps_android_prototype.infrastructure.utils.SingleLiveEvent
+import androidx.lifecycle.ViewModel
+import com.arvrlab.vps_android_prototype.util.SingleLiveEvent
 import com.arvrlab.vps_sdk.network.dto.ResponseDto
 
-class SceneformViewModel(app: Application) : AndroidViewModel(app) {
+class SceneViewModel : ViewModel() {
 
     val vpsError = SingleLiveEvent<java.lang.Exception>()
     val positionVps = SingleLiveEvent<ResponseDto>()

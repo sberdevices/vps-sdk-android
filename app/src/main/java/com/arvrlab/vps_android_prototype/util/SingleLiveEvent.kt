@@ -1,4 +1,4 @@
-package com.arvrlab.vps_android_prototype.infrastructure.utils
+package com.arvrlab.vps_android_prototype.util
 
 import android.util.Log
 import androidx.annotation.MainThread

@@ -1,5 +1,4 @@
-package com.arvrlab.vps_android_prototype.infrastructure.utils
-
+package com.arvrlab.vps_android_prototype.util
 
 const val POLYTECH_BASE_URL = "https://vps.arvr.sberlabs.com/polytech/Polytech/vps/api/v1/"
 const val POLYTECH_LOCATION_ID = "Polytech"
