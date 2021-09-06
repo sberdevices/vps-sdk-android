@@ -10,6 +10,10 @@ import android.view.View
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.arvrlab.vps_sdk.network.dto.ResponseDto
+import com.arvrlab.vps_sdk.service.Settings
+import com.arvrlab.vps_sdk.service.VpsCallback
+import com.arvrlab.vps_sdk.service.VpsService
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.ar.core.CameraConfig
 import com.google.ar.core.CameraConfigFilter
@@ -19,13 +23,15 @@ import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.ux.ArFragment
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import com.arvrlab.vps_sdk.network.dto.ResponseDto
-import com.arvrlab.vps_sdk.service.Settings
-import com.arvrlab.vps_sdk.service.VpsCallback
-import com.arvrlab.vps_sdk.service.VpsService
 import java.util.*
 
-class VpsArFragment : ArFragment() {
+internal class VpsArFragment : ArFragment() {
+
+    private companion object {
+        const val REQUEST_FOREGROUND_ONLY_PERMISSION_RC = 34
+        const val CAMERA_PERMISSION_RC = 1010
+        const val FAR_CLIP_PLANE = 1000f
+    }
 
     private var vpsService: VpsService? = null
     private var needLocation = false
@@ -33,14 +39,29 @@ class VpsArFragment : ArFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        planeDiscoveryController.hide()
+        planeDiscoveryController.setInstructionView(null)
         arSceneView.scene.camera.farClipPlane = FAR_CLIP_PLANE
     }
 
-    override fun onResume() {
-        super.onResume()
+    override fun onDestroyView() {
+        super.onDestroyView()
+        destroy()
+    }
 
-        planeDiscoveryController.hide()
-        planeDiscoveryController.setInstructionView(null)
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        results: IntArray
+    ) {
+
+        if (requestCode == REQUEST_FOREGROUND_ONLY_PERMISSION_RC) {
+            checkResultLocation()
+        }
+
+        if (requestCode == CAMERA_PERMISSION_RC) {
+            checkResultCamera()
+        }
     }
 
     override fun getSessionConfiguration(session: Session): Config {
@@ -70,10 +91,8 @@ class VpsArFragment : ArFragment() {
         callback: VpsCallback,
         settings: Settings
     ) {
-        val locationManager = ContextCompat.getSystemService(
-            requireContext(),
-            LocationManager::class.java
-        ) as LocationManager
+        val locationManager =
+            ContextCompat.getSystemService(requireContext(), LocationManager::class.java) as LocationManager
         needLocation = settings.needLocation
 
         vpsService = VpsService.Builder()
@@ -86,11 +105,6 @@ class VpsArFragment : ArFragment() {
             .build()
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        destroy()
-    }
-
     fun startVpsService() {
         if (needLocation) {
             checkPermission()
@@ -100,7 +114,7 @@ class VpsArFragment : ArFragment() {
     }
 
     private fun checkPermission() {
-        if(foregroundPermissionApproved()) {
+        if (foregroundPermissionApproved()) {
             vpsService?.start()
         } else {
             requestForegroundPermissions()
@@ -108,6 +122,7 @@ class VpsArFragment : ArFragment() {
     }
 
     fun stopVpsService() {
+        arSceneView?.pause()
         vpsService?.stop()
     }
 
@@ -120,6 +135,7 @@ class VpsArFragment : ArFragment() {
     }
 
     fun destroy() {
+        arSceneView?.destroy()
         vpsService?.destroy()
     }
 
@@ -137,21 +153,6 @@ class VpsArFragment : ArFragment() {
         )
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        results: IntArray
-    ) {
-
-        if (requestCode == REQUEST_FOREGROUND_ONLY_PERMISSION_RC) {
-            checkResultLocation()
-        }
-
-        if(requestCode == CAMERA_PERMISSION_RC) {
-            checkResultCamera()
-        }
-    }
-
     private fun checkResultLocation() {
         if (ActivityCompat.checkSelfPermission(requireActivity(), Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
@@ -164,7 +165,7 @@ class VpsArFragment : ArFragment() {
             .setTitle("Location permission required")
             .setMessage("Add location permission via Settings?")
             .setPositiveButton(
-               "ok"
+                android.R.string.ok
             ) { _, _ ->
                 val intent = Intent().apply {
                     action = android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
@@ -188,7 +189,7 @@ class VpsArFragment : ArFragment() {
             .setTitle("Camera permission required")
             .setMessage("Add camera permission via Settings?")
             .setPositiveButton(
-                "ok"
+                android.R.string.ok
             ) { _, _ ->
                 val intent = Intent().apply {
                     action = android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
@@ -198,7 +199,7 @@ class VpsArFragment : ArFragment() {
                 requireActivity().startActivity(intent)
                 canRequestDangerousPermissions = true
             }
-            .setNegativeButton("cancel", null)
+            .setNegativeButton(android.R.string.cancel, null)
             .setOnDismissListener { // canRequestDangerousPermissions will be true if "OK" was selected from the dialog,
                 // false otherwise.  If "OK" was selected do nothing on dismiss, the app will
                 // continue and may ask for permission again if needed.
@@ -210,12 +211,5 @@ class VpsArFragment : ArFragment() {
             }
             .show()
     }
-
-    companion object{
-        private const val REQUEST_FOREGROUND_ONLY_PERMISSION_RC = 34
-        private const val CAMERA_PERMISSION_RC = 1010
-        private const val FAR_CLIP_PLANE = 1000f
-    }
-
 
 }

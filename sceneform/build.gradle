@@ -42,8 +42,8 @@ dependencies {
 
     implementation files("libs/libsceneform_runtime_schemas.jar")
 
-    api Lib.filamentAndroid
-    api Lib.gltfioAndroid
+    implementation Lib.filamentAndroid
+    implementation Lib.gltfioAndroid
 
     api Lib.appcompat
     api Lib.material

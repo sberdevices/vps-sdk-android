@@ -6,11 +6,11 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.media.Image
 import android.util.Log
-import com.arvrlab.vps_sdk.extentions.*
 import com.arvrlab.vps_sdk.network.VpsApi
 import com.arvrlab.vps_sdk.network.dto.*
 import com.arvrlab.vps_sdk.neuro.NeuroModel
 import com.arvrlab.vps_sdk.ui.VpsArFragment
+import com.arvrlab.vps_sdk.util.*
 import com.google.ar.core.exceptions.NotYetAvailableException
 import com.google.ar.sceneform.AnchorNode
 import com.google.ar.sceneform.Node
@@ -21,7 +21,7 @@ import kotlinx.coroutines.*
 import okhttp3.MultipartBody
 import kotlin.math.PI
 
-class VpsDelegate(
+internal class VpsDelegate(
     private val coroutineScope: CoroutineScope,
     private var vpsArFragment: VpsArFragment,
     private var positionNode: Node,
@@ -125,10 +125,13 @@ class VpsDelegate(
                     onFailResponse()
                 }
             } catch (e: NotYetAvailableException) {
+                Logger.error(e)
                 null
             } catch (e: CancellationException) {
+                Logger.error(e)
                 null
             } catch (e: Exception) {
+                Logger.error(e.stackTraceToString())
                 stop()
                 callback?.onError(e)
                 null

@@ -4,9 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/sceneform_fargment"
-        android:name="com.arvrlab.vps_sdk.ui.VpsArFragment"
+    <com.arvrlab.vps_sdk.ui.VpsArView
+        android:id="@+id/vpsArView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 

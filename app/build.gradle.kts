@@ -36,7 +36,6 @@ dependencies {
     implementation(project(":vps-sdk"))
 
     implementation(Lib.coreKtx)
-    implementation(Lib.fragmentKtx)
     implementation(Lib.appcompat)
     implementation(Lib.material)
 

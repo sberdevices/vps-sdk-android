@@ -33,9 +33,10 @@ android {
 }
 
 dependencies {
-    api(project(":sceneformux"))
+    implementation(project(":sceneformux"))
 
     implementation(Lib.coreKtx)
+    implementation(Lib.fragmentKtx)
     implementation(Lib.lifecycleRuntimeKtx)
 
     implementation(Lib.coroutinesCore)

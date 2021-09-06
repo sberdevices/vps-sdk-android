@@ -6,7 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 import com.arvrlab.vps_sdk.network.dto.ResponseDto
 import com.arvrlab.vps_sdk.ui.VpsArFragment
 
-class VpsService private constructor(
+internal class VpsService private constructor(
     coroutineScope: CoroutineScope,
     vpsArFragment: VpsArFragment,
     node: Node,
