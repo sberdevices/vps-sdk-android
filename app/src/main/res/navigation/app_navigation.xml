@@ -8,8 +8,8 @@
         android:name="com.arvrlab.vps_android_prototype.ui.scene.SceneFragment"
         android:label="SceneFragment">
         <argument
-            android:name="settings"
-            app:argType="com.arvrlab.vps_sdk.service.Settings" />
+            android:name="sceneModel"
+            app:argType="com.arvrlab.vps_android_prototype.data.SceneModel" />
     </fragment>
 
     <fragment

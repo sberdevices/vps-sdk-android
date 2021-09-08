@@ -3,29 +3,31 @@ package com.arvrlab.vps_sdk.ui
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.location.LocationManager
+import android.media.Image
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
-import com.arvrlab.vps_sdk.network.dto.ResponseDto
-import com.arvrlab.vps_sdk.service.Settings
+import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.service.VpsCallback
 import com.arvrlab.vps_sdk.service.VpsService
+import com.arvrlab.vps_sdk.util.Logger
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.ar.core.CameraConfig
 import com.google.ar.core.CameraConfigFilter
 import com.google.ar.core.Config
 import com.google.ar.core.Session
-import com.google.ar.sceneform.Node
+import com.google.ar.sceneform.AnchorNode
+import com.google.ar.sceneform.math.Matrix
+import com.google.ar.sceneform.math.Quaternion
+import com.google.ar.sceneform.math.Vector3
+import com.google.ar.sceneform.rendering.EngineInstance
+import com.google.ar.sceneform.rendering.ModelRenderable
 import com.google.ar.sceneform.ux.ArFragment
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import java.util.*
+import java.util.concurrent.CompletableFuture
 
-internal class VpsArFragment : ArFragment() {
+internal class VpsArFragment : ArFragment(), IArSceneView {
 
     private companion object {
         const val REQUEST_FOREGROUND_ONLY_PERMISSION_RC = 34
@@ -34,7 +36,9 @@ internal class VpsArFragment : ArFragment() {
     }
 
     private var vpsService: VpsService? = null
-    private var needLocation = false
+
+    private val needLocation: Boolean
+        get() = vpsService?.config?.needLocation ?: false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -44,9 +48,10 @@ internal class VpsArFragment : ArFragment() {
         arSceneView.scene.camera.farClipPlane = FAR_CLIP_PLANE
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        destroy()
+    override fun onDestroy() {
+        super.onDestroy()
+        vpsService?.destroy()
+        vpsService = null
     }
 
     override fun onRequestPermissionsResult(
@@ -72,6 +77,84 @@ internal class VpsArFragment : ArFragment() {
         }
     }
 
+    override fun getWorldPosition(): Vector3 =
+        arSceneView.scene.camera.worldPosition
+
+    override fun getWorldRotation(): Quaternion =
+        arSceneView.scene.camera.worldRotation
+
+    override fun getWorldModelMatrix(): Matrix =
+        arSceneView.scene.camera.worldModelMatrix
+
+    override fun acquireCameraImage(): Image? =
+        arSceneView.arFrame?.acquireCameraImage()
+
+    override fun addChildNode(node: AnchorNode?) {
+        arSceneView.scene.addChild(node)
+    }
+
+    fun initVpsService(vpsConfig: VpsConfig, vpsCallback: VpsCallback): CompletableFuture<Unit> =
+        ModelRenderable.builder()
+            .setSource(context, vpsConfig.modelRawId)
+            .setIsFilamentGltf(true)
+            .build()
+            .thenApply { renderable ->
+                val anchorNode = AnchorNode()
+                    .apply { this.renderable = renderable }
+                vpsService = VpsService(
+                    requireContext(),
+                    vpsConfig,
+                    this,
+                    anchorNode,
+                    vpsCallback
+                )
+            }
+            .exceptionally { Logger.error(it) }
+
+    fun startVpsService() {
+        if (needLocation) {
+            checkPermission()
+        } else {
+            vpsService?.start()
+        }
+    }
+
+    fun stopVpsService() {
+        vpsService?.stop()
+    }
+
+    fun enableForceLocalization(enabled: Boolean) {
+        vpsService?.enableForceLocalization(enabled)
+    }
+
+    fun setArAlpha(alpha: Float) {
+        val modelNode = vpsService?.anchorNode ?: return
+
+        val engine = EngineInstance.getEngine().filamentEngine
+        val renderableManager = engine.renderableManager
+
+        modelNode.renderableInstance?.filamentAsset?.let { asset ->
+            for (entity in asset.entities) {
+                val renderable = renderableManager.getInstance(entity)
+                if (renderable != 0) {
+                    val r = 7f / 255
+                    val g = 7f / 225
+                    val b = 143f / 225
+                    val materialInstance = renderableManager.getMaterialInstanceAt(renderable, 0)
+                    materialInstance.setParameter("baseColorFactor", r, g, b, alpha)
+                }
+            }
+        }
+    }
+
+    private fun checkPermission() {
+        if (foregroundPermissionApproved()) {
+            vpsService?.start()
+        } else {
+            requestForegroundPermissions()
+        }
+    }
+
     private fun getHighestResolution(session: Session): CameraConfig? {
         val cameraConfigFilter = CameraConfigFilter(session)
             .setTargetFps(
@@ -84,59 +167,6 @@ internal class VpsArFragment : ArFragment() {
         val cameraConfigs = session.getSupportedCameraConfigs(cameraConfigFilter)
 
         return cameraConfigs.maxByOrNull { it.imageSize.height }
-    }
-
-    fun initVpsService(
-        positionNode: Node,
-        callback: VpsCallback,
-        settings: Settings
-    ) {
-        val locationManager =
-            ContextCompat.getSystemService(requireContext(), LocationManager::class.java) as LocationManager
-        needLocation = settings.needLocation
-
-        vpsService = VpsService.Builder()
-            .setCoroutineScope(CoroutineScope(lifecycleScope.coroutineContext + Dispatchers.IO))
-            .setVpsArFragment(this)
-            .setNode(positionNode)
-            .setLocationManager(locationManager)
-            .setVpsCallback(callback)
-            .setSettings(settings)
-            .build()
-    }
-
-    fun startVpsService() {
-        if (needLocation) {
-            checkPermission()
-        } else {
-            vpsService?.start()
-        }
-    }
-
-    private fun checkPermission() {
-        if (foregroundPermissionApproved()) {
-            vpsService?.start()
-        } else {
-            requestForegroundPermissions()
-        }
-    }
-
-    fun stopVpsService() {
-        arSceneView?.pause()
-        vpsService?.stop()
-    }
-
-    fun enableForceLocalization(enabled: Boolean) {
-        vpsService?.enableForceLocalization(enabled)
-    }
-
-    fun localizeWithMockData(mockData: ResponseDto) {
-        vpsService?.localizeWithMockData(mockData)
-    }
-
-    fun destroy() {
-        arSceneView?.destroy()
-        vpsService?.destroy()
     }
 
     private fun foregroundPermissionApproved(): Boolean {

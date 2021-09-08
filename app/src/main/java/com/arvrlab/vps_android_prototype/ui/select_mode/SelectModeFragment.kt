@@ -48,7 +48,7 @@ class SelectModeFragment : Fragment(R.layout.fmt_select_mode) {
 
             btnSubmit.setOnClickListener {
                 findNavController().navigate(
-                    SelectModeFragmentDirections.actionOpenSceneFragment(viewModel.settings)
+                    SelectModeFragmentDirections.actionOpenSceneFragment(viewModel.sceneModel)
                 )
             }
         }

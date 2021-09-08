@@ -11,42 +11,38 @@ class NeuroModel(
     private val filename: String = TF_MODEL_NAME
 ) {
 
-    private var interpreter: Interpreter? = null
+    private companion object {
+        const val TF_MODEL_NAME = "hfnet_i8_960.tflite"
+    }
 
-    fun close() {
-        interpreter?.close()
-        interpreter = null
+    private val interpreter: Interpreter by lazy {
+        val interpreterOptions = Interpreter.Options().apply {
+            setNumThreads(4)
+        }
+
+        Interpreter(
+            FileUtil.loadMappedFile(context, filename),
+            interpreterOptions
+        )
     }
 
     fun getFeatures(bitmap: Bitmap): NeuroResult {
-        initInterpreter()
-
         val byteBuffer = convertBitmapToBuffer(bitmap)
 
         val outputMap = initOutputMap(interpreter)
 
-        interpreter?.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap )
+        interpreter?.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap)
 
         val globalDescriptor = outputMap[0] as FloatArray
-        val keyPoints= (outputMap[1] as Array<FloatArray>)
+        val keyPoints = (outputMap[1] as Array<FloatArray>)
         val localDescriptors = (outputMap[2] as Array<FloatArray>)
         val scores = outputMap[3] as FloatArray
 
         return NeuroResult(globalDescriptor, keyPoints, localDescriptors, scores)
     }
 
-    private fun initInterpreter() {
-        if (interpreter == null) {
-            val interpreterOptions = Interpreter.Options().apply {
-                setNumThreads(4)
-            }
-
-            interpreter = Interpreter(
-                FileUtil.loadMappedFile(context, filename),
-                interpreterOptions
-            )
-
-        }
+    fun close() {
+        interpreter.close()
     }
 
     private fun initOutputMap(interpreter: Interpreter?): Map<Int, Any> {
@@ -56,21 +52,18 @@ class NeuroModel(
             return mapOf()
         }
         val keyPointsShape = interpreter.getOutputTensor(0).shape()
-        outputMap[0] =  FloatArray(keyPointsShape[0])
+        outputMap[0] = FloatArray(keyPointsShape[0])
 
         val scoresShape = interpreter.getOutputTensor(1).shape()
-         outputMap[1] = Array(scoresShape[0])  { FloatArray(scoresShape[1]) }
+        outputMap[1] = Array(scoresShape[0]) { FloatArray(scoresShape[1]) }
 
         val localDescriptorsShape = interpreter.getOutputTensor(2).shape()
         outputMap[2] = Array(localDescriptorsShape[0]) { FloatArray(localDescriptorsShape[1]) }
 
         val globalDescriptorShape = interpreter.getOutputTensor(3).shape()
-         outputMap[3] =  FloatArray(globalDescriptorShape[0])
+        outputMap[3] = FloatArray(globalDescriptorShape[0])
 
         return outputMap
     }
 
-    companion object{
-        private const val TF_MODEL_NAME = "hfnet_i8_960.tflite"
-    }
 }

@@ -5,22 +5,15 @@ import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import androidx.annotation.RawRes
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.commitNow
-import com.arvrlab.vps_sdk.service.Settings
+import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.service.VpsCallback
-import com.arvrlab.vps_sdk.util.Logger
-import com.google.ar.sceneform.AnchorNode
-import com.google.ar.sceneform.Node
-import com.google.ar.sceneform.rendering.EngineInstance
-import com.google.ar.sceneform.rendering.ModelRenderable
 import java.util.concurrent.CompletableFuture
 
 class VpsArView : FrameLayout {
 
     private lateinit var vpsArFragment: VpsArFragment
-    private lateinit var modelNode: Node
 
     private val activity: FragmentActivity?
         get() = context as? FragmentActivity
@@ -41,7 +34,7 @@ class VpsArView : FrameLayout {
         vpsArFragment = VpsArFragment()
 
         activity?.let {
-            it.supportFragmentManager.commitNow {
+            it.supportFragmentManager.commitNow(true) {
                 add(id, vpsArFragment, VpsArFragment::class.java.toString())
             }
         } ?: throw IllegalStateException("VpsArView must be within a FragmentActivity")
@@ -60,26 +53,8 @@ class VpsArView : FrameLayout {
         }
     }
 
-    fun initVpsService(
-        @RawRes model: Int,
-        callback: VpsCallback,
-        settings: Settings
-    ): CompletableFuture<Void> {
-        return ModelRenderable.builder()
-            .setSource(context, model)
-            .setIsFilamentGltf(true)
-            .build()
-            .thenAccept { renderable ->
-                modelNode = AnchorNode().also {
-                    it.renderable = renderable
-                }
-                vpsArFragment.initVpsService(positionNode = modelNode, callback = callback, settings = settings)
-            }
-            .exceptionally { error ->
-                Logger.error(error)
-                return@exceptionally null
-            }
-    }
+    fun initVpsService(vpsConfig: VpsConfig, vpsCallback: VpsCallback): CompletableFuture<Unit> =
+        vpsArFragment.initVpsService(vpsConfig, vpsCallback)
 
     fun startVpsService() {
         vpsArFragment.startVpsService()
@@ -94,25 +69,11 @@ class VpsArView : FrameLayout {
     }
 
     fun destroy() {
-        vpsArFragment.destroy()
+        vpsArFragment.onDestroy()
     }
 
     fun setArAlpha(alpha: Float) {
-        val engine = EngineInstance.getEngine().filamentEngine
-        val renderableManager = engine.renderableManager
-
-        modelNode.renderableInstance?.filamentAsset?.let { asset ->
-            for (entity in asset.entities) {
-                val renderable = renderableManager.getInstance(entity)
-                if (renderable != 0) {
-                    val r = 7f / 255
-                    val g = 7f / 225
-                    val b = 143f / 225
-                    val materialInstance = renderableManager.getMaterialInstanceAt(renderable, 0)
-                    materialInstance.setParameter("baseColorFactor", r, g, b, alpha)
-                }
-            }
-        }
+        vpsArFragment.setArAlpha(alpha)
     }
 
 }

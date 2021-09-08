@@ -10,7 +10,7 @@ import by.kirich1409.viewbindingdelegate.viewBinding
 import com.arvrlab.vps_android_prototype.R
 import com.arvrlab.vps_android_prototype.databinding.FmtSceneBinding
 import com.arvrlab.vps_android_prototype.util.Logger
-import com.arvrlab.vps_android_prototype.util.POLYTECH_LOCATION_ID
+import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.network.dto.ResponseDto
 import com.arvrlab.vps_sdk.service.VpsCallback
 
@@ -24,9 +24,57 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        initVpsService()
         initClickListeners()
-        renderModels()
         initObservers()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        binding.vpsArView.pause()
+        changeButtonsAvailability(false)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        binding.vpsArView.destroy()
+    }
+
+    private fun initVpsService() {
+        val vpsConfig = navArgs.sceneModel
+            .let { sceneModel ->
+                VpsConfig(
+                    sceneModel.url,
+                    sceneModel.locationID,
+                    sceneModel.modelRawId,
+                    sceneModel.onlyForce,
+                    sceneModel.timerInterval,
+                    sceneModel.needLocation,
+                    sceneModel.isNeuro
+                )
+            }
+        binding.vpsArView.initVpsService(vpsConfig, getVpsCallback())
+            .thenApply {
+                binding.cbPolytechVisibility.isChecked = true
+            }
+    }
+
+    private fun initClickListeners() {
+        changeButtonsAvailability(false)
+
+        with(binding) {
+            btnStart.setOnClickListener {
+                changeButtonsAvailability(true)
+                binding.vpsArView.startVpsService()
+            }
+            btnStop.setOnClickListener {
+                changeButtonsAvailability(false)
+                binding.vpsArView.stopVpsService()
+            }
+            cbPolytechVisibility.setOnCheckedChangeListener { _, isChecked ->
+                binding.vpsArView.setArAlpha(if (isChecked) 0.5f else 0.0f)
+            }
+        }
     }
 
     private fun initObservers() {
@@ -62,46 +110,6 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
                 dialog.cancel()
             }
             .show()
-    }
-
-    override fun onPause() {
-        super.onPause()
-        binding.vpsArView.pause()
-        changeButtonsAvailability(false)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        binding.vpsArView.destroy()
-    }
-
-    private fun renderModels() {
-        val model = if (navArgs.settings.locationID == POLYTECH_LOCATION_ID) R.raw.polytech else R.raw.bootcamp
-        binding.vpsArView.initVpsService(
-            model = model,
-            callback = getVpsCallback(),
-            settings = navArgs.settings
-        ).handle { _, _ ->
-            binding.cbPolytechVisibility.isChecked = true
-        }
-    }
-
-    private fun initClickListeners() {
-        changeButtonsAvailability(false)
-
-        with(binding) {
-            btnStart.setOnClickListener {
-                changeButtonsAvailability(true)
-                binding.vpsArView.startVpsService()
-            }
-            btnStop.setOnClickListener {
-                changeButtonsAvailability(false)
-                binding.vpsArView.stopVpsService()
-            }
-            cbPolytechVisibility.setOnCheckedChangeListener { _, isChecked ->
-                binding.vpsArView.setArAlpha(if (isChecked) 0.5f else 0.0f)
-            }
-        }
     }
 
     private fun changeButtonsAvailability(isStarted: Boolean) {

@@ -3,6 +3,7 @@ plugins {
     id(PluginName.kotlinAndroid)
     id(PluginName.kotlinKapt)
     id(PluginName.navigationSafeargs)
+    id(PluginName.kotlinParcelize)
 }
 
 android {
