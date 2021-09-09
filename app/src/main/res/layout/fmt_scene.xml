@@ -4,8 +4,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.arvrlab.vps_sdk.ui.VpsArView
-        android:id="@+id/vpsArView"
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/vFragmentContainer"
+        android:name="com.arvrlab.vps_sdk.ui.VpsArFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 

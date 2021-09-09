@@ -13,10 +13,15 @@ import com.arvrlab.vps_android_prototype.util.Logger
 import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.network.dto.ResponseDto
 import com.arvrlab.vps_sdk.service.VpsCallback
+import com.arvrlab.vps_sdk.ui.VpsArFragment
 
 class SceneFragment : Fragment(R.layout.fmt_scene) {
 
     private val binding by viewBinding(FmtSceneBinding::bind)
+
+    private val vpsArFragment: VpsArFragment by lazy {
+        childFragmentManager.findFragmentById(binding.vFragmentContainer.id) as VpsArFragment
+    }
 
     private val viewModel: SceneViewModel by viewModels()
     private val navArgs: SceneFragmentArgs by navArgs()
@@ -31,13 +36,13 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
 
     override fun onPause() {
         super.onPause()
-        binding.vpsArView.pause()
+        vpsArFragment.stopVpsService()
         changeButtonsAvailability(false)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        binding.vpsArView.destroy()
+        vpsArFragment.onDestroy()
     }
 
     private fun initVpsService() {
@@ -46,17 +51,16 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
                 VpsConfig(
                     sceneModel.url,
                     sceneModel.locationID,
-                    sceneModel.modelRawId,
                     sceneModel.onlyForce,
                     sceneModel.timerInterval,
                     sceneModel.needLocation,
                     sceneModel.isNeuro
                 )
             }
-        binding.vpsArView.initVpsService(vpsConfig, getVpsCallback())
-            .thenApply {
-                binding.cbPolytechVisibility.isChecked = true
-            }
+
+        vpsArFragment.configureVpsService(vpsConfig, getVpsCallback())
+        vpsArFragment.loadModelByRawId(navArgs.sceneModel.modelRawId)
+            .thenApply { binding.cbPolytechVisibility.isChecked = true }
     }
 
     private fun initClickListeners() {
@@ -65,14 +69,14 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
         with(binding) {
             btnStart.setOnClickListener {
                 changeButtonsAvailability(true)
-                binding.vpsArView.startVpsService()
+                vpsArFragment.startVpsService()
             }
             btnStop.setOnClickListener {
                 changeButtonsAvailability(false)
-                binding.vpsArView.stopVpsService()
+                vpsArFragment.stopVpsService()
             }
             cbPolytechVisibility.setOnCheckedChangeListener { _, isChecked ->
-                binding.vpsArView.setArAlpha(if (isChecked) 0.5f else 0.0f)
+                vpsArFragment.setArAlpha(if (isChecked) 0.5f else 0.0f)
             }
         }
     }

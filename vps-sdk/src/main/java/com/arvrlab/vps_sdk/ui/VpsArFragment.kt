@@ -1,33 +1,30 @@
 package com.arvrlab.vps_sdk.ui
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.Image
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import androidx.annotation.CallSuper
+import androidx.annotation.RawRes
 import androidx.core.app.ActivityCompat
 import com.arvrlab.vps_sdk.data.VpsConfig
-import com.arvrlab.vps_sdk.service.VpsCallback
-import com.arvrlab.vps_sdk.service.VpsService
+import com.arvrlab.vps_sdk.service.*
 import com.arvrlab.vps_sdk.util.Logger
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.ar.core.CameraConfig
 import com.google.ar.core.CameraConfigFilter
 import com.google.ar.core.Config
 import com.google.ar.core.Session
-import com.google.ar.sceneform.AnchorNode
-import com.google.ar.sceneform.math.Matrix
-import com.google.ar.sceneform.math.Quaternion
-import com.google.ar.sceneform.math.Vector3
 import com.google.ar.sceneform.rendering.EngineInstance
 import com.google.ar.sceneform.rendering.ModelRenderable
 import com.google.ar.sceneform.ux.ArFragment
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
-internal class VpsArFragment : ArFragment(), IArSceneView {
+class VpsArFragment : ArFragment(), RequestPermissions {
 
     private companion object {
         const val REQUEST_FOREGROUND_ONLY_PERMISSION_RC = 34
@@ -37,11 +34,22 @@ internal class VpsArFragment : ArFragment(), IArSceneView {
 
     private var vpsService: VpsService? = null
 
+    private val arService: ArService by lazy {
+        ArServiceImpl(arSceneView)
+    }
+
     private val needLocation: Boolean
-        get() = vpsService?.config?.needLocation ?: false
+        get() = vpsService?.vpsConfig?.needLocation ?: false
+
+    @CallSuper
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        vpsService = VpsService(context)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        vpsService?.bindArService(arService)
 
         planeDiscoveryController.hide()
         planeDiscoveryController.setInstructionView(null)
@@ -50,6 +58,7 @@ internal class VpsArFragment : ArFragment(), IArSceneView {
 
     override fun onDestroy() {
         super.onDestroy()
+        vpsService?.unbindArService()
         vpsService?.destroy()
         vpsService = null
     }
@@ -77,37 +86,20 @@ internal class VpsArFragment : ArFragment(), IArSceneView {
         }
     }
 
-    override fun getWorldPosition(): Vector3 =
-        arSceneView.scene.camera.worldPosition
-
-    override fun getWorldRotation(): Quaternion =
-        arSceneView.scene.camera.worldRotation
-
-    override fun getWorldModelMatrix(): Matrix =
-        arSceneView.scene.camera.worldModelMatrix
-
-    override fun acquireCameraImage(): Image? =
-        arSceneView.arFrame?.acquireCameraImage()
-
-    override fun addChildNode(node: AnchorNode?) {
-        arSceneView.scene.addChild(node)
+    fun configureVpsService(vpsConfig: VpsConfig, vpsCallback: VpsCallback) {
+        vpsService?.setVpsConfig(vpsConfig)
+        vpsService?.setVpsCallback(vpsCallback)
     }
 
-    fun initVpsService(vpsConfig: VpsConfig, vpsCallback: VpsCallback): CompletableFuture<Unit> =
+    fun loadModelByRawId(@RawRes rawRes: Int): CompletableFuture<Unit> =
         ModelRenderable.builder()
-            .setSource(context, vpsConfig.modelRawId)
+            .setSource(context, rawRes)
             .setIsFilamentGltf(true)
             .build()
             .thenApply { renderable ->
-                val anchorNode = AnchorNode()
-                    .apply { this.renderable = renderable }
-                vpsService = VpsService(
-                    requireContext(),
-                    vpsConfig,
-                    this,
-                    anchorNode,
-                    vpsCallback
-                )
+                vpsService?.let {
+                    it.anchorNode.renderable = renderable
+                } ?: throw IllegalStateException("VpsService yet not created")
             }
             .exceptionally { Logger.error(it) }
 
@@ -151,7 +143,10 @@ internal class VpsArFragment : ArFragment(), IArSceneView {
         if (foregroundPermissionApproved()) {
             vpsService?.start()
         } else {
-            requestForegroundPermissions()
+            requestPermissions(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                REQUEST_FOREGROUND_ONLY_PERMISSION_RC
+            )
         }
     }
 
@@ -173,13 +168,6 @@ internal class VpsArFragment : ArFragment(), IArSceneView {
         return PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
             requireContext(),
             Manifest.permission.ACCESS_FINE_LOCATION
-        )
-    }
-
-    private fun requestForegroundPermissions() {
-        requestPermissions(
-            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-            REQUEST_FOREGROUND_ONLY_PERMISSION_RC
         )
     }
 

@@ -11,7 +11,6 @@ import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.network.VpsApi
 import com.arvrlab.vps_sdk.network.dto.*
 import com.arvrlab.vps_sdk.neuro.NeuroModel
-import com.arvrlab.vps_sdk.ui.IArSceneView
 import com.arvrlab.vps_sdk.util.*
 import com.google.ar.core.exceptions.NotYetAvailableException
 import com.google.ar.sceneform.AnchorNode
@@ -25,11 +24,7 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.math.PI
 
 internal class VpsService(
-    private val context: Context,
-    val config: VpsConfig,
-    private val arSceneView: IArSceneView,
-    val anchorNode: Node,
-    private val callback: VpsCallback? = null,
+    private val context: Context
 ) : CoroutineScope {
 
     private companion object {
@@ -39,6 +34,13 @@ internal class VpsService(
     }
 
     override val coroutineContext: CoroutineContext = SupervisorJob() + newSingleThreadContext(VPS_THREAD_NAME)
+
+    val anchorNode: Node by lazy {
+        AnchorNode()
+    }
+
+    lateinit var vpsConfig: VpsConfig
+        private set
 
     private var lastLocation: Location? = null
 
@@ -67,17 +69,33 @@ internal class VpsService(
     private val locationListener: LocationListener by lazy {
         LocationListener { location -> lastLocation = location }
     }
-
     private val locationManager: LocationManager by lazy {
         ContextCompat.getSystemService(context, LocationManager::class.java) as LocationManager
     }
 
-    fun start() {
-        if (isTimerRunning) {
-            return
-        }
+    private var arService: ArService? = null
+    private var vpsCallback: VpsCallback? = null
 
-        if (config.needLocation) {
+    internal fun bindArService(arService: ArService) {
+        this.arService = arService
+    }
+
+    internal fun unbindArService() {
+        this.arService = null
+    }
+
+    fun setVpsConfig(vpsConfig: VpsConfig) {
+        this.vpsConfig = vpsConfig
+    }
+
+    fun setVpsCallback(vpsCallback: VpsCallback) {
+        this.vpsCallback = vpsCallback
+    }
+
+    fun start() {
+        if (isTimerRunning) return
+
+        if (vpsConfig.needLocation) {
             checkPermissionAndLaunchLocalizationUpdate()
         } else {
             launchLocatizationUpdate()
@@ -112,14 +130,15 @@ internal class VpsService(
         stopLocalizationUpdate()
 
         try {
-            localize(mockData.toNewRotationAndPositionPair())
+            val (rotation, position) = mockData.toNewRotationAndPositionPair()
+            localize(rotation, position)
         } catch (e: Exception) {
-            callback?.onError(e)
+            vpsCallback?.onError(e)
         }
     }
 
     fun enableForceLocalization(enabled: Boolean) {
-        config.onlyForce = enabled
+        vpsConfig.onlyForce = enabled
         if (!enabled) {
             force = true
         }
@@ -137,7 +156,7 @@ internal class VpsService(
 
         timerJob = launch(Dispatchers.IO) {
             while (true) {
-                delay(config.timerInterval)
+                delay(vpsConfig.timerInterval)
                 if (isActive) {
                     updateLocalization()
                 }
@@ -150,21 +169,21 @@ internal class VpsService(
     private fun updateLocalization() {
         launch(Dispatchers.Main) {
 
-            cameraStartPosition = arSceneView.getWorldPosition()
+            val camera = checkNotNull(arService).camera
+            cameraStartPosition = camera.worldPosition
+            cameraStartRotation = camera.worldRotation
 
-            cameraStartRotation = arSceneView.getWorldRotation()
-
-            sendRequest()?.run {
-                localize(this)
+            sendRequest()?.let { (rotation, position) ->
+                localize(rotation, position)
             }
         }
     }
 
     private suspend fun sendRequest(): Pair<Quaternion, Vector3>? {
         return withContext(Dispatchers.Main) {
-            photoTransform = arSceneView.getWorldModelMatrix()
+            photoTransform = checkNotNull(arService).camera.worldModelMatrix
             try {
-                val responseDto = VpsApi.getApiService(config.url).process(getRequestDto(), getMultipartBody())
+                val responseDto = VpsApi.getApiService(vpsConfig.url).process(getRequestDto(), getMultipartBody())
                 if (responseDto.responseData?.responseAttributes?.status == "done") {
                     onSuccessResponse(responseDto, responseDto.responseData.responseAttributes)
                 } else {
@@ -180,14 +199,14 @@ internal class VpsService(
             } catch (e: Exception) {
                 Logger.error(e.stackTraceToString())
                 stop()
-                callback?.onError(e)
+                vpsCallback?.onError(e)
                 null
             }
         }
     }
 
     private fun getRequestDto(): RequestDto {
-        return if (config.needLocation && isGpsProviderEnabled()) {
+        return if (vpsConfig.needLocation && isGpsProviderEnabled()) {
             createRequestDto(lastLocation)
         } else {
             createRequestDto()
@@ -209,7 +228,7 @@ internal class VpsService(
 
         Logger.debug("force: $force")
         request.data.attributes.forcedLocalisation = force
-        request.data.attributes.location.locationId = config.locationID
+        request.data.attributes.location.locationId = vpsConfig.locationID
 
         location?.run {
             request.data.attributes.location.gps = RequestGpsDto(
@@ -231,8 +250,9 @@ internal class VpsService(
         val anchorParent = AnchorNode()
 
         lastCamera.worldPosition = successPhotoTransform?.toPositionVector()
-        newCamera.worldPosition = arSceneView.getWorldPosition()
-        newCamera.worldRotation = arSceneView.getWorldRotation()
+        val camera = checkNotNull(arService).camera
+        newCamera.worldPosition = camera.worldPosition
+        newCamera.worldRotation = camera.worldRotation
 
         anchorParent.run {
             addChild(lastCamera)
@@ -268,11 +288,11 @@ internal class VpsService(
     }
 
     private suspend fun getMultipartBody(): MultipartBody.Part {
-        val image: Image = arSceneView.acquireCameraImage()
+        val image: Image = arService?.arFrame?.acquireCameraImage()
             ?: throw NotYetAvailableException("Failed to acquire camera image")
 
         val multipartBody =
-            if (config.isNeuro) image.toMultipartBodyNeuro(neuroModel) else image.toMultipartBodyServer()
+            if (vpsConfig.isNeuro) image.toMultipartBodyNeuro(neuroModel) else image.toMultipartBodyServer()
         image.close()
         return multipartBody
     }
@@ -282,26 +302,26 @@ internal class VpsService(
         responseAttributes: ResponseAttributesDto
     ): Pair<Quaternion, Vector3> {
         Logger.debug("done")
-        if (!config.onlyForce) {
+        if (!vpsConfig.onlyForce) {
             force = false
         }
 
         firstLocalize = false
         failureCount = 0
-        callback?.onPositionVps(responseDto)
+        vpsCallback?.onPositionVps(responseDto)
         lastResponse = responseAttributes.responseLocation?.responseRelative
         successPhotoTransform = photoTransform
 
-        val yangl = Quaternion(
+        val anglesY = Quaternion(
             Vector3(
                 ((lastResponse?.roll ?: 0f) * PI / 180f).toFloat(),
                 ((lastResponse?.yaw ?: 0f) * PI / 180f).toFloat(),
                 ((lastResponse?.pitch ?: 0f) * PI / 180f).toFloat()
             )
         ).toEulerAngles().y
-        val cameraangl = Quaternion(photoTransform?.toPositionVector()).toEulerAngles().y
+        val cameraAngles = Quaternion(photoTransform?.toPositionVector()).toEulerAngles().y
 
-        rotationAngle = yangl + cameraangl
+        rotationAngle = anglesY + cameraAngles
 
         return responseDto.toNewRotationAndPositionPair()
     }
@@ -312,28 +332,28 @@ internal class VpsService(
         Logger.debug("failureCount: $failureCount")
     }
 
-    private fun localize(newRotationAndPosition: Pair<Quaternion, Vector3>) {
-        if (!isModelCreated) {
-            createNodeHierarchy()
-            isModelCreated = true
-        }
+    private fun localize(rotation: Quaternion, position: Vector3) {
+        createNodeHierarchyIfNeed()
 
         cameraAlternativeNode?.worldRotation = getConvertedCameraStartRotation(cameraStartRotation)
         cameraAlternativeNode?.worldPosition = cameraStartPosition
         cameraAlternativeNode?.worldPosition?.z = 0f
 
-        rotationNode?.localRotation = newRotationAndPosition.first
-        anchorNode.localPosition = newRotationAndPosition.second
+        rotationNode?.localRotation = rotation
+        anchorNode?.localPosition = position
     }
 
-    private fun createNodeHierarchy() {
-        cameraAlternativeNode = AnchorNode()
+    private fun createNodeHierarchyIfNeed() {
+        if (isModelCreated) return
+        isModelCreated = true
 
         rotationNode = AnchorNode()
+            .also { it.addChild(anchorNode) }
+        cameraAlternativeNode = AnchorNode()
+            .also { it.addChild(rotationNode) }
 
-        arSceneView.addChildNode(cameraAlternativeNode)
-        cameraAlternativeNode?.addChild(rotationNode)
-        rotationNode?.addChild(anchorNode)
+        val scene = checkNotNull(arService).scene
+        scene.addChild(cameraAlternativeNode)
     }
 
     private fun isGpsProviderEnabled() =
@@ -348,7 +368,7 @@ internal class VpsService(
         cameraAlternativeNode?.setParent(null)
         rotationNode?.setParent(null)
         cameraAlternativeNode?.setParent(null)
-        anchorNode.renderable = null
+        anchorNode?.renderable = null
 
         cameraAlternativeNode = null
         rotationNode = null

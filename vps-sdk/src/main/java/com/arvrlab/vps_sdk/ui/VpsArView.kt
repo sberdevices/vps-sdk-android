@@ -5,6 +5,7 @@ import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.annotation.RawRes
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.commitNow
 import com.arvrlab.vps_sdk.data.VpsConfig
@@ -53,8 +54,12 @@ class VpsArView : FrameLayout {
         }
     }
 
-    fun initVpsService(vpsConfig: VpsConfig, vpsCallback: VpsCallback): CompletableFuture<Unit> =
-        vpsArFragment.initVpsService(vpsConfig, vpsCallback)
+    fun configureVpsService(vpsConfig: VpsConfig, vpsCallback: VpsCallback) {
+        vpsArFragment.configureVpsService(vpsConfig, vpsCallback)
+    }
+
+    fun loadModelByRawId(@RawRes rawRes: Int): CompletableFuture<Unit> =
+        vpsArFragment.loadModelByRawId(rawRes)
 
     fun startVpsService() {
         vpsArFragment.startVpsService()
