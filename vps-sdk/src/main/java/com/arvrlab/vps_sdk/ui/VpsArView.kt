@@ -5,16 +5,15 @@ import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import androidx.annotation.RawRes
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.commitNow
-import com.arvrlab.vps_sdk.data.VpsConfig
-import com.arvrlab.vps_sdk.service.VpsCallback
-import java.util.concurrent.CompletableFuture
 
 class VpsArView : FrameLayout {
 
-    private lateinit var vpsArFragment: VpsArFragment
+    private var vpsArFragment: VpsArFragment? = null
+
+    val vpsService: VpsService
+        get() = checkNotNull(vpsArFragment).vpsService
 
     private val activity: FragmentActivity?
         get() = context as? FragmentActivity
@@ -32,53 +31,30 @@ class VpsArView : FrameLayout {
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        vpsArFragment = VpsArFragment()
+        val vpsArFragment = VpsArFragment()
 
         activity?.let {
             it.supportFragmentManager.commitNow(true) {
                 add(id, vpsArFragment, VpsArFragment::class.java.toString())
             }
         } ?: throw IllegalStateException("VpsArView must be within a FragmentActivity")
+
+        this.vpsArFragment = vpsArFragment
     }
 
     override fun addView(child: View, index: Int, params: ViewGroup.LayoutParams?) {
-        if (::vpsArFragment.isInitialized && vpsArFragment.view === child) {
+        if (vpsArFragment?.view === child) {
             super.addView(child, index, params)
         }
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+
+        val vpsArFragment = vpsArFragment ?: return
         activity?.supportFragmentManager?.commitNow(true) {
             remove(vpsArFragment)
         }
-    }
-
-    fun configureVpsService(vpsConfig: VpsConfig, vpsCallback: VpsCallback) {
-        vpsArFragment.configureVpsService(vpsConfig, vpsCallback)
-    }
-
-    fun loadModelByRawId(@RawRes rawRes: Int): CompletableFuture<Unit> =
-        vpsArFragment.loadModelByRawId(rawRes)
-
-    fun startVpsService() {
-        vpsArFragment.startVpsService()
-    }
-
-    fun stopVpsService() {
-        vpsArFragment.stopVpsService()
-    }
-
-    fun pause() {
-        vpsArFragment.stopVpsService()
-    }
-
-    fun destroy() {
-        vpsArFragment.onDestroy()
-    }
-
-    fun setArAlpha(alpha: Float) {
-        vpsArFragment.setArAlpha(alpha)
     }
 
 }

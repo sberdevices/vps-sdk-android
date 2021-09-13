@@ -1,6 +1,6 @@
 package com.arvrlab.vps_sdk.util
 
-import com.arvrlab.vps_sdk.network.dto.ResponseDto
+import com.arvrlab.vps_sdk.domain.model.LocalPositionModel
 import com.google.ar.sceneform.math.Matrix
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
@@ -48,14 +48,11 @@ fun getConvertedCameraStartRotation(cameraRotation: Quaternion): Quaternion {
     return Quaternion.rotationBetweenVectors(Vector3(0f, 0f, 1f), dir)
 }
 
-fun ResponseDto.toNewRotationAndPositionPair(): Pair<Quaternion, Vector3> {
-    val coordinateData = responseData?.responseAttributes?.responseLocation?.responseRelative
-        ?: throw IllegalArgumentException("Failed to convert ResponseDto to new position and rotation, ResponseDto is null")
-
-    val yaw = coordinateData.yaw ?: 0f
-    val x = -(coordinateData.x ?: 0f)
-    val y = -(coordinateData.y ?: 0f)
-    val z = -(coordinateData.z ?: 0f)
+internal fun LocalPositionModel.toNewRotationAndPositionPair(): Pair<Quaternion, Vector3> {
+    val yaw = this.yaw
+    val x = -this.x
+    val y = -this.y
+    val z = -this.z
 
     val newPosition = Vector3(x, y, z)
 

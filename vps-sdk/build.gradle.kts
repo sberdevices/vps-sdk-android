@@ -42,6 +42,7 @@ dependencies {
     implementation(Lib.coroutinesAndroid)
 
     implementation(Lib.okhttp)
+    implementation(Lib.loggingInterceptor)
 
     implementation(Lib.retrofit)
     implementation(Lib.converterMoshi)

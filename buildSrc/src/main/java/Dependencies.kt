@@ -53,7 +53,9 @@ object Lib {
 
     const val viewBindingPropertyDelegate = "com.github.kirich1409:viewbindingpropertydelegate-noreflection:1.5.0-beta01"
 
-    const val okhttp = "com.squareup.okhttp3:okhttp:4.6.0"
+    private const val _okhttp3 = "4.6.0"
+    const val okhttp = "com.squareup.okhttp3:okhttp:$_okhttp3"
+    const val loggingInterceptor = "com.squareup.okhttp3:logging-interceptor:$_okhttp3"
 
     private const val _retrofit = "2.9.0"
     const val retrofit = "com.squareup.retrofit2:retrofit:$_retrofit"
