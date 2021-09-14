@@ -11,7 +11,6 @@ import com.arvrlab.vps_sdk.domain.model.VpsLocationModel
 import com.arvrlab.vps_sdk.domain.neuro.NeuroHelper
 import com.arvrlab.vps_sdk.domain.neuro.NeuroModel
 import com.arvrlab.vps_sdk.util.*
-import com.jakewharton.retrofit2.adapter.kotlin.coroutines.CoroutineCallAdapterFactory
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
@@ -116,11 +115,7 @@ internal class VpsRepository(
         }
 
     private fun getClient(baseUrl: String): Retrofit {
-        val loggingInterceptor = HttpLoggingInterceptor(object : HttpLoggingInterceptor.Logger {
-            override fun log(message: String) {
-                Logger.debug(message)
-            }
-        })
+        val loggingInterceptor = HttpLoggingInterceptor()
         loggingInterceptor.level =
             if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
 
@@ -132,7 +127,6 @@ internal class VpsRepository(
             .baseUrl(baseUrl)
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
-            .addCallAdapterFactory(CoroutineCallAdapterFactory())
             .build()
     }
 

@@ -64,7 +64,9 @@ internal class VpsArViewModel(
         if (vpsInteractor.vpsConfig.needLocation) {
             checkPermission()
         } else {
-            vpsInteractor.startLocatization()
+            viewModelScope.launch {
+                vpsInteractor.startLocatization()
+            }
         }
     }
 
@@ -81,7 +83,9 @@ internal class VpsArViewModel(
 
     private fun checkPermission() {
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
-            vpsInteractor.startLocatization()
+            viewModelScope.launch {
+                vpsInteractor.startLocatization()
+            }
         } else {
             viewModelScope.launch {
                 _requestPermissions.emit(

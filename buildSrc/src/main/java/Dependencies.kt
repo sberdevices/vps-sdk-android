@@ -65,8 +65,6 @@ object Lib {
     const val moshiKotlin = "com.squareup.moshi:moshi-kotlin:$moshi"
     const val moshiKotlinCodegen = "com.squareup.moshi:moshi-kotlin-codegen:$moshi"
 
-    const val retrofit2CoroutinesAdapter = "com.jakewharton.retrofit:retrofit2-kotlin-coroutines-adapter:0.9.2"
-
     const val playServicesLocation = "com.google.android.gms:play-services-location:18.0.0"
 
     private const val tensorflow = "0.0.0-nightly"

@@ -46,7 +46,6 @@ dependencies {
 
     implementation(Lib.retrofit)
     implementation(Lib.converterMoshi)
-    implementation(Lib.retrofit2CoroutinesAdapter)
 
     implementation(Lib.moshiKotlin)
     implementation(Lib.moshiKotlinCodegen)

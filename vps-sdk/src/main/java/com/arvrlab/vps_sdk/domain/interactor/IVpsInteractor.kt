@@ -11,7 +11,7 @@ internal interface IVpsInteractor {
     fun setVpsCallback(vpsCallback: VpsCallback)
     fun enableForceLocalization(enabled: Boolean)
 
-    fun startLocatization()
+    suspend fun startLocatization()
     fun stopLocatization()
 
     fun destroy()

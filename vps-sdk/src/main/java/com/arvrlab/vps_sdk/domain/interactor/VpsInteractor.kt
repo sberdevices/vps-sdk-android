@@ -34,8 +34,6 @@ internal class VpsInteractor(
     override lateinit var vpsConfig: VpsConfig
         private set
 
-    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Default)
-
     private var timerJob: Job? = null
     private var isTimerRunning = false
 
@@ -72,7 +70,7 @@ internal class VpsInteractor(
         }
     }
 
-    override fun startLocatization() {
+    override suspend fun startLocatization() {
         if (isTimerRunning) return
 
         if (vpsConfig.needLocation) {
@@ -111,14 +109,15 @@ internal class VpsInteractor(
     private fun isGpsProviderEnabled(): Boolean =
         locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
 
-    private fun launchLocatizationUpdate() {
+    private suspend fun launchLocatizationUpdate() {
         updateLocalization()
-
-        timerJob = coroutineScope.launch {
-            while (true) {
-                delay(vpsConfig.timerInterval)
-                if (isActive) {
-                    updateLocalization()
+        coroutineScope {
+            timerJob = launch(Dispatchers.Default) {
+                while (true) {
+                    delay(vpsConfig.timerInterval)
+                    if (isActive) {
+                        updateLocalization()
+                    }
                 }
             }
         }
@@ -131,8 +130,8 @@ internal class VpsInteractor(
         isTimerRunning = false
     }
 
-    private fun updateLocalization() {
-        coroutineScope.launch(Dispatchers.Main) {
+    private suspend fun updateLocalization() {
+        withContext(Dispatchers.Main) {
             arInteractor.updateLocalization()
 
             try {
