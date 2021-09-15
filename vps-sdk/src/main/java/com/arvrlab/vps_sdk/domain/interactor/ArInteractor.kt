@@ -124,8 +124,10 @@ internal class ArInteractor(private val arSceneViewLazy: Lazy<ArSceneView>) : IA
         isModelCreated = false
     }
 
-    override fun acquireCameraImage(): Image? =
+
+    override fun acquireCameraImage(): Image =
         arSceneView.arFrame?.acquireCameraImage()
+            ?: throw IllegalStateException("Frame is null")
 
     private fun createNodeHierarchyIfNeed() {
         if (isModelCreated) return

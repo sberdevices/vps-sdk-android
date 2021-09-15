@@ -1,28 +1,33 @@
-package com.arvrlab.vps_sdk.domain.neuro
+package com.arvrlab.vps_sdk.domain.interactor
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Matrix
+import android.util.Base64
+import com.arvrlab.vps_sdk.domain.model.NeuroModel
+import com.arvrlab.vps_sdk.util.toByteArray
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.common.FileUtil
+import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-class NeuroModel(
+internal class NeuroInteractor(
     private val context: Context,
-    private val filename: String = TF_MODEL_NAME
-) {
+    private val tfModelName: String = TF_MODEL_NAME
+) : INeuroInteractor {
 
     private companion object {
         const val TF_MODEL_NAME = "hfnet_i8_960.tflite"
 
         const val FLOAT_SIZE = 4
+        const val MATRIX_ROTATE = 90f
     }
 
     private var interpreter: Interpreter? = null
 
-    fun getFeatures(bitmap: Bitmap, dstWidth: Int, dstHeight: Int): NeuroResult {
+    override fun codingBitmap(bitmap: Bitmap, dstWidth: Int, dstHeight: Int): NeuroModel {
         initInterpreterIfNeed()
 
         val byteBuffer = convertBitmapToBuffer(bitmap, dstWidth, dstHeight)
@@ -36,10 +41,38 @@ class NeuroModel(
         val localDescriptors = (outputMap[2] as Array<FloatArray>)
         val scores = outputMap[3] as FloatArray
 
-        return NeuroResult(globalDescriptor, keyPoints, localDescriptors, scores)
+        return NeuroModel(globalDescriptor, keyPoints, localDescriptors, scores)
     }
 
-    fun close() {
+    override fun convertToByteArray(neuroModel: NeuroModel): ByteArray =
+        ByteArrayOutputStream().use { fileData ->
+            val version: Byte = 0x0
+            val id: Byte = 0x0
+            fileData.write(byteArrayOf(version, id))
+
+            val keyPoints = getByteFrom2(neuroModel.keyPoints)
+            fileData.write(keyPoints.size.toByteArray())
+            fileData.write(keyPoints)
+
+            val scores = getByteFrom1(neuroModel.scores)
+            fileData.write(scores.size.toByteArray())
+            fileData.write(scores)
+
+            val localDescriptors = getByteFrom2(neuroModel.localDescriptors)
+            fileData.write(localDescriptors.size.toByteArray())
+            fileData.write(localDescriptors)
+
+            val globalDescriptor = getByteFrom1(neuroModel.globalDescriptor)
+            fileData.write(globalDescriptor.size.toByteArray())
+            fileData.write(globalDescriptor)
+
+            fileData.toByteArray()
+        }
+
+    override fun convertToByteArray(bitmap: Bitmap, dstWidth: Int, dstHeight: Int): ByteArray =
+        convertToByteArray(codingBitmap(bitmap, dstWidth, dstHeight))
+
+    override fun close() {
         interpreter?.close()
         interpreter = null
     }
@@ -52,7 +85,7 @@ class NeuroModel(
         }
 
         interpreter = Interpreter(
-            FileUtil.loadMappedFile(context, filename),
+            FileUtil.loadMappedFile(context, tfModelName),
             interpreterOptions
         )
     }
@@ -88,8 +121,7 @@ class NeuroModel(
             .order(ByteOrder.nativeOrder())
         imageByteBuffer.rewind()
 
-        val resizedBitmap = getPreProcessedBitmap(90f, bitmap, dstWidth, dstHeight)
-        bitmap.recycle()
+        val resizedBitmap = getPreProcessedBitmap(bitmap, dstWidth, dstHeight)
 
         fillBuffer(resizedBitmap, imageByteBuffer)
 
@@ -97,7 +129,6 @@ class NeuroModel(
     }
 
     private fun getPreProcessedBitmap(
-        degrees: Float,
         src: Bitmap,
         dstWidth: Int,
         dstHeight: Int
@@ -111,7 +142,7 @@ class NeuroModel(
             val sy = dstHeight / height.toFloat()
             matrix.setScale(sx, sy)
         }
-        matrix.postRotate(degrees)
+        matrix.postRotate(MATRIX_ROTATE)
 
         return Bitmap.createBitmap(src, 0, 0, width, height, matrix, true)
     }
@@ -123,8 +154,51 @@ class NeuroModel(
                 imgData.putFloat(pixel.toFloat())
             }
         }
+    }
 
-        bitmap.recycle()
+    private fun getByteFrom1(floatArray: FloatArray): ByteArray =
+        ByteArrayOutputStream().use { out ->
+            val buff = getBuffer(floatArray)
+            val base64Str = convertToBase64Bytes(buff.array())
+            out.write(base64Str)
+
+            out.toByteArray()
+        }
+
+    private fun getByteFrom2(array: Array<FloatArray>): ByteArray {
+        val arr = ByteArrayOutputStream().use { out ->
+            array.forEach { floatArray ->
+                val buff = getByteArrayFromFloatArray(floatArray)
+
+                out.write(buff)
+            }
+            out.toByteArray()
+        }
+
+        return convertToBase64Bytes(arr)
+    }
+
+    private fun convertToBase64Bytes(buff: ByteArray): ByteArray =
+        Base64.encode(buff, Base64.NO_WRAP)
+
+    private fun getBuffer(floatArray: FloatArray): ByteBuffer {
+        val buff: ByteBuffer = ByteBuffer.allocate(4 * floatArray.size)
+        buff.order(ByteOrder.LITTLE_ENDIAN)
+        for (value in floatArray) {
+            buff.putFloat(value)
+        }
+
+        return buff
+    }
+
+    private fun getByteArrayFromFloatArray(floatArray: FloatArray): ByteArray {
+        val buff: ByteBuffer = ByteBuffer.allocate(4 * floatArray.size)
+        buff.order(ByteOrder.LITTLE_ENDIAN)
+        for (value in floatArray) {
+            buff.putFloat(value)
+        }
+
+        return buff.array()
     }
 
 }

@@ -13,7 +13,7 @@ internal interface VpsApi {
     @POST("vps/api/v1/job")
     suspend fun requestLocation(
         @Part("json") json: RequestVpsModel,
-        @Part image: MultipartBody.Part
+        @Part body: MultipartBody.Part
     ): ResponseVpsModel
 
 }
