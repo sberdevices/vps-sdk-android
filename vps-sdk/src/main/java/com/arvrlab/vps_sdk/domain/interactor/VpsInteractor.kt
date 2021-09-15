@@ -117,9 +117,7 @@ internal class VpsInteractor(
     private suspend fun launchLocatizationUpdate() {
         coroutineScope {
             timerJob = launch(Dispatchers.Default) {
-                Logger.debug("launch coroutine")
                 while (isActive) {
-                    Logger.debug("while")
                     updateLocalization()
                     delay(vpsConfig.timerInterval)
                 }
@@ -128,7 +126,6 @@ internal class VpsInteractor(
     }
 
     private suspend fun updateLocalization() {
-        Logger.debug("updateLocalization")
         arInteractor.updateLocalization()
 
         try {
