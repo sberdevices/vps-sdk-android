@@ -27,7 +27,17 @@ internal class NeuroInteractor(
 
     private var interpreter: Interpreter? = null
 
-    override fun codingBitmap(bitmap: Bitmap, dstWidth: Int, dstHeight: Int): NeuroModel {
+    override fun codingBitmap(bitmap: Bitmap, dstWidth: Int, dstHeight: Int): ByteArray {
+        val neuroModel = convertToNeuroModel(bitmap, dstWidth, dstHeight)
+        return convertToByteArray(neuroModel)
+    }
+
+    override fun close() {
+        interpreter?.close()
+        interpreter = null
+    }
+
+    private fun convertToNeuroModel(bitmap: Bitmap, dstWidth: Int, dstHeight: Int): NeuroModel {
         initInterpreterIfNeed()
 
         val byteBuffer = convertBitmapToBuffer(bitmap, dstWidth, dstHeight)
@@ -44,7 +54,7 @@ internal class NeuroInteractor(
         return NeuroModel(globalDescriptor, keyPoints, localDescriptors, scores)
     }
 
-    override fun convertToByteArray(neuroModel: NeuroModel): ByteArray =
+    private fun convertToByteArray(neuroModel: NeuroModel): ByteArray =
         ByteArrayOutputStream().use { fileData ->
             val version: Byte = 0x0
             val id: Byte = 0x0
@@ -68,14 +78,6 @@ internal class NeuroInteractor(
 
             fileData.toByteArray()
         }
-
-    override fun convertToByteArray(bitmap: Bitmap, dstWidth: Int, dstHeight: Int): ByteArray =
-        convertToByteArray(codingBitmap(bitmap, dstWidth, dstHeight))
-
-    override fun close() {
-        interpreter?.close()
-        interpreter = null
-    }
 
     private fun initInterpreterIfNeed() {
         if (interpreter != null) return

@@ -141,7 +141,7 @@ internal class VpsInteractor(
                     val imageInByteArray = image.toByteArrayNeuroVersion()
                     val bitmap = BitmapFactory.decodeByteArray(imageInByteArray, 0, imageInByteArray.size)
 
-                    neuroInteractor.convertToByteArray(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT)
+                    neuroInteractor.codingBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT)
                 } else {
                     val bitmap = image.toBitmap()
                     ByteArrayOutputStream().use { stream ->
