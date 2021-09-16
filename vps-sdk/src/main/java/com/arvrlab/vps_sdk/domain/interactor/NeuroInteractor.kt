@@ -6,7 +6,6 @@ import android.graphics.Color
 import android.graphics.Matrix
 import android.util.Base64
 import com.arvrlab.vps_sdk.domain.model.NeuroModel
-import com.arvrlab.vps_sdk.util.toByteArray
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.common.FileUtil
 import java.io.ByteArrayOutputStream
@@ -202,5 +201,12 @@ internal class NeuroInteractor(
 
         return buff.array()
     }
+
+    private fun Int.toByteArray(): ByteArray = byteArrayOf(
+        (this ushr 24).toByte(),
+        (this ushr 16).toByte(),
+        (this ushr 8).toByte(),
+        this.toByte()
+    )
 
 }

@@ -1,225 +1,90 @@
 package com.arvrlab.vps_sdk.domain.interactor
 
-import android.annotation.SuppressLint
-import android.content.Context
 import android.graphics.*
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
 import android.media.Image
-import androidx.core.content.ContextCompat
-import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.data.repository.IVpsRepository
-import com.arvrlab.vps_sdk.domain.model.LocalPositionModel
+import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
+import com.arvrlab.vps_sdk.domain.model.NodePositionModel
 import com.arvrlab.vps_sdk.domain.model.VpsLocationModel
-import com.arvrlab.vps_sdk.ui.VpsCallback
-import com.arvrlab.vps_sdk.util.Logger
-import com.arvrlab.vps_sdk.util.toNewRotationAndPositionPair
-import com.google.ar.core.exceptions.NotYetAvailableException
-import com.google.ar.sceneform.math.Quaternion
-import com.google.ar.sceneform.math.Vector3
-import kotlinx.coroutines.*
 import java.io.ByteArrayOutputStream
 
 internal class VpsInteractor(
-    private val context: Context,
-    private val arInteractor: IArInteractor,
     private val vpsRepository: IVpsRepository,
     private val neuroInteractor: INeuroInteractor
 ) : IVpsInteractor {
 
     private companion object {
-        const val MIN_INTERVAL_MS = 1000L
-        const val MIN_DISTANCE_IN_METERS = 1f
-
         const val BITMAP_WIDTH = 960
         const val BITMAP_HEIGHT = 540
 
         const val QUALITY = 90
     }
 
-    override lateinit var vpsConfig: VpsConfig
-        private set
-
-    private var timerJob: Job? = null
-
-    private var lastLocalPosition: LocalPositionModel = LocalPositionModel()
-
-    private var failureCount = 0
-    private var force = true
-    private var firstLocalize = true
-
-    private var lastLocation: Location? = null
-    private val locationListener: LocationListener by lazy {
-        LocationListener { location -> lastLocation = location }
-    }
-    private val locationManager: LocationManager by lazy {
-        ContextCompat.getSystemService(context, LocationManager::class.java) as LocationManager
-    }
-
-    private var vpsCallback: VpsCallback? = null
-
-    override fun setVpsConfig(vpsConfig: VpsConfig) {
-        this.vpsConfig = vpsConfig
-    }
-
-    override fun setVpsCallback(vpsCallback: VpsCallback) {
-        this.vpsCallback = vpsCallback
-    }
-
-    override fun enableForceLocalization(enabled: Boolean) {
-        vpsConfig.onlyForce = enabled
-        if (!enabled) {
-            force = true
-        }
-    }
-
-    override suspend fun startLocatization() {
-        if (timerJob != null) return
-
-        if (vpsConfig.needLocation) {
-            if (isGpsProviderEnabled()) {
-                requestLocationUpdates()
-                launchLocatizationUpdate()
-            }
+    override suspend fun calculateNodePosition(
+        url: String,
+        locationID: String,
+        image: Image,
+        isNeuro: Boolean,
+        nodePosition: NodePositionModel,
+        force: Boolean,
+        gpsLocation: GpsLocationModel?
+    ): NodePositionModel? {
+        val byteArray = if (isNeuro) {
+            createNeuroByteArray(image)
         } else {
-            launchLocatizationUpdate()
+            createJpgByteArray(image)
         }
-    }
+        image.close()
 
-    override fun stopLocatization() {
-        firstLocalize = true
-        force = true
-        timerJob?.cancel()
-        timerJob = null
-        locationManager.removeUpdates(locationListener)
+        val vpsLocationModel = VpsLocationModel(
+            locationID = locationID,
+            gpsLocation = gpsLocation,
+            nodePosition = nodePosition,
+            force = force,
+            isNeuro = isNeuro,
+            byteArray = byteArray
+        )
+        return vpsRepository.calculateNodePosition(url, vpsLocationModel)
     }
 
     override fun destroy() {
-        stopLocatization()
-        arInteractor.destroyHierarchy()
         neuroInteractor.close()
     }
 
-    @SuppressLint("MissingPermission")
-    private fun requestLocationUpdates() {
-        locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
-            MIN_INTERVAL_MS,
-            MIN_DISTANCE_IN_METERS,
-            locationListener
-        )
-    }
-
-    private fun isGpsProviderEnabled(): Boolean =
-        locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-
-    private suspend fun launchLocatizationUpdate() {
-        coroutineScope {
-            timerJob = launch(Dispatchers.Default) {
-                while (isActive) {
-                    updateLocalization()
-                    delay(vpsConfig.timerInterval)
-                }
-            }
-        }
-    }
-
-    private suspend fun updateLocalization() {
-        arInteractor.updateLocalization()
-
-        try {
-            val image: Image = arInteractor.acquireCameraImage()
-            if (!firstLocalize) {
-                if (failureCount >= 2) {
-                    force = true
-                }
-            }
-
-            val byteArray = withContext(Dispatchers.Default) {
-                if (vpsConfig.isNeuro) {
-                    val imageInByteArray = image.toByteArrayNeuroVersion()
-                    val bitmap = BitmapFactory.decodeByteArray(imageInByteArray, 0, imageInByteArray.size)
-
-                    neuroInteractor.codingBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT)
-                } else {
-                    val bitmap = image.toBitmap()
-                    ByteArrayOutputStream().use { stream ->
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, QUALITY, stream)
-                        stream.toByteArray()
-                    }
-                }
-            }
-            image.close()
-
-            val vpsLocationModel = VpsLocationModel(
-                locationID = vpsConfig.locationID,
-                location = if (vpsConfig.needLocation && isGpsProviderEnabled()) lastLocation else null,
-                localPosition = withContext(Dispatchers.Main) { arInteractor.getLocalPosition(lastLocalPosition) },
-                force = force,
-                isNeuro = vpsConfig.isNeuro,
-                byteArray = byteArray
-            )
-
-            val responseLocalPosition = vpsRepository.getLocation(vpsConfig.url, vpsLocationModel)
-            if (responseLocalPosition != null) {
-                val (rotation, position) = onSuccessResponse(responseLocalPosition)
-                withContext(Dispatchers.Main) {
-                    arInteractor.localize(rotation, position)
-                }
-            } else {
-                failureCount++
-                Logger.debug("fail count: $failureCount")
-            }
-        } catch (e: NotYetAvailableException) {
-            Logger.error(e)
-        } catch (e: CancellationException) {
-            Logger.error(e)
-        } catch (e: Exception) {
-            Logger.error(e.stackTraceToString())
-            withContext(Dispatchers.Main) {
-                vpsCallback?.onError(e)
-                stopLocatization()
-            }
-        }
-    }
-
-    private fun onSuccessResponse(localPosition: LocalPositionModel): Pair<Quaternion, Vector3> {
-        if (!vpsConfig.onlyForce) {
-            force = false
-        }
-
-        firstLocalize = false
-        failureCount = 0
-        vpsCallback?.onPositionVps()
-        lastLocalPosition = localPosition
-
-        arInteractor.updateRotationAngle(lastLocalPosition)
-
-        return localPosition.toNewRotationAndPositionPair()
-    }
-
-    private fun Image.toByteArrayNeuroVersion(): ByteArray =
-        ByteArrayOutputStream().use { out ->
-            val yBuffer = this.planes[0].buffer
+    private fun createNeuroByteArray(image: Image): ByteArray {
+        val imageInByteArray = ByteArrayOutputStream().use { out ->
+            val yBuffer = image.planes[0].buffer
             val ySize = yBuffer.remaining()
             val nv21 = ByteArray(ySize)
 
             yBuffer.get(nv21, 0, ySize)
 
-            val yuv = YuvImage(nv21, ImageFormat.NV21, this.width, this.height, null)
-            yuv.compressToJpeg(Rect(0, 0, this.width, this.height), QUALITY, out)
+            val yuv = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
+            yuv.compressToJpeg(Rect(0, 0, image.width, image.height), QUALITY, out)
             out.toByteArray()
         }
+        val bitmap = BitmapFactory.decodeByteArray(imageInByteArray, 0, imageInByteArray.size)
 
-    private fun Image.toBitmap(): Bitmap {
-        val byteArray = toByteArrayServerVersion()
-
-        val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size).toBlackAndWhiteBitmap()
-        return Bitmap.createScaledBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT, false)
+        return neuroInteractor.codingBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT)
     }
 
-    private fun Image.toByteArrayServerVersion(): ByteArray {
+    private fun createJpgByteArray(image: Image): ByteArray {
+        val byteArray = image.toByteArray()
+
+        val bitmap = Bitmap.createScaledBitmap(
+            BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size),
+            BITMAP_WIDTH,
+            BITMAP_HEIGHT,
+            false
+        ).toBlackAndWhiteBitmap()
+
+        return ByteArrayOutputStream().use { stream ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, QUALITY, stream)
+            stream.toByteArray()
+        }
+    }
+
+    private fun Image.toByteArray(): ByteArray {
         val yBuffer = planes[0].buffer
         val uBuffer = planes[1].buffer
         val vBuffer = planes[2].buffer
