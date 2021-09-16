@@ -5,6 +5,6 @@ import com.arvrlab.vps_sdk.domain.model.VpsLocationModel
 
 internal interface IVpsRepository {
 
-    suspend fun getLocation(requestLocationModel: VpsLocationModel): LocalPositionModel?
+    suspend fun getLocation(url: String, vpsLocationModel: VpsLocationModel): LocalPositionModel?
 
 }
