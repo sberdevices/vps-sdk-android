@@ -137,9 +137,11 @@ internal class VpsArViewModel(
 
                     arManager.savePositions()
 
-                    val image: Image = arManager.acquireCameraImage()
-                    val currentNodePosition = withContext(Dispatchers.Main) {
-                        arManager.getCurrentNodePosition(lastNodePosition)
+                    val image: Image
+                    val currentNodePosition: NodePositionModel
+                    withContext(Dispatchers.Main) {
+                        image = arManager.acquireCameraImage()
+                        currentNodePosition = arManager.getCurrentNodePosition(lastNodePosition)
                     }
 
                     vpsInteractor.calculateNodePosition(

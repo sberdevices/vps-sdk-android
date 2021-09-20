@@ -1,11 +1,13 @@
 package com.arvrlab.vps_sdk.ui
 
 import android.media.Image
+import androidx.annotation.MainThread
 import com.arvrlab.vps_sdk.domain.model.NodePositionModel
 import com.google.ar.sceneform.*
 import com.google.ar.sceneform.math.Matrix
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
+import com.google.ar.sceneform.utilities.AndroidPreconditions
 import kotlin.math.PI
 import kotlin.math.asin
 import kotlin.math.atan2
@@ -129,9 +131,12 @@ internal class ArManager {
         )
     }
 
-    fun acquireCameraImage(): Image =
-        checkArSceneView().arFrame?.acquireCameraImage()
+    @MainThread
+    fun acquireCameraImage(): Image {
+        AndroidPreconditions.checkUiThread()
+        return checkArSceneView().arFrame?.acquireCameraImage()
             ?: throw IllegalStateException("Frame is null")
+    }
 
     private fun checkArSceneView(): ArSceneView =
         checkNotNull(arSceneView) { "ArSceneView is null. Call bindArSceneView(ArSceneView)" }
