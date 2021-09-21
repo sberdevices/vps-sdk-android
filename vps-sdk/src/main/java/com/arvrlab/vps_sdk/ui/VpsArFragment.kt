@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.view.WindowManager
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -31,6 +32,8 @@ class VpsArFragment : ArFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        requireActivity().window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
         viewLifecycleOwner.lifecycle.addObserver(viewModel)
 
         lifecycleScope.launch {
@@ -58,6 +61,11 @@ class VpsArFragment : ArFragment() {
     override fun onPause() {
         super.onPause()
         vpsService.stopVpsService()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     override fun onRequestPermissionsResult(
