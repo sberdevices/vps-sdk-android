@@ -23,7 +23,7 @@ class VpsArFragment : ArFragment() {
     }
 
     private val viewModel: VpsArViewModel by viewModels {
-        VpsArViewModelFactory(requireActivity().application, lazy { arSceneView })
+        VpsArViewModelFactory(requireActivity().application)
     }
 
     val vpsService: VpsService
@@ -48,6 +48,7 @@ class VpsArFragment : ArFragment() {
                 showCameraPermissionDialog()
             }
         }
+        viewModel.bindArSceneView(arSceneView)
 
         planeDiscoveryController.hide()
         planeDiscoveryController.setInstructionView(null)

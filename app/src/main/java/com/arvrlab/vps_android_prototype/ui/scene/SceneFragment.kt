@@ -78,7 +78,7 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
                 vpsService.stopVpsService()
             }
             cbPolytechVisibility.setOnCheckedChangeListener { _, isChecked ->
-                vpsService.modelNode.setArAlpha(if (isChecked) 0.5f else 0.0f)
+                vpsService.worldNode.setArAlpha(if (isChecked) 0.5f else 0.0f)
             }
         }
     }
@@ -89,7 +89,7 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
                 Logger.debug("onPositionVps success")
             }
 
-            override fun onError(error: Exception) {
+            override fun onError(error: Throwable) {
                 showError(error)
             }
         }
@@ -101,9 +101,9 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
             .setIsFilamentGltf(true)
             .build()
             .thenApply { renderable ->
-                with(vpsService) {
+                with(vpsService.worldNode) {
                     setRenderable(renderable)
-                    modelNode.setArAlpha(0.5f)
+                    setArAlpha(0.5f)
                 }
             }
             .exceptionally { Logger.error(it) }
@@ -127,7 +127,7 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
         }
     }
 
-    private fun showError(e: Exception) {
+    private fun showError(e: Throwable) {
         changeButtonsAvailability(false)
 
         AlertDialog.Builder(requireContext())
