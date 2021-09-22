@@ -23,6 +23,7 @@ object PluginName {
     const val navigationSafeargs = "androidx.navigation.safeargs.kotlin"
     const val library = "com.android.library"
     const val kotlinParcelize = "kotlin-parcelize"
+    const val mavenPublish = "maven-publish"
 }
 
 object Lib {
@@ -67,8 +68,8 @@ object Lib {
 
     const val playServicesLocation = "com.google.android.gms:play-services-location:18.0.0"
 
-    private const val tensorflow = "0.0.0-nightly"
+    private const val tensorflow = "2.6.0"
     const val tensorflowLite = "org.tensorflow:tensorflow-lite:$tensorflow"
     const val tensorflowLiteGpu = "org.tensorflow:tensorflow-lite-gpu:$tensorflow"
-    const val tensorflowLiteSupport = "org.tensorflow:tensorflow-lite-support:$tensorflow"
+    const val tensorflowLiteSupport = "org.tensorflow:tensorflow-lite-support:0.2.0"
 }
