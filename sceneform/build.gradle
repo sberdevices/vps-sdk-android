@@ -23,7 +23,7 @@ android {
         minSdk 24
         targetSdk 30
 
-        group = "com.arvrlab.vps"
+        group = DependenciesKt.groupName
         version = "1.0"
     }
     compileOptions {

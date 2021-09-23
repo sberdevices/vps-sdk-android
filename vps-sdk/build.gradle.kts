@@ -14,7 +14,7 @@ android {
 
         consumerProguardFile("consumer-rules.pro")
 
-        group = "com.arvrlab.vps"
+        group = groupName
         version = "0.0.1"
     }
 
