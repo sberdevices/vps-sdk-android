@@ -158,7 +158,7 @@ internal class VpsArViewModel(
                         withContext(Dispatchers.Main) {
                             arManager.updatePositions(lastNodePosition)
                         }
-                        vpsCallback?.onPositionVps()
+                        vpsCallback?.onSuccess()
                     } ?: run {
                         failureCount++
                         Logger.debug("localization fail: $failureCount")

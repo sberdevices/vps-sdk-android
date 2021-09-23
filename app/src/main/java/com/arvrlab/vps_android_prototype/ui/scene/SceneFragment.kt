@@ -85,7 +85,7 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
 
     private fun getVpsCallback(): VpsCallback {
         return object : VpsCallback {
-            override fun onPositionVps() {
+            override fun onSuccess() {
                 Logger.debug("onPositionVps success")
             }
 
