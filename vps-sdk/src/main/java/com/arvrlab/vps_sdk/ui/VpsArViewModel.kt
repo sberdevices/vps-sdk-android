@@ -4,7 +4,9 @@ import android.Manifest
 import android.app.Application
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
-import androidx.lifecycle.*
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.arvrlab.vps_sdk.data.VpsConfig
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -33,21 +35,6 @@ internal class VpsArViewModel(
     val cameraPermissionDialog: SharedFlow<Unit> = _cameraPermissionDialog.asSharedFlow()
 
     private var needLocation: Boolean = false
-
-    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
-    fun onResume() {
-        vpsService.resume()
-    }
-
-    @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-    fun onPause() {
-        vpsService.pause()
-    }
-
-    @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-    fun onDestroy() {
-        vpsService.destroy()
-    }
 
     override fun setVpsConfig(vpsConfig: VpsConfig) {
         vpsService.setVpsConfig(vpsConfig)

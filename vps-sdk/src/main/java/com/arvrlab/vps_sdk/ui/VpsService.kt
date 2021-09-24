@@ -35,6 +35,7 @@ interface VpsService {
     fun bindArSceneView(arSceneView: ArSceneView)
     fun resume()
     fun pause()
+    fun unbindArSceneView()
     fun destroy()
 
     fun setVpsConfig(vpsConfig: VpsConfig)

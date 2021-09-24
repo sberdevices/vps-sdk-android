@@ -51,16 +51,32 @@ class VpsArFragment : ArFragment() {
                 showCameraPermissionDialog()
             }
         }
-        viewModel.bindArSceneView(arSceneView)
+        vpsService.bindArSceneView(arSceneView)
 
         planeDiscoveryController.hide()
         planeDiscoveryController.setInstructionView(null)
         arSceneView.scene.camera.farClipPlane = FAR_CLIP_PLANE
     }
 
+    override fun onResume() {
+        super.onResume()
+        vpsService.resume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        vpsService.pause()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
+        vpsService.unbindArSceneView()
         requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        vpsService.destroy()
     }
 
     override fun onRequestPermissionsResult(

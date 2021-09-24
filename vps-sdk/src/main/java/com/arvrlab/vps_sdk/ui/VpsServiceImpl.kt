@@ -1,9 +1,11 @@
 package com.arvrlab.vps_sdk.ui
 
 import android.annotation.SuppressLint
+import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.media.Image
+import android.os.Bundle
 import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.domain.interactor.IVpsInteractor
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
@@ -48,8 +50,12 @@ internal class VpsServiceImpl(
 
     private var gpsLocation: GpsLocationModel? = null
     private val locationListener: LocationListener by lazy {
-        LocationListener { location ->
-            gpsLocation = GpsLocationModel.from(location)
+        object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                gpsLocation = GpsLocationModel.from(location)
+            }
+
+            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
         }
     }
 
@@ -65,6 +71,10 @@ internal class VpsServiceImpl(
 
     override fun pause() {
         isResumed = false
+    }
+
+    override fun unbindArSceneView() {
+        arManager.unbind()
     }
 
     override fun destroy() {
