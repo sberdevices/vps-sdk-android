@@ -3,6 +3,7 @@ plugins {
     id(PluginName.kotlinAndroid)
     id(PluginName.kotlinKapt)
 }
+apply(from = rootProject.file("publishing.gradle"))
 
 android {
     compileSdk = Version.compileSdk
@@ -12,12 +13,18 @@ android {
         targetSdk = Version.targetSdk
 
         consumerProguardFile("consumer-rules.pro")
+
+        group = groupName
+        version = "0.0.1"
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
@@ -35,6 +42,8 @@ dependencies {
     api(project(":sceneformux"))
 
     implementation(Lib.coreKtx)
+    implementation(Lib.appcompat)
+    implementation(Lib.material)
     implementation(Lib.fragmentKtx)
     implementation(Lib.lifecycleRuntimeKtx)
 
