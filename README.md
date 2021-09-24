@@ -65,7 +65,7 @@ dependencies {
 
 <br/>
 
-### Add the `VpsArFragment` to your `screen`
+## Add the `VpsArFragment` to your `screen`
 *res/layout/main_activity.xml*
 ```xml
 <androidx.fragment.app.FragmentContainerView
@@ -85,9 +85,7 @@ supportFragmentManager.beginTransaction()
 
 <br/>
 
-### Work with `VpsService`
-
-<br/>
+## Work with `VpsService` if using `VpsArFragment`
 
 *Create config for `VpsService`*
 
@@ -114,6 +112,9 @@ vpsService.setVpsCallback(object : VpsCallback {
                 override fun onSuccess() {
                 }
 
+                override fun onStateChange(isEnable: Boolean) {
+                }
+
                 override fun onError(error: Throwable) {
                 }
             })
@@ -132,6 +133,47 @@ vpsService.startVpsService()
 ```
 
 <br/>
+
+## Work with `VpsService` if using own `ArFragment`
+
+*Create new instance `VpsService`*
+```kotlin
+VpsService.newInstance(context: Context): VpsService
+```
+
+*After need sync lifecycle of `VpsService` with lifecycle your `ArFragment`.*
+```kotlin
+override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    super.onViewCreated(view, savedInstanceState)
+    vpsService.bindArSceneView(arSceneView)
+}
+
+override fun onResume() {
+    super.onResume()
+    vpsService.resume()
+}
+
+override fun onPause() {
+    super.onPause()
+    vpsService.pause()
+}
+
+override fun onDestroyView() {
+    super.onDestroyView()
+    vpsService.unbindArSceneView()
+}
+
+override fun onDestroy() {
+    super.onDestroy()
+    vpsService.destroy()
+}
+```
+
+*And then `VpsService` can use as mentioned above.*
+
+<br/>
+
+## Additional information about `VpsService`
 
 *You can set 3D model using `worldNode` in `VpsService`*
 
