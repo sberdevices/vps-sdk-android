@@ -1,11 +1,11 @@
 package com.arvrlab.vps_android_prototype.util
 
 import android.util.Log
-import com.arvrlab.vps_sdk.util.Constant
 
 object Logger {
 
     private const val TAG: String = "VPS-Prototype"
+    private const val EMPTY: String = ""
 
     fun debug(msg: Any?) =
         Log.d(getTag(), msg.toString())
@@ -14,7 +14,7 @@ object Logger {
         Log.w(getTag(), msg.toString())
 
     fun warn(throwable: Throwable) =
-        Log.w(getTag(), Constant.EMPTY, throwable)
+        Log.w(getTag(), EMPTY, throwable)
 
     fun warn(msg: String, throwable: Throwable) =
         Log.w(getTag(), msg, throwable)
@@ -23,7 +23,7 @@ object Logger {
         Log.e(getTag(), msg.toString())
 
     fun error(throwable: Throwable) =
-        Log.e(getTag(), Constant.EMPTY, throwable)
+        Log.e(getTag(), EMPTY, throwable)
 
     fun error(msg: String, throwable: Throwable) =
         Log.e(getTag(), msg, throwable)
@@ -32,7 +32,7 @@ object Logger {
         val stackTrace = Thread.currentThread().stackTrace
         for (i in stackTrace.indices) {
             if (stackTrace[i].methodName == "getTag") {
-                val trace = stackTrace[i + 3]
+                val trace = stackTrace[i + 2]
                 return "$TAG (${trace.fileName}:${trace.lineNumber})"
             }
         }

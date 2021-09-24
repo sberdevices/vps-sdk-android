@@ -4,7 +4,7 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
-data class RequestIntrinsicsModel(
+internal data class RequestIntrinsicsModel(
     @Json(name = "cx")
     val cx: Float = 0.0f,
     @Json(name = "cy")

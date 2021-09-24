@@ -39,11 +39,6 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
         initClickListeners()
     }
 
-    override fun onPause() {
-        super.onPause()
-        changeButtonsAvailability(false)
-    }
-
     private fun initVpsService() {
         val vpsConfig = navArgs.sceneModel
             .let { sceneModel ->
@@ -70,11 +65,9 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
 
         with(binding) {
             btnStart.setOnClickListener {
-                changeButtonsAvailability(true)
                 vpsService.startVpsService()
             }
             btnStop.setOnClickListener {
-                changeButtonsAvailability(false)
                 vpsService.stopVpsService()
             }
             cbPolytechVisibility.setOnCheckedChangeListener { _, isChecked ->
@@ -86,7 +79,11 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
     private fun getVpsCallback(): VpsCallback {
         return object : VpsCallback {
             override fun onSuccess() {
-                Logger.debug("onPositionVps success")
+                Logger.debug("vps localization: success")
+            }
+
+            override fun onStateChange(isEnable: Boolean) {
+                changeButtonsAvailability(isEnable)
             }
 
             override fun onError(error: Throwable) {
@@ -128,8 +125,6 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
     }
 
     private fun showError(e: Throwable) {
-        changeButtonsAvailability(false)
-
         AlertDialog.Builder(requireContext())
             .setTitle("Error")
             .setMessage(e.toString())

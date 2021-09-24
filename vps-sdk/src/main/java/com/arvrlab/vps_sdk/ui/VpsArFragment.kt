@@ -58,11 +58,6 @@ class VpsArFragment : ArFragment() {
         arSceneView.scene.camera.farClipPlane = FAR_CLIP_PLANE
     }
 
-    override fun onPause() {
-        super.onPause()
-        vpsService.stopVpsService()
-    }
-
     override fun onDestroyView() {
         super.onDestroyView()
         requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -73,7 +68,7 @@ class VpsArFragment : ArFragment() {
         permissions: Array<out String>,
         results: IntArray
     ) {
-        viewModel.onRequestPermissionsResult(requestCode, permissions, results)
+        viewModel.onRequestPermissionsResult(requestCode)
     }
 
     override fun getSessionConfiguration(session: Session): Config {
