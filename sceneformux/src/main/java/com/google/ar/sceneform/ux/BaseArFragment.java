@@ -110,9 +110,9 @@ public abstract class BaseArFragment extends Fragment
   @Nullable private OnSessionInitializationListener onSessionInitializationListener;
   @Nullable private OnTapArPlaneListener onTapArPlaneListener;
 
-  @SuppressWarnings({"initialization"})
-  private final OnWindowFocusChangeListener onFocusListener =
-      (hasFocus -> onWindowFocusChanged(hasFocus));
+//  @SuppressWarnings({"initialization"})
+//  private final OnWindowFocusChangeListener onFocusListener =
+//      (hasFocus -> onWindowFocusChanged(hasFocus));
 
   /** Gets the ArSceneView for this fragment. */
   public ArSceneView getArSceneView() {
@@ -203,14 +203,15 @@ public abstract class BaseArFragment extends Fragment
     }
 
     // Make the app immersive and don't turn off the display.
-    arSceneView.getViewTreeObserver().addOnWindowFocusChangeListener(onFocusListener);
+    // TODO: disabled for correct work with single Activity
+    //arSceneView.getViewTreeObserver().addOnWindowFocusChangeListener(onFocusListener);
     return frameLayout;
   }
 
   @Override
   public void onDestroyView() {
     super.onDestroyView();
-    arSceneView.getViewTreeObserver().removeOnWindowFocusChangeListener(onFocusListener);
+//    arSceneView.getViewTreeObserver().removeOnWindowFocusChangeListener(onFocusListener);
   }
 
   /**

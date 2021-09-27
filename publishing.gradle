@@ -1,0 +1,35 @@
+apply plugin: PluginName.mavenPublish
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+            }
+        }
+
+        repositories {
+            maven {
+                def deployToken = getDeployToken()
+                if (deployToken == null || deployToken == "") {
+                    println("Not found DEPLOY_TOKEN in local.properties")
+                    return
+                }
+                url "https://gitlab.com/api/v4/projects/29278122/packages/maven"
+                credentials(HttpHeaderCredentials) {
+                    name = "Deploy-Token"
+                    value = deployToken
+                }
+                authentication {
+                    header(HttpHeaderAuthentication)
+                }
+            }
+        }
+    }
+}
+
+static String getDeployToken() {
+    def properties = new Properties()
+    properties.load(new FileReader(new File('local.properties')))
+    return properties.getProperty('DEPLOY_TOKEN')
+}

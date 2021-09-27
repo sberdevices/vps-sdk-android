@@ -1,6 +1,7 @@
 package com.arvrlab.vps_sdk.ui
 
 interface VpsCallback {
-    fun onPositionVps()
-    fun onError(error: Exception)
+    fun onSuccess()
+    fun onStateChange(isEnable: Boolean)
+    fun onError(error: Throwable)
 }

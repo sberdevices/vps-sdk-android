@@ -4,12 +4,10 @@ import android.Manifest
 import android.app.Application
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
-import androidx.lifecycle.*
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.arvrlab.vps_sdk.data.VpsConfig
-import com.arvrlab.vps_sdk.domain.interactor.IArInteractor
-import com.arvrlab.vps_sdk.domain.interactor.IVpsInteractor
-import com.google.ar.sceneform.Node
-import com.google.ar.sceneform.rendering.Renderable
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -17,20 +15,18 @@ import kotlinx.coroutines.launch
 
 internal class VpsArViewModel(
     private val application: Application,
-    private val vpsInteractor: IVpsInteractor,
-    private val arInteractor: IArInteractor
-) : ViewModel(), VpsService, LifecycleObserver {
+    private val vpsService: VpsService
+) : ViewModel(), VpsService by vpsService, LifecycleObserver {
 
     private companion object {
         const val ACCESS_FINE_LOCATION_REQUEST_CODE = 1000
         const val CAMERA_PERMISSION_REQUEST_CODE = 1010
     }
 
-    override val modelNode: Node
-        get() = arInteractor.modelNode
-
-    private val _requestPermissions: MutableSharedFlow<Pair<Array<String>, Int>> = MutableSharedFlow()
-    val requestPermissions: SharedFlow<Pair<Array<String>, Int>> = _requestPermissions.asSharedFlow()
+    private val _requestPermissions: MutableSharedFlow<Pair<Array<String>, Int>> =
+        MutableSharedFlow()
+    val requestPermissions: SharedFlow<Pair<Array<String>, Int>> =
+        _requestPermissions.asSharedFlow()
 
     private val _locationPermissionDialog: MutableSharedFlow<Unit> = MutableSharedFlow()
     val locationPermissionDialog: SharedFlow<Unit> = _locationPermissionDialog.asSharedFlow()
@@ -38,12 +34,26 @@ internal class VpsArViewModel(
     private val _cameraPermissionDialog: MutableSharedFlow<Unit> = MutableSharedFlow()
     val cameraPermissionDialog: SharedFlow<Unit> = _cameraPermissionDialog.asSharedFlow()
 
-    @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-    fun onDestroy() {
-        vpsInteractor.destroy()
+    private var needLocation: Boolean = false
+
+    override fun setVpsConfig(vpsConfig: VpsConfig) {
+        vpsService.setVpsConfig(vpsConfig)
+        needLocation = vpsConfig.needLocation
     }
 
-    fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, results: IntArray) {
+    override fun startVpsService() {
+        if (needLocation && !checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+            viewModelScope.launch {
+                _requestPermissions.emit(
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION) to ACCESS_FINE_LOCATION_REQUEST_CODE
+                )
+            }
+        } else {
+            vpsService.startVpsService()
+        }
+    }
+
+    fun onRequestPermissionsResult(requestCode: Int) {
         if (requestCode == ACCESS_FINE_LOCATION_REQUEST_CODE) {
             checkResultLocation()
         }
@@ -52,52 +62,9 @@ internal class VpsArViewModel(
         }
     }
 
-    override fun setVpsConfig(vpsConfig: VpsConfig) {
-        vpsInteractor.setVpsConfig(vpsConfig)
-    }
-
-    override fun setVpsCallback(vpsCallback: VpsCallback) {
-        vpsInteractor.setVpsCallback(vpsCallback)
-    }
-
-    override fun startVpsService() {
-        if (vpsInteractor.vpsConfig.needLocation) {
-            checkPermission()
-        } else {
-            viewModelScope.launch {
-                vpsInteractor.startLocatization()
-            }
-        }
-    }
-
-    override fun stopVpsService() {
-        vpsInteractor.stopLocatization()
-    }
-
-    override fun enableForceLocalization(enabled: Boolean) =
-        vpsInteractor.enableForceLocalization(enabled)
-
-    override fun setRenderable(renderable: Renderable) {
-        arInteractor.modelNode.renderable = renderable
-    }
-
-    private fun checkPermission() {
-        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
-            viewModelScope.launch {
-                vpsInteractor.startLocatization()
-            }
-        } else {
-            viewModelScope.launch {
-                _requestPermissions.emit(
-                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION) to ACCESS_FINE_LOCATION_REQUEST_CODE
-                )
-            }
-        }
-    }
-
     private fun checkResultLocation() {
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
-            startVpsService()
+            vpsService.startVpsService()
             return
         }
 
@@ -116,6 +83,8 @@ internal class VpsArViewModel(
     }
 
     private fun checkSelfPermission(permission: String): Boolean =
-        ActivityCompat.checkSelfPermission(application, permission) == PackageManager.PERMISSION_GRANTED
-
+        ActivityCompat.checkSelfPermission(
+            application,
+            permission
+        ) == PackageManager.PERMISSION_GRANTED
 }

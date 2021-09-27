@@ -1,6 +1,6 @@
-package com.arvrlab.vps_sdk.domain.neuro
+package com.arvrlab.vps_sdk.domain.model
 
-data class NeuroResult(
+internal data class NeuroModel(
     var globalDescriptor: FloatArray = floatArrayOf(),
     var keyPoints: Array<FloatArray> = arrayOf(),
     var localDescriptors: Array<FloatArray> = arrayOf(),
@@ -10,7 +10,7 @@ data class NeuroResult(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as NeuroResult
+        other as NeuroModel
 
         if (!globalDescriptor.contentEquals(other.globalDescriptor)) return false
         if (!keyPoints.contentEquals(other.keyPoints)) return false

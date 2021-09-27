@@ -1,9 +1,9 @@
 package com.arvrlab.vps_android_prototype.ui.scene
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
 import androidx.annotation.RawRes
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
@@ -39,11 +39,6 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
         initClickListeners()
     }
 
-    override fun onPause() {
-        super.onPause()
-        changeButtonsAvailability(false)
-    }
-
     private fun initVpsService() {
         val vpsConfig = navArgs.sceneModel
             .let { sceneModel ->
@@ -70,26 +65,28 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
 
         with(binding) {
             btnStart.setOnClickListener {
-                changeButtonsAvailability(true)
                 vpsService.startVpsService()
             }
             btnStop.setOnClickListener {
-                changeButtonsAvailability(false)
                 vpsService.stopVpsService()
             }
             cbPolytechVisibility.setOnCheckedChangeListener { _, isChecked ->
-                vpsService.modelNode.setArAlpha(if (isChecked) 0.5f else 0.0f)
+                vpsService.worldNode.setArAlpha(if (isChecked) 0.5f else 0.0f)
             }
         }
     }
 
     private fun getVpsCallback(): VpsCallback {
         return object : VpsCallback {
-            override fun onPositionVps() {
-                Logger.debug("onPositionVps success")
+            override fun onSuccess() {
+                Logger.debug("vps localization: success")
             }
 
-            override fun onError(error: Exception) {
+            override fun onStateChange(isEnable: Boolean) {
+                changeButtonsAvailability(isEnable)
+            }
+
+            override fun onError(error: Throwable) {
                 showError(error)
             }
         }
@@ -101,9 +98,9 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
             .setIsFilamentGltf(true)
             .build()
             .thenApply { renderable ->
-                with(vpsService) {
+                with(vpsService.worldNode) {
                     setRenderable(renderable)
-                    modelNode.setArAlpha(0.5f)
+                    setArAlpha(0.5f)
                 }
             }
             .exceptionally { Logger.error(it) }
@@ -127,14 +124,11 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
         }
     }
 
-    private fun showError(e: Exception) {
-        changeButtonsAvailability(false)
-        AlertDialog.Builder(requireContext(), android.R.style.Theme_Material_Dialog_Alert)
+    private fun showError(e: Throwable) {
+        AlertDialog.Builder(requireContext())
             .setTitle("Error")
             .setMessage(e.toString())
-            .setPositiveButton(android.R.string.ok) { dialog, _ ->
-                dialog.cancel()
-            }
+            .setPositiveButton(android.R.string.ok) { dialog, _ -> dialog.dismiss() }
             .show()
     }
 

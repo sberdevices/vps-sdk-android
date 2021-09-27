@@ -8,7 +8,7 @@ import android.widget.FrameLayout
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.commitNow
 
-class VpsArView : FrameLayout {
+internal class VpsArView : FrameLayout {
 
     private var vpsArFragment: VpsArFragment? = null
 

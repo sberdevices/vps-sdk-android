@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 apply plugin: PluginName.library
+apply from: rootProject.file("publishing.gradle")
 
 android {
     compileSdk 30
@@ -21,6 +22,9 @@ android {
         // Sceneform requires minSdkVersion >= 24.
         minSdk 24
         targetSdk 30
+
+        group = DependenciesKt.groupName
+        version = "1.0"
     }
     compileOptions {
         // Sceneform libraries use language constructs from Java 8.
@@ -40,4 +44,7 @@ android {
 dependencies {
     // Use the Sceneform SDK built from the source files included in the sceneformsrc folder.
     api project(":sceneform")
+
+    compileOnly Lib.appcompat
+    compileOnly Lib.material
 }

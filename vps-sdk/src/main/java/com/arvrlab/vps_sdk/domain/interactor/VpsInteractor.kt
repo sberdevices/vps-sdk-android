@@ -1,199 +1,128 @@
 package com.arvrlab.vps_sdk.domain.interactor
 
-import android.annotation.SuppressLint
-import android.content.Context
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
+import android.graphics.*
 import android.media.Image
-import androidx.core.content.ContextCompat
-import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.data.repository.IVpsRepository
-import com.arvrlab.vps_sdk.domain.model.LocalPositionModel
+import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
+import com.arvrlab.vps_sdk.domain.model.NodePositionModel
 import com.arvrlab.vps_sdk.domain.model.VpsLocationModel
-import com.arvrlab.vps_sdk.domain.neuro.NeuroModel
-import com.arvrlab.vps_sdk.ui.VpsCallback
-import com.arvrlab.vps_sdk.util.Logger
-import com.arvrlab.vps_sdk.util.toNewRotationAndPositionPair
-import com.google.ar.core.exceptions.NotYetAvailableException
-import com.google.ar.sceneform.math.Quaternion
-import com.google.ar.sceneform.math.Vector3
-import kotlinx.coroutines.*
+import java.io.ByteArrayOutputStream
 
 internal class VpsInteractor(
-    private val context: Context,
-    private val arInteractor: IArInteractor,
-    private val vpsRepository: IVpsRepository
+    private val vpsRepository: IVpsRepository,
+    private val neuroInteractor: INeuroInteractor
 ) : IVpsInteractor {
 
     private companion object {
-        const val MIN_INTERVAL_MS = 1000L
-        const val MIN_DISTANCE_IN_METERS = 1f
+        const val BITMAP_WIDTH = 960
+        const val BITMAP_HEIGHT = 540
+
+        const val QUALITY = 90
     }
 
-    override lateinit var vpsConfig: VpsConfig
-        private set
-
-    private var timerJob: Job? = null
-    private var isTimerRunning = false
-
-    private var lastLocalPosition: LocalPositionModel = LocalPositionModel()
-
-    private var failureCount = 0
-    private var force = true
-    private var firstLocalize = true
-
-    private var lastLocation: Location? = null
-    private val locationListener: LocationListener by lazy {
-        LocationListener { location -> lastLocation = location }
-    }
-    private val locationManager: LocationManager by lazy {
-        ContextCompat.getSystemService(context, LocationManager::class.java) as LocationManager
-    }
-
-    private var vpsCallback: VpsCallback? = null
-
-    private val neuroModel: NeuroModel by lazy { NeuroModel(context) }
-
-    override fun setVpsConfig(vpsConfig: VpsConfig) {
-        this.vpsConfig = vpsConfig
-    }
-
-    override fun setVpsCallback(vpsCallback: VpsCallback) {
-        this.vpsCallback = vpsCallback
-    }
-
-    override fun enableForceLocalization(enabled: Boolean) {
-        vpsConfig.onlyForce = enabled
-        if (!enabled) {
-            force = true
-        }
-    }
-
-    override suspend fun startLocatization() {
-        if (isTimerRunning) return
-
-        if (vpsConfig.needLocation) {
-            if (isGpsProviderEnabled()) {
-                requestLocationUpdates()
-                launchLocatizationUpdate()
-            }
+    override suspend fun calculateNodePosition(
+        url: String,
+        locationID: String,
+        image: Image,
+        isNeuro: Boolean,
+        nodePosition: NodePositionModel,
+        force: Boolean,
+        gpsLocation: GpsLocationModel?
+    ): NodePositionModel? {
+        val byteArray = if (isNeuro) {
+            createNeuroByteArray(image)
         } else {
-            launchLocatizationUpdate()
+            createJpgByteArray(image)
         }
-    }
+        image.close()
 
-    override fun stopLocatization() {
-        firstLocalize = true
-        force = true
-        stopLocalizationUpdate()
-        locationManager.removeUpdates(locationListener)
+        val vpsLocationModel = VpsLocationModel(
+            locationID = locationID,
+            gpsLocation = gpsLocation,
+            nodePosition = nodePosition,
+            force = force,
+            isNeuro = isNeuro,
+            byteArray = byteArray
+        )
+        return vpsRepository.calculateNodePosition(url, vpsLocationModel)
     }
 
     override fun destroy() {
-        neuroModel.close()
-        stopLocatization()
-        arInteractor.destroyHierarchy()
+        neuroInteractor.close()
     }
 
-    @SuppressLint("MissingPermission")
-    private fun requestLocationUpdates() {
-        locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
-            MIN_INTERVAL_MS,
-            MIN_DISTANCE_IN_METERS,
-            locationListener
+    private fun createNeuroByteArray(image: Image): ByteArray {
+        val imageInByteArray = ByteArrayOutputStream().use { out ->
+            val yBuffer = image.planes[0].buffer
+            val ySize = yBuffer.remaining()
+            val nv21 = ByteArray(ySize)
+
+            yBuffer.get(nv21, 0, ySize)
+
+            val yuv = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
+            yuv.compressToJpeg(Rect(0, 0, image.width, image.height), QUALITY, out)
+            out.toByteArray()
+        }
+        val bitmap = BitmapFactory.decodeByteArray(imageInByteArray, 0, imageInByteArray.size)
+
+        return neuroInteractor.codingBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT)
+    }
+
+    private fun createJpgByteArray(image: Image): ByteArray {
+        val byteArray = image.toByteArray()
+
+        val bitmap = Bitmap.createScaledBitmap(
+            BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size),
+            BITMAP_WIDTH,
+            BITMAP_HEIGHT,
+            false
+        ).toBlackAndWhiteBitmap()
+
+        return ByteArrayOutputStream().use { stream ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, QUALITY, stream)
+            stream.toByteArray()
+        }
+    }
+
+    private fun Image.toByteArray(): ByteArray {
+        val yBuffer = planes[0].buffer
+        val uBuffer = planes[1].buffer
+        val vBuffer = planes[2].buffer
+
+        val ySize = yBuffer.remaining()
+        val uSize = uBuffer.remaining()
+        val vSize = vBuffer.remaining()
+
+        val nv21 = ByteArray(ySize + uSize + vSize)
+
+        yBuffer.get(nv21, 0, ySize)
+        vBuffer.get(nv21, ySize, vSize)
+        uBuffer.get(nv21, ySize + vSize, uSize)
+
+        val yuvImage = YuvImage(nv21, ImageFormat.NV21, this.width, this.height, null)
+        return ByteArrayOutputStream().use { out ->
+            yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), QUALITY, out)
+            out.toByteArray()
+        }
+    }
+
+    private fun Bitmap.toBlackAndWhiteBitmap(): Bitmap {
+        val blackAndWhiteBitmap = Bitmap.createBitmap(
+            this.width, this.height, this.config
         )
-    }
-
-    private fun isGpsProviderEnabled(): Boolean =
-        locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-
-    private suspend fun launchLocatizationUpdate() {
-        updateLocalization()
-        coroutineScope {
-            timerJob = launch(Dispatchers.Default) {
-                while (true) {
-                    delay(vpsConfig.timerInterval)
-                    if (isActive) {
-                        updateLocalization()
-                    }
-                }
+        for (x in 0 until this.width) {
+            for (y in 0 until this.height) {
+                val pixelColor = this.getPixel(x, y)
+                val pixelAlpha: Int = Color.alpha(pixelColor)
+                val pixelRed: Int = Color.red(pixelColor)
+                val pixelGreen: Int = Color.green(pixelColor)
+                val pixelBlue: Int = Color.blue(pixelColor)
+                val pixelBW = (pixelRed + pixelGreen + pixelBlue) / 3
+                val newPixel: Int = Color.argb(pixelAlpha, pixelBW, pixelBW, pixelBW)
+                blackAndWhiteBitmap.setPixel(x, y, newPixel)
             }
         }
-
-        isTimerRunning = true
-    }
-
-    private fun stopLocalizationUpdate() {
-        timerJob?.cancel()
-        isTimerRunning = false
-    }
-
-    private suspend fun updateLocalization() {
-        withContext(Dispatchers.Main) {
-            arInteractor.updateLocalization()
-
-            try {
-                val image: Image = arInteractor.acquireCameraImage()
-                    ?: throw NotYetAvailableException("Failed to acquire camera image")
-                val location = if (vpsConfig.needLocation && isGpsProviderEnabled()) lastLocation else null
-                val localPosition = arInteractor.getLocalPosition(lastLocalPosition)
-
-                if (!firstLocalize) {
-                    if (failureCount >= 2) {
-                        force = true
-                    }
-                }
-
-                val vpsLocationModel = VpsLocationModel(
-                    vpsConfig.url,
-                    vpsConfig.locationID,
-                    location,
-                    image,
-                    vpsConfig.isNeuro,
-                    localPosition,
-                    force
-                )
-
-                val responseLocalPosition = vpsRepository.getLocation(vpsLocationModel)
-                if (responseLocalPosition != null) {
-                    val (rotation, position) = onSuccessResponse(responseLocalPosition)
-                    arInteractor.localize(rotation, position)
-                } else {
-                    onFailResponse()
-                }
-            } catch (e: NotYetAvailableException) {
-                Logger.error(e)
-            } catch (e: CancellationException) {
-                Logger.error(e)
-            } catch (e: Exception) {
-                Logger.error(e.stackTraceToString())
-                stopLocatization()
-                vpsCallback?.onError(e)
-            }
-        }
-    }
-
-    private fun onSuccessResponse(localPosition: LocalPositionModel): Pair<Quaternion, Vector3> {
-        if (!vpsConfig.onlyForce) {
-            force = false
-        }
-
-        firstLocalize = false
-        failureCount = 0
-        vpsCallback?.onPositionVps()
-        lastLocalPosition = localPosition
-
-        arInteractor.updateRotationAngle(lastLocalPosition)
-
-        return localPosition.toNewRotationAndPositionPair()
-    }
-
-    private fun onFailResponse() {
-        Logger.debug("fail")
-        failureCount++
-        Logger.debug("failureCount: $failureCount")
+        return blackAndWhiteBitmap
     }
 
 }

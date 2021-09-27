@@ -1,18 +1,20 @@
 package com.arvrlab.vps_sdk.domain.interactor
 
-import com.arvrlab.vps_sdk.data.VpsConfig
-import com.arvrlab.vps_sdk.ui.VpsCallback
+import android.media.Image
+import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
+import com.arvrlab.vps_sdk.domain.model.NodePositionModel
 
 internal interface IVpsInteractor {
 
-    val vpsConfig: VpsConfig
-
-    fun setVpsConfig(vpsConfig: VpsConfig)
-    fun setVpsCallback(vpsCallback: VpsCallback)
-    fun enableForceLocalization(enabled: Boolean)
-
-    suspend fun startLocatization()
-    fun stopLocatization()
+    suspend fun calculateNodePosition(
+        url: String,
+        locationID: String,
+        image: Image,
+        isNeuro: Boolean,
+        nodePosition: NodePositionModel,
+        force: Boolean = false,
+        gpsLocation: GpsLocationModel? = null,
+    ): NodePositionModel?
 
     fun destroy()
 

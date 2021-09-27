@@ -11,9 +11,9 @@ internal interface VpsApi {
 
     @Multipart
     @POST("vps/api/v1/job")
-    suspend fun requestLocation(
+    suspend fun calculateNodePosition(
         @Part("json") json: RequestVpsModel,
-        @Part image: MultipartBody.Part
+        @Part body: MultipartBody.Part
     ): ResponseVpsModel
 
 }
