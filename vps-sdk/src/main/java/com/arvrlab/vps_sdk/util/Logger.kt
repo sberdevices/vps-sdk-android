@@ -31,7 +31,7 @@ internal object Logger {
         val stackTrace = Thread.currentThread().stackTrace
         for (i in stackTrace.indices) {
             if (stackTrace[i].methodName == "getTag") {
-                val trace = stackTrace[i + 3]
+                val trace = stackTrace[i + 2]
                 return "$TAG (${trace.fileName}:${trace.lineNumber})"
             }
         }
