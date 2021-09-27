@@ -50,6 +50,8 @@ dependencies {
     implementation(Lib.coroutinesCore)
     implementation(Lib.coroutinesAndroid)
 
+    implementation(Lib.koinAndroid)
+
     implementation(Lib.okhttp)
     implementation(Lib.loggingInterceptor)
 

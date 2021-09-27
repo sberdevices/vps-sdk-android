@@ -5,7 +5,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
-import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.ar.core.CameraConfig
@@ -15,6 +14,7 @@ import com.google.ar.core.Session
 import com.google.ar.sceneform.ux.ArFragment
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.util.*
 
 class VpsArFragment : ArFragment() {
@@ -23,9 +23,7 @@ class VpsArFragment : ArFragment() {
         const val FAR_CLIP_PLANE = 1000f
     }
 
-    private val viewModel: VpsArViewModel by viewModels {
-        VpsArViewModelFactory(requireActivity().application)
-    }
+    private val viewModel: VpsArViewModel by viewModel()
 
     val vpsService: VpsService
         get() = viewModel

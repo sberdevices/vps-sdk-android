@@ -1,7 +1,7 @@
 package com.arvrlab.vps_sdk.ui
 
 import android.Manifest
-import android.app.Application
+import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.LifecycleObserver
@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 internal class VpsArViewModel(
-    private val application: Application,
+    private val context: Context,
     private val vpsService: VpsService
 ) : ViewModel(), VpsService by vpsService, LifecycleObserver {
 
@@ -84,7 +84,7 @@ internal class VpsArViewModel(
 
     private fun checkSelfPermission(permission: String): Boolean =
         ActivityCompat.checkSelfPermission(
-            application,
+            context,
             permission
         ) == PackageManager.PERMISSION_GRANTED
 }
