@@ -70,12 +70,64 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/cbNeedLocation" />
 
+    <CheckBox
+        android:id="@+id/cbSerialImages"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Несколько изображений"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/cbUseNeuro" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilImagesCount"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:layout_marginEnd="4dp"
+        android:ems="15"
+        android:hint="Количество снимков"
+        android:visibility="gone"
+        app:layout_constraintEnd_toStartOf="@id/tilImagesInterval"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/cbSerialImages">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etImagesCount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:text="3"
+            android:textAlignment="textStart" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilImagesInterval"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:layout_marginStart="4dp"
+        android:ems="15"
+        android:hint="Интервал между снимками (млс)"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/tilImagesCount"
+        app:layout_constraintTop_toBottomOf="@+id/cbSerialImages">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etImagesInterval"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:text="1000"
+            android:textAlignment="textStart" />
+    </com.google.android.material.textfield.TextInputLayout>
+
     <Button
         android:id="@+id/btnSubmit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Начать"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/cbUseNeuro" />
+        app:layout_constraintTop_toBottomOf="@id/tilImagesInterval" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

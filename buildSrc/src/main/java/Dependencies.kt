@@ -54,7 +54,10 @@ object Lib {
     const val lifecycleViewmodelKtx = "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle"
     const val lifecycleExtensions = "androidx.lifecycle:lifecycle-extensions:2.2.0"
 
-    const val viewBindingPropertyDelegate = "com.github.kirich1409:viewbindingpropertydelegate-noreflection:1.5.0-beta01"
+    const val koinAndroid = "io.insert-koin:koin-android:3.1.2"
+
+    const val viewBindingPropertyDelegate =
+        "com.github.kirich1409:viewbindingpropertydelegate-noreflection:1.5.0-beta01"
 
     private const val _okhttp3 = "4.6.0"
     const val okhttp = "com.squareup.okhttp3:okhttp:$_okhttp3"

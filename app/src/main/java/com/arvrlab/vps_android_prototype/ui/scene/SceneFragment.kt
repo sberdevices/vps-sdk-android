@@ -46,9 +46,11 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
                     sceneModel.url,
                     sceneModel.locationID,
                     sceneModel.onlyForce,
-                    sceneModel.timerInterval,
-                    sceneModel.needLocation,
-                    sceneModel.isNeuro
+                    sceneModel.intervalLocalizationMS,
+                    sceneModel.useGps,
+                    sceneModel.localizationType,
+                    sceneModel.imagesCount,
+                    sceneModel.intervalImagesMS
                 )
             }
 

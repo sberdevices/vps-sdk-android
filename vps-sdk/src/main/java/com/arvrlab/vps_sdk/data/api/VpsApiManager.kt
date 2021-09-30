@@ -1,20 +1,32 @@
 package com.arvrlab.vps_sdk.data.api
 
-import com.arvrlab.vps_sdk.BuildConfig
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
-internal class VpsApiManager : IVpsApiManager {
+internal class VpsApiManager(
+    private val defaultClient: OkHttpClient,
+    private val moshi: Moshi
+) : IVpsApiManager {
 
     private val cacheVpsApi: MutableMap<String, VpsApi> = mutableMapOf()
 
-    private val moshi: Moshi by lazy {
-        Moshi.Builder()
-            .add(KotlinJsonAdapterFactory())
+    private val ignore401Error: Interceptor = Interceptor {
+        val response = it.proceed(it.request())
+        if (response.code == 401) {
+            response.newBuilder()
+                .code(200)
+                .build()
+        } else {
+            response
+        }
+    }
+
+    private val okHttpClient: OkHttpClient by lazy {
+        defaultClient.newBuilder()
+            .addInterceptor(ignore401Error)
             .build()
     }
 
@@ -24,20 +36,11 @@ internal class VpsApiManager : IVpsApiManager {
                 .create(VpsApi::class.java)
                 .also { cacheVpsApi[url] = it }
 
-    private fun getClient(baseUrl: String): Retrofit {
-        val loggingInterceptor = HttpLoggingInterceptor()
-        loggingInterceptor.level =
-            if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
-
-        val okHttpClient = OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
-            .build()
-
-        return Retrofit.Builder()
+    private fun getClient(baseUrl: String): Retrofit =
+        Retrofit.Builder()
             .baseUrl(baseUrl)
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
-    }
 
 }

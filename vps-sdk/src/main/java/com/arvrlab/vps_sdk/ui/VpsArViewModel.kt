@@ -1,7 +1,7 @@
 package com.arvrlab.vps_sdk.ui
 
 import android.Manifest
-import android.app.Application
+import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.LifecycleObserver
@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 internal class VpsArViewModel(
-    private val application: Application,
+    private val context: Context,
     private val vpsService: VpsService
 ) : ViewModel(), VpsService by vpsService, LifecycleObserver {
 
@@ -34,15 +34,15 @@ internal class VpsArViewModel(
     private val _cameraPermissionDialog: MutableSharedFlow<Unit> = MutableSharedFlow()
     val cameraPermissionDialog: SharedFlow<Unit> = _cameraPermissionDialog.asSharedFlow()
 
-    private var needLocation: Boolean = false
+    private var useGps: Boolean = false
 
     override fun setVpsConfig(vpsConfig: VpsConfig) {
         vpsService.setVpsConfig(vpsConfig)
-        needLocation = vpsConfig.needLocation
+        useGps = vpsConfig.useGps
     }
 
     override fun startVpsService() {
-        if (needLocation && !checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+        if (useGps && !checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
             viewModelScope.launch {
                 _requestPermissions.emit(
                     arrayOf(Manifest.permission.ACCESS_FINE_LOCATION) to ACCESS_FINE_LOCATION_REQUEST_CODE
@@ -84,7 +84,7 @@ internal class VpsArViewModel(
 
     private fun checkSelfPermission(permission: String): Boolean =
         ActivityCompat.checkSelfPermission(
-            application,
+            context,
             permission
         ) == PackageManager.PERMISSION_GRANTED
 }

@@ -4,7 +4,9 @@ data class VpsConfig(
     val url: String,
     val locationID: String,
     var onlyForce: Boolean = true,
-    val timerInterval: Long = 6000,
-    val needLocation: Boolean = false,
-    val isNeuro: Boolean = false
+    val intervalLocalizationMS: Long = 6000,
+    val useGps: Boolean = false,
+    val localizationType: LocalizationType = LocalizationType.PHOTO,
+    val countImages: Int = 1,
+    val intervalImagesMS: Long = 1000
 )

@@ -1,13 +1,20 @@
 package com.arvrlab.vps_sdk.ui
 
+import android.graphics.ImageFormat
+import android.graphics.Rect
+import android.graphics.YuvImage
 import android.media.Image
+import android.util.SparseArray
 import androidx.annotation.MainThread
+import androidx.core.util.containsKey
 import com.arvrlab.vps_sdk.domain.model.NodePositionModel
+import com.arvrlab.vps_sdk.util.Constant.QUALITY
 import com.google.ar.sceneform.*
 import com.google.ar.sceneform.math.Matrix
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 import com.google.ar.sceneform.utilities.AndroidPreconditions
+import java.io.ByteArrayOutputStream
 import kotlin.math.PI
 import kotlin.math.asin
 import kotlin.math.atan2
@@ -32,9 +39,9 @@ internal class ArManager {
     private val camera: Camera
         get() = scene.camera
 
+    private var tempWorldPosition: SparseArray<WorldPosition> = SparseArray(1)
     private var cameraStartPosition: Vector3 = Vector3()
     private var cameraStartRotation: Quaternion = Quaternion()
-
     private var photoMatrix: Matrix? = null
 
     private var rotationAngle: Float? = null
@@ -68,13 +75,28 @@ internal class ArManager {
         isModelCreated = false
     }
 
-    fun savePositions() {
-        cameraStartPosition = camera.worldPosition
-        cameraStartRotation = camera.worldRotation
-        photoMatrix = camera.worldModelMatrix
+    fun saveWorldPosition(index: Int) {
+        tempWorldPosition.put(
+            index,
+            WorldPosition(
+                cameraStartPosition = camera.worldPosition,
+                cameraStartRotation = camera.worldRotation,
+                photoMatrix = camera.worldModelMatrix
+            )
+        )
     }
 
-    fun updatePositions(nodePosition: NodePositionModel) {
+    fun restoreWorldPosition(index: Int, nodePosition: NodePositionModel) {
+        if(!tempWorldPosition.containsKey(index))
+            throw IllegalStateException("WorldPosition with index $index not found")
+
+        tempWorldPosition[index].let {
+            cameraStartPosition = it.cameraStartPosition
+            cameraStartRotation = it.cameraStartRotation
+            photoMatrix = it.photoMatrix
+        }
+        tempWorldPosition.clear()
+
         updateRotationAngle(nodePosition)
 
         createNodeHierarchyIfNeed()
@@ -86,12 +108,13 @@ internal class ArManager {
         worldNode.localPosition = nodePosition.toVector3()
     }
 
-    fun getCurrentNodePosition(lastNodePosition: NodePositionModel): NodePositionModel {
+    @MainThread
+    fun getWorldNodePosition(lastNodePosition: NodePositionModel): NodePositionModel {
         val lastCamera = Node()
         val newCamera = Node()
         val anchorParent = AnchorNode()
 
-        lastCamera.worldPosition = photoMatrix?.toPositionVector()
+        lastCamera.worldPosition = camera.worldModelMatrix.toPositionVector()
         newCamera.worldPosition = camera.worldPosition
         newCamera.worldRotation = camera.worldRotation
 
@@ -132,10 +155,12 @@ internal class ArManager {
     }
 
     @MainThread
-    fun acquireCameraImage(): Image {
+    fun acquireCameraImageAsByteArray(): ByteArray {
         AndroidPreconditions.checkUiThread()
-        return checkArSceneView().arFrame?.acquireCameraImage()
+        val image = checkArSceneView().arFrame?.acquireCameraImage()
             ?: throw IllegalStateException("Frame is null")
+        return image.toByteArray()
+            .also { image.close() }
     }
 
     private fun checkArSceneView(): ArSceneView =
@@ -161,6 +186,28 @@ internal class ArManager {
         val cameraAngles = Quaternion(photoMatrix?.toPositionVector()).toEulerAngles().y
 
         rotationAngle = anglesY + cameraAngles
+    }
+
+    private fun Image.toByteArray(): ByteArray {
+        val yBuffer = planes[0].buffer
+        val uBuffer = planes[1].buffer
+        val vBuffer = planes[2].buffer
+
+        val ySize = yBuffer.remaining()
+        val uSize = uBuffer.remaining()
+        val vSize = vBuffer.remaining()
+
+        val nv21 = ByteArray(ySize + uSize + vSize)
+
+        yBuffer.get(nv21, 0, ySize)
+        vBuffer.get(nv21, ySize, vSize)
+        uBuffer.get(nv21, ySize + vSize, uSize)
+
+        val yuvImage = YuvImage(nv21, ImageFormat.NV21, this.width, this.height, null)
+        return ByteArrayOutputStream().use { out ->
+            yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), QUALITY, out)
+            out.toByteArray()
+        }
     }
 
     private fun Quaternion.toStartRotation(): Quaternion {
@@ -204,7 +251,17 @@ internal class ArManager {
         val z = asin(2 * test)
         val x = atan2(2 * x * w - 2 * y * z, 1 - 2 * sqx - 2 * sqz)
 
-        return Vector3((x * _180_DIV_PI).toFloat(), (y * _180_DIV_PI).toFloat(), (z * _180_DIV_PI).toFloat())
+        return Vector3(
+            (x * _180_DIV_PI).toFloat(),
+            (y * _180_DIV_PI).toFloat(),
+            (z * _180_DIV_PI).toFloat()
+        )
     }
+
+    private class WorldPosition(
+        val cameraStartPosition: Vector3 = Vector3(),
+        val cameraStartRotation: Quaternion = Quaternion(),
+        val photoMatrix: Matrix? = null
+    )
 
 }
