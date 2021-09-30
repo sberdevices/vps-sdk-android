@@ -4,9 +4,12 @@ import android.content.Context
 import android.location.LocationManager
 import com.arvrlab.vps_sdk.BuildConfig
 import com.arvrlab.vps_sdk.data.api.IVpsApiManager
+import com.arvrlab.vps_sdk.data.api.NeuroApi
 import com.arvrlab.vps_sdk.data.api.VpsApiManager
 import com.arvrlab.vps_sdk.data.model.request.RequestVpsModel
+import com.arvrlab.vps_sdk.data.repository.INeuroRepository
 import com.arvrlab.vps_sdk.data.repository.IVpsRepository
+import com.arvrlab.vps_sdk.data.repository.NeuroRepository
 import com.arvrlab.vps_sdk.data.repository.VpsRepository
 import com.arvrlab.vps_sdk.domain.interactor.INeuroInteractor
 import com.arvrlab.vps_sdk.domain.interactor.IVpsInteractor
@@ -24,8 +27,11 @@ import okhttp3.logging.HttpLoggingInterceptor
 import okhttp3.logging.HttpLoggingInterceptor.Level
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import retrofit2.Retrofit
 
 internal object Module {
+
+    private const val NEURO_MODEL_HOST = "https://testable1.s3pd01.sbercloud.ru/"
 
     val repository: Module = module {
         single {
@@ -45,6 +51,15 @@ internal object Module {
         single<JsonAdapter<RequestVpsModel>> { get<Moshi>().adapter(RequestVpsModel::class.java) }
         single<IVpsApiManager> { VpsApiManager(get(), get()) }
         factory<IVpsRepository> { VpsRepository(get(), get()) }
+
+        single<NeuroApi> {
+            Retrofit.Builder()
+                .baseUrl(NEURO_MODEL_HOST)
+                .client(get())
+                .build()
+                .create(NeuroApi::class.java)
+        }
+        single<INeuroRepository> { NeuroRepository(get(), get()) }
     }
 
     val domain: Module = module {

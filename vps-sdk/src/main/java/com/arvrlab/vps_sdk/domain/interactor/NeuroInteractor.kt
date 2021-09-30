@@ -1,25 +1,21 @@
 package com.arvrlab.vps_sdk.domain.interactor
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Matrix
 import android.util.Base64
+import com.arvrlab.vps_sdk.data.repository.INeuroRepository
 import com.arvrlab.vps_sdk.domain.model.NeuroModel
 import org.tensorflow.lite.Interpreter
-import org.tensorflow.lite.support.common.FileUtil
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 internal class NeuroInteractor(
-    private val context: Context,
-    private val tfModelName: String = TF_MODEL_NAME
+    private val neuroRepository: INeuroRepository
 ) : INeuroInteractor {
 
     private companion object {
-        const val TF_MODEL_NAME = "hfnet_i8_960.tflite"
-
         const val FLOAT_SIZE = 4
         const val MATRIX_ROTATE = 90f
     }
@@ -81,12 +77,11 @@ internal class NeuroInteractor(
     private fun initInterpreterIfNeed() {
         if (interpreter != null) return
 
-        val interpreterOptions = Interpreter.Options().apply {
-            setNumThreads(4)
-        }
+        val interpreterOptions = Interpreter.Options()
+            .apply { setNumThreads(4) }
 
         interpreter = Interpreter(
-            FileUtil.loadMappedFile(context, tfModelName),
+            neuroRepository.getNeuroModelFile(),
             interpreterOptions
         )
     }
