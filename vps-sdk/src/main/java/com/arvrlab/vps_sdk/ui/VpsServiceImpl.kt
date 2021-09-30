@@ -191,7 +191,7 @@ internal class VpsServiceImpl(
             url = vpsConfig.url,
             locationID = vpsConfig.locationID,
             source = byteArray,
-            useNeuro = vpsConfig.useNeuro,
+            localizationType = vpsConfig.localizationType,
             nodePosition = currentNodePosition,
             force = force,
             gpsLocation = gpsLocation
@@ -222,7 +222,7 @@ internal class VpsServiceImpl(
             url = vpsConfig.url,
             locationID = vpsConfig.locationID,
             sources = byteArrays,
-            useNeuro = vpsConfig.useNeuro,
+            localizationType = vpsConfig.localizationType,
             nodePositions = nodePositions,
             gpsLocations = gpsLocation?.let { listOf(it) }
         )

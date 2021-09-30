@@ -1,5 +1,6 @@
 package com.arvrlab.vps_sdk.data.repository
 
+import com.arvrlab.vps_sdk.data.LocalizationType
 import com.arvrlab.vps_sdk.data.api.IVpsApiManager
 import com.arvrlab.vps_sdk.data.model.request.*
 import com.arvrlab.vps_sdk.data.model.response.ResponseRelativeModel
@@ -40,10 +41,9 @@ internal class VpsRepository(
 
         val jsonBody = vpsLocationModel.toRequestVpsModel(false)
             .toBodyPart(JSON)
-        val contentBody = if (vpsLocationModel.useNeuro) {
-            vpsLocationModel.toBodyPart(ANY_MEDIA_TYPE, EMBEDDING)
-        } else {
-            vpsLocationModel.toBodyPart(IMAGE_MEDIA_TYPE, IMAGE)
+        val contentBody = when (vpsLocationModel.localizationType) {
+            LocalizationType.PHOTO -> vpsLocationModel.toBodyPart(IMAGE_MEDIA_TYPE, IMAGE)
+            LocalizationType.MOBILE_VPS -> vpsLocationModel.toBodyPart(ANY_MEDIA_TYPE, EMBEDDING)
         }
         val response = vpsApi.requestLocalizationBySingleImage(jsonBody, contentBody)
 
@@ -69,10 +69,9 @@ internal class VpsRepository(
                     .toBodyPart("$MES$index")
             )
             parts.add(
-                if (model.useNeuro) {
-                    model.toBodyPart(ANY_MEDIA_TYPE, "$EMBD$index")
-                } else {
-                    model.toBodyPart(IMAGE_MEDIA_TYPE, "$MES$index")
+                when (model.localizationType) {
+                    LocalizationType.PHOTO -> model.toBodyPart(IMAGE_MEDIA_TYPE, "$MES$index")
+                    LocalizationType.MOBILE_VPS -> model.toBodyPart(ANY_MEDIA_TYPE, "$EMBD$index")
                 }
             )
         }

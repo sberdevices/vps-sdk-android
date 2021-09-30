@@ -3,6 +3,7 @@ package com.arvrlab.vps_sdk.domain.interactor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import com.arvrlab.vps_sdk.data.LocalizationType
 import com.arvrlab.vps_sdk.data.repository.IVpsRepository
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
 import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
@@ -22,19 +23,19 @@ internal class VpsInteractor(
         url: String,
         locationID: String,
         source: ByteArray,
-        useNeuro: Boolean,
+        localizationType: LocalizationType,
         nodePosition: NodePositionModel,
         force: Boolean,
         gpsLocation: GpsLocationModel?
     ): NodePositionModel? {
-        val byteArray = convertByteArray(source, useNeuro)
+        val byteArray = convertByteArray(source, localizationType)
 
         val vpsLocationModel = VpsLocationModel(
             locationID = locationID,
             gpsLocation = gpsLocation,
             nodePosition = nodePosition,
             force = force,
-            useNeuro = useNeuro,
+            localizationType = localizationType,
             byteArray = byteArray
         )
         return vpsRepository.requestLocalizationBySingleImage(url, vpsLocationModel)
@@ -44,7 +45,7 @@ internal class VpsInteractor(
         url: String,
         locationID: String,
         sources: List<ByteArray>,
-        useNeuro: Boolean,
+        localizationType: LocalizationType,
         nodePositions: List<NodePositionModel>,
         gpsLocations: List<GpsLocationModel>?
     ): LocalizationBySerialImages? {
@@ -54,7 +55,7 @@ internal class VpsInteractor(
 
         val vpsLocationArray = arrayListOf<VpsLocationModel>()
         sources.forEachIndexed { index, source ->
-            val byteArray = convertByteArray(source, useNeuro)
+            val byteArray = convertByteArray(source, localizationType)
 
             vpsLocationArray.add(
                 VpsLocationModel(
@@ -62,7 +63,7 @@ internal class VpsInteractor(
                     gpsLocation = gpsLocations?.getOrNull(index),
                     nodePosition = nodePositions[0],
                     force = true,
-                    useNeuro = useNeuro,
+                    localizationType = localizationType,
                     byteArray = byteArray
                 )
             )
@@ -78,11 +79,10 @@ internal class VpsInteractor(
         neuroInteractor.close()
     }
 
-    private fun convertByteArray(source: ByteArray, useNeuro: Boolean): ByteArray =
-        if (useNeuro) {
-            createNeuroByteArray(source)
-        } else {
-            createJpgByteArray(source)
+    private fun convertByteArray(source: ByteArray, localizationType: LocalizationType): ByteArray =
+        when (localizationType) {
+            LocalizationType.PHOTO -> createJpgByteArray(source)
+            LocalizationType.MOBILE_VPS -> createNeuroByteArray(source)
         }
 
     private fun createNeuroByteArray(byteArray: ByteArray): ByteArray {

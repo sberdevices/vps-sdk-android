@@ -48,7 +48,7 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
                     sceneModel.onlyForce,
                     sceneModel.intervalLocalizationMS,
                     sceneModel.useGps,
-                    sceneModel.useNeuro,
+                    sceneModel.localizationType,
                     sceneModel.imagesCount,
                     sceneModel.intervalImagesMS
                 )

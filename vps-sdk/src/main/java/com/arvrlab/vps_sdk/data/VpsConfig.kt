@@ -6,7 +6,7 @@ data class VpsConfig(
     var onlyForce: Boolean = true,
     val intervalLocalizationMS: Long = 6000,
     val useGps: Boolean = false,
-    val useNeuro: Boolean = false,
+    val localizationType: LocalizationType = LocalizationType.PHOTO,
     val countImages: Int = 1,
     val intervalImagesMS: Long = 1000
 )

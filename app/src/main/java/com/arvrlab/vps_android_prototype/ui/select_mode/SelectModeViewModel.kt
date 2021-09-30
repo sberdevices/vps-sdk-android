@@ -7,6 +7,7 @@ import com.arvrlab.vps_android_prototype.util.BOOTCAMP_BASE_URL
 import com.arvrlab.vps_android_prototype.util.BOOTCAMP_LOCATION_ID
 import com.arvrlab.vps_android_prototype.util.POLYTECH_BASE_URL
 import com.arvrlab.vps_android_prototype.util.POLYTECH_LOCATION_ID
+import com.arvrlab.vps_sdk.data.LocalizationType
 
 class SelectModeViewModel : ViewModel() {
 
@@ -44,12 +45,15 @@ class SelectModeViewModel : ViewModel() {
         sceneModel.onlyForce = onlyForce
     }
 
-    fun onNeedLocationChanged(isNeedLocation: Boolean) {
-        sceneModel.useGps = isNeedLocation
+    fun onNeedLocationChanged(useGps: Boolean) {
+        sceneModel.useGps = useGps
     }
 
-    fun onUseNeuroChanged(isNeedNeuro: Boolean) {
-        sceneModel.useNeuro = isNeedNeuro
+    fun onUseNeuroChanged(useNeuro: Boolean) {
+        sceneModel.localizationType = if (useNeuro)
+            LocalizationType.MOBILE_VPS
+        else
+            LocalizationType.PHOTO
     }
 
     fun onImagesCountChanged(imagesCount: String) {
