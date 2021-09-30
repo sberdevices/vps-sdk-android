@@ -10,7 +10,9 @@ data class SceneModel(
     var locationID: String,
     @RawRes var modelRawId: Int,
     var onlyForce: Boolean = true,
-    var timerInterval: Long = 6000,
-    var needLocation: Boolean = false,
-    var isNeuro: Boolean = false
+    var intervalLocalizationMS: Long = 6000,
+    var useGps: Boolean = false,
+    var useNeuro: Boolean = false,
+    var imagesCount: Int = 1,
+    var intervalImagesMS: Long = 0
 ) : Parcelable

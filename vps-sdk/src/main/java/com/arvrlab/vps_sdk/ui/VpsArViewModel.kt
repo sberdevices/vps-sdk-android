@@ -34,15 +34,15 @@ internal class VpsArViewModel(
     private val _cameraPermissionDialog: MutableSharedFlow<Unit> = MutableSharedFlow()
     val cameraPermissionDialog: SharedFlow<Unit> = _cameraPermissionDialog.asSharedFlow()
 
-    private var needLocation: Boolean = false
+    private var useGps: Boolean = false
 
     override fun setVpsConfig(vpsConfig: VpsConfig) {
         vpsService.setVpsConfig(vpsConfig)
-        needLocation = vpsConfig.needLocation
+        useGps = vpsConfig.useGps
     }
 
     override fun startVpsService() {
-        if (needLocation && !checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+        if (useGps && !checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
             viewModelScope.launch {
                 _requestPermissions.emit(
                     arrayOf(Manifest.permission.ACCESS_FINE_LOCATION) to ACCESS_FINE_LOCATION_REQUEST_CODE

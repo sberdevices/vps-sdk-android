@@ -33,7 +33,7 @@ class SelectModeViewModel : ViewModel() {
     }
 
     fun onIntervalChanged(inteval: String) {
-        sceneModel.timerInterval = try {
+        sceneModel.intervalLocalizationMS = try {
             inteval.toLong()
         } catch (e: Exception) {
             6000L
@@ -45,11 +45,27 @@ class SelectModeViewModel : ViewModel() {
     }
 
     fun onNeedLocationChanged(isNeedLocation: Boolean) {
-        sceneModel.needLocation = isNeedLocation
+        sceneModel.useGps = isNeedLocation
     }
 
     fun onUseNeuroChanged(isNeedNeuro: Boolean) {
-        sceneModel.isNeuro = isNeedNeuro
+        sceneModel.useNeuro = isNeedNeuro
+    }
+
+    fun onImagesCountChanged(imagesCount: String) {
+        sceneModel.imagesCount = try {
+            imagesCount.toInt()
+        } catch (e: Exception) {
+            3
+        }
+    }
+
+    fun onImagesIntervalChanged(intevalImages: String) {
+        sceneModel.intervalImagesMS = try {
+            intevalImages.toLong()
+        } catch (e: Exception) {
+            1000L
+        }
     }
 
 }

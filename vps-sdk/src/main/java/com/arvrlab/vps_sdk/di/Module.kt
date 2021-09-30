@@ -43,8 +43,8 @@ internal object Module {
                 .build()
         }
         single<JsonAdapter<RequestVpsModel>> { get<Moshi>().adapter(RequestVpsModel::class.java) }
-        single<IVpsApiManager> { VpsApiManager() }
-        factory<IVpsRepository> { VpsRepository(get()) }
+        single<IVpsApiManager> { VpsApiManager(get(), get()) }
+        factory<IVpsRepository> { VpsRepository(get(), get()) }
     }
 
     val domain: Module = module {
