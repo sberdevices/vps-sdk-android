@@ -3,10 +3,7 @@ package com.arvrlab.vps_android_prototype.ui.select_mode
 import androidx.lifecycle.ViewModel
 import com.arvrlab.vps_android_prototype.R
 import com.arvrlab.vps_android_prototype.data.SceneModel
-import com.arvrlab.vps_android_prototype.util.BOOTCAMP_BASE_URL
-import com.arvrlab.vps_android_prototype.util.BOOTCAMP_LOCATION_ID
-import com.arvrlab.vps_android_prototype.util.POLYTECH_BASE_URL
-import com.arvrlab.vps_android_prototype.util.POLYTECH_LOCATION_ID
+import com.arvrlab.vps_android_prototype.util.*
 import com.arvrlab.vps_sdk.data.LocalizationType
 
 class SelectModeViewModel : ViewModel() {
@@ -60,7 +57,8 @@ class SelectModeViewModel : ViewModel() {
         sceneModel.imagesCount = try {
             imagesCount.toInt()
         } catch (e: Exception) {
-            3
+            Logger.error(e)
+            1
         }
     }
 
