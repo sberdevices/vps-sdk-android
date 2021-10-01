@@ -150,9 +150,12 @@ internal class VpsServiceImpl(
                 lastNodePosition = it
                 withContext(Dispatchers.Main) {
                     arManager.restoreWorldPosition(0, lastNodePosition)
+                    vpsCallback?.onSuccess()
                 }
-                vpsCallback?.onSuccess()
             } ?: run {
+                withContext(Dispatchers.Main) {
+                    vpsCallback?.onFail()
+                }
                 failureCount++
                 Logger.debug("localization fail: $failureCount")
             }
