@@ -1,10 +1,10 @@
 package com.arvrlab.vps_sdk.domain.model
 
 internal data class NeuroModel(
-    var globalDescriptor: FloatArray = floatArrayOf(),
-    var keyPoints: Array<FloatArray> = arrayOf(),
-    var localDescriptors: Array<FloatArray> = arrayOf(),
-    var scores: FloatArray = floatArrayOf()
+    val keyPoints: Array<FloatArray> = arrayOf(),
+    val scores: FloatArray = floatArrayOf(),
+    val descriptors: Array<FloatArray> = arrayOf(),
+    val globalDescriptor: FloatArray = floatArrayOf()
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -12,19 +12,19 @@ internal data class NeuroModel(
 
         other as NeuroModel
 
-        if (!globalDescriptor.contentEquals(other.globalDescriptor)) return false
-        if (!keyPoints.contentEquals(other.keyPoints)) return false
-        if (!localDescriptors.contentEquals(other.localDescriptors)) return false
+        if (!keyPoints.contentDeepEquals(other.keyPoints)) return false
         if (!scores.contentEquals(other.scores)) return false
+        if (!descriptors.contentDeepEquals(other.descriptors)) return false
+        if (!globalDescriptor.contentEquals(other.globalDescriptor)) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = globalDescriptor.contentHashCode()
-        result = 31 * result + keyPoints.contentHashCode()
-        result = 31 * result + localDescriptors.contentHashCode()
+        var result = keyPoints.contentDeepHashCode()
         result = 31 * result + scores.contentHashCode()
+        result = 31 * result + descriptors.contentDeepHashCode()
+        result = 31 * result + globalDescriptor.contentHashCode()
         return result
     }
 }
