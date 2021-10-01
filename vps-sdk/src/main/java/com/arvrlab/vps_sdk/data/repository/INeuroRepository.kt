@@ -4,6 +4,6 @@ import java.io.File
 
 internal interface INeuroRepository {
 
-    fun getNeuroModelFile(): File
+    fun getNeuroModelFile(url: String): File
 
 }

@@ -44,14 +44,14 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
         val vpsConfig = navArgs.sceneModel
             .let { sceneModel ->
                 VpsConfig(
-                    sceneModel.url,
-                    sceneModel.locationID,
-                    sceneModel.onlyForce,
-                    sceneModel.intervalLocalizationMS,
-                    sceneModel.useGps,
-                    sceneModel.localizationType,
-                    sceneModel.imagesCount,
-                    sceneModel.intervalImagesMS
+                    vpsUrl = sceneModel.url,
+                    locationID = sceneModel.locationID,
+                    onlyForce = sceneModel.onlyForce,
+                    intervalLocalizationMS = sceneModel.intervalLocalizationMS,
+                    useGps = sceneModel.useGps,
+                    localizationType = sceneModel.localizationType,
+                    countImages = sceneModel.imagesCount,
+                    intervalImagesMS = sceneModel.intervalImagesMS
                 )
             }
 

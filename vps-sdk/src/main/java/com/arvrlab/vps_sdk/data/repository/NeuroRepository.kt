@@ -2,6 +2,7 @@ package com.arvrlab.vps_sdk.data.repository
 
 import android.content.Context
 import com.arvrlab.vps_sdk.data.api.NeuroApi
+import com.arvrlab.vps_sdk.util.Constant.URL_DELIMITER
 import java.io.File
 
 internal class NeuroRepository(
@@ -9,14 +10,11 @@ internal class NeuroRepository(
     private val neuroApi: NeuroApi
 ) : INeuroRepository {
 
-    private companion object {
-        const val TF_MODEL_NAME = "hfnet_i8_960.tflite"
-    }
-
-    override fun getNeuroModelFile(): File {
-        val neuroModelFile = File(context.filesDir, TF_MODEL_NAME)
+    override fun getNeuroModelFile(url: String): File {
+        val fileName = url.substringAfterLast(URL_DELIMITER)
+        val neuroModelFile = File(context.filesDir, fileName)
         if (!neuroModelFile.exists()) {
-            neuroApi.loadNeuroModel()
+            neuroApi.loadNeuroModel(url)
                 .execute()
                 .body()
                 ?.byteStream()

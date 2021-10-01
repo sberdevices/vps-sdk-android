@@ -191,7 +191,7 @@ internal class VpsServiceImpl(
         }
 
         return vpsInteractor.calculateNodePosition(
-            url = vpsConfig.url,
+            url = vpsConfig.vpsUrl,
             locationID = vpsConfig.locationID,
             source = byteArray,
             localizationType = vpsConfig.localizationType,
@@ -222,7 +222,7 @@ internal class VpsServiceImpl(
         }
 
         return vpsInteractor.calculateNodePosition(
-            url = vpsConfig.url,
+            url = vpsConfig.vpsUrl,
             locationID = vpsConfig.locationID,
             sources = byteArrays,
             localizationType = vpsConfig.localizationType,

@@ -4,6 +4,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import com.arvrlab.vps_sdk.data.LocalizationType
+import com.arvrlab.vps_sdk.data.MobileVps
+import com.arvrlab.vps_sdk.data.Photo
 import com.arvrlab.vps_sdk.data.repository.IVpsRepository
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
 import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
@@ -81,13 +83,13 @@ internal class VpsInteractor(
 
     private fun convertByteArray(source: ByteArray, localizationType: LocalizationType): ByteArray =
         when (localizationType) {
-            LocalizationType.PHOTO -> createJpgByteArray(source)
-            LocalizationType.MOBILE_VPS -> createNeuroByteArray(source)
+            is Photo -> createJpgByteArray(source)
+            is MobileVps -> createNeuroByteArray(localizationType.neuroModelUrl, source)
         }
 
-    private fun createNeuroByteArray(byteArray: ByteArray): ByteArray {
+    private fun createNeuroByteArray(neuroModelUrl: String, byteArray: ByteArray): ByteArray {
+        neuroInteractor.loadNeuroModel(neuroModelUrl)
         val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
-
         return neuroInteractor.codingBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT)
     }
 

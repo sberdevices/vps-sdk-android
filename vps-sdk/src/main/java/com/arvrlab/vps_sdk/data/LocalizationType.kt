@@ -1,6 +1,12 @@
 package com.arvrlab.vps_sdk.data
 
-enum class LocalizationType {
-    PHOTO,
-    MOBILE_VPS
-}
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+sealed class LocalizationType : Parcelable
+
+@Parcelize
+object Photo : LocalizationType()
+
+@Parcelize
+data class MobileVps(val neuroModelUrl: String) : LocalizationType()

@@ -2,6 +2,7 @@ plugins {
     id(PluginName.library)
     id(PluginName.kotlinAndroid)
     id(PluginName.kotlinKapt)
+    id(PluginName.kotlinParcelize)
 }
 apply(from = rootProject.file("publishing.gradle"))
 

@@ -4,7 +4,8 @@ import androidx.lifecycle.ViewModel
 import com.arvrlab.vps_android_prototype.R
 import com.arvrlab.vps_android_prototype.data.SceneModel
 import com.arvrlab.vps_android_prototype.util.*
-import com.arvrlab.vps_sdk.data.LocalizationType
+import com.arvrlab.vps_sdk.data.MobileVps
+import com.arvrlab.vps_sdk.data.Photo
 
 class SelectModeViewModel : ViewModel() {
 
@@ -48,9 +49,9 @@ class SelectModeViewModel : ViewModel() {
 
     fun onUseNeuroChanged(useNeuro: Boolean) {
         sceneModel.localizationType = if (useNeuro)
-            LocalizationType.MOBILE_VPS
+            MobileVps("https://testable1.s3pd01.sbercloud.ru/vpsmobiletflite/230421/hfnet_i8_960.tflite")
         else
-            LocalizationType.PHOTO
+            Photo
     }
 
     fun onImagesCountChanged(imagesCount: String) {

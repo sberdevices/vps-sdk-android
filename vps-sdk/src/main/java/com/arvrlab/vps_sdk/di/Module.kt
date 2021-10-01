@@ -31,7 +31,7 @@ import retrofit2.Retrofit
 
 internal object Module {
 
-    private const val NEURO_MODEL_HOST = "https://testable1.s3pd01.sbercloud.ru/"
+    private const val HOST_MOCK = "http://mock/"
 
     val repository: Module = module {
         single {
@@ -54,7 +54,7 @@ internal object Module {
 
         single<NeuroApi> {
             Retrofit.Builder()
-                .baseUrl(NEURO_MODEL_HOST)
+                .baseUrl(HOST_MOCK)
                 .client(get())
                 .build()
                 .create(NeuroApi::class.java)
