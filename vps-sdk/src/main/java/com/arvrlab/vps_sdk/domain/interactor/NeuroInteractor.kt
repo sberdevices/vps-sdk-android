@@ -1,30 +1,39 @@
 package com.arvrlab.vps_sdk.domain.interactor
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Matrix
+import android.os.Looper
 import android.util.Base64
+import com.arvrlab.vps_sdk.data.repository.INeuroRepository
 import com.arvrlab.vps_sdk.domain.model.NeuroModel
+import com.arvrlab.vps_sdk.util.Constant.URL_DELIMITER
 import org.tensorflow.lite.Interpreter
-import org.tensorflow.lite.support.common.FileUtil
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 internal class NeuroInteractor(
-    private val context: Context,
-    private val tfModelName: String = TF_MODEL_NAME
+    private val neuroRepository: INeuroRepository
 ) : INeuroInteractor {
 
     private companion object {
-        const val TF_MODEL_NAME = "hfnet_i8_960.tflite"
-
         const val FLOAT_SIZE = 4
         const val MATRIX_ROTATE = 90f
     }
 
     private var interpreter: Interpreter? = null
+    private var neuroModelFile: File? = null
+
+    override fun loadNeuroModel(url: String) {
+        if (Looper.myLooper() == Looper.getMainLooper())
+            throw IllegalThreadStateException("Must be called from non UI thread.")
+
+        if (url.substringAfterLast(URL_DELIMITER) != neuroModelFile?.name) {
+            neuroModelFile = neuroRepository.getNeuroModelFile(url)
+        }
+    }
 
     override fun codingBitmap(bitmap: Bitmap, dstWidth: Int, dstHeight: Int): ByteArray {
         val neuroModel = convertToNeuroModel(bitmap, dstWidth, dstHeight)
@@ -81,12 +90,12 @@ internal class NeuroInteractor(
     private fun initInterpreterIfNeed() {
         if (interpreter != null) return
 
-        val interpreterOptions = Interpreter.Options().apply {
-            setNumThreads(4)
-        }
+        val interpreterOptions = Interpreter.Options()
+            .apply { setNumThreads(4) }
 
         interpreter = Interpreter(
-            FileUtil.loadMappedFile(context, tfModelName),
+            neuroModelFile
+                ?: throw IllegalStateException("Neuro model not load. First call loadNeuroModel(url: String)."),
             interpreterOptions
         )
     }

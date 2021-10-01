@@ -150,9 +150,12 @@ internal class VpsServiceImpl(
                 lastNodePosition = it
                 withContext(Dispatchers.Main) {
                     arManager.restoreWorldPosition(0, lastNodePosition)
+                    vpsCallback?.onSuccess()
                 }
-                vpsCallback?.onSuccess()
             } ?: run {
+                withContext(Dispatchers.Main) {
+                    vpsCallback?.onFail()
+                }
                 failureCount++
                 Logger.debug("localization fail: $failureCount")
             }
@@ -188,7 +191,7 @@ internal class VpsServiceImpl(
         }
 
         return vpsInteractor.calculateNodePosition(
-            url = vpsConfig.url,
+            url = vpsConfig.vpsUrl,
             locationID = vpsConfig.locationID,
             source = byteArray,
             localizationType = vpsConfig.localizationType,
@@ -219,7 +222,7 @@ internal class VpsServiceImpl(
         }
 
         return vpsInteractor.calculateNodePosition(
-            url = vpsConfig.url,
+            url = vpsConfig.vpsUrl,
             locationID = vpsConfig.locationID,
             sources = byteArrays,
             localizationType = vpsConfig.localizationType,

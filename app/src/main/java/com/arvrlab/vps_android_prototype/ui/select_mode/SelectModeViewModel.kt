@@ -3,11 +3,9 @@ package com.arvrlab.vps_android_prototype.ui.select_mode
 import androidx.lifecycle.ViewModel
 import com.arvrlab.vps_android_prototype.R
 import com.arvrlab.vps_android_prototype.data.SceneModel
-import com.arvrlab.vps_android_prototype.util.BOOTCAMP_BASE_URL
-import com.arvrlab.vps_android_prototype.util.BOOTCAMP_LOCATION_ID
-import com.arvrlab.vps_android_prototype.util.POLYTECH_BASE_URL
-import com.arvrlab.vps_android_prototype.util.POLYTECH_LOCATION_ID
-import com.arvrlab.vps_sdk.data.LocalizationType
+import com.arvrlab.vps_android_prototype.util.*
+import com.arvrlab.vps_sdk.data.MobileVps
+import com.arvrlab.vps_sdk.data.Photo
 
 class SelectModeViewModel : ViewModel() {
 
@@ -51,16 +49,17 @@ class SelectModeViewModel : ViewModel() {
 
     fun onUseNeuroChanged(useNeuro: Boolean) {
         sceneModel.localizationType = if (useNeuro)
-            LocalizationType.MOBILE_VPS
+            MobileVps()
         else
-            LocalizationType.PHOTO
+            Photo
     }
 
     fun onImagesCountChanged(imagesCount: String) {
         sceneModel.imagesCount = try {
             imagesCount.toInt()
         } catch (e: Exception) {
-            3
+            Logger.error(e)
+            1
         }
     }
 
