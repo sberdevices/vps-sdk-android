@@ -49,7 +49,7 @@ class SelectModeViewModel : ViewModel() {
 
     fun onUseNeuroChanged(useNeuro: Boolean) {
         sceneModel.localizationType = if (useNeuro)
-            MobileVps("https://testable1.s3pd01.sbercloud.ru/vpsmobiletflite/230421/hfnet_i8_960.tflite")
+            MobileVps()
         else
             Photo
     }
