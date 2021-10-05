@@ -13,8 +13,8 @@ android {
         applicationId = "com.arvrlab.vps_android_prototype"
         minSdk = Version.minSdk
         targetSdk = Version.targetSdk
-        versionCode = Version.versionCode
-        versionName = Version.versionName
+        versionCode = 1
+        versionName = "1.0"
     }
 
     buildTypes {

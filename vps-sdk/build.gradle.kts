@@ -16,7 +16,7 @@ android {
         consumerProguardFile("consumer-rules.pro")
 
         group = groupName
-        version = "0.0.1"
+        version = project.property("vps_sdk_version") as String
     }
 
     buildTypes {
