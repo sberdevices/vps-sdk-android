@@ -1,7 +1,7 @@
 VPS-SDK for Android
 ====================================
 
-![GitLab Maven](https://img.shields.io/static/v1?label=Gitlab%20Maven&message=v.0.0.1&color=success&style=flat)
+![GitLab Maven](https://img.shields.io/static/v1?label=Gitlab%20Maven&message=v.0.1.0&color=success&style=flat)
 
 ## Add VPS-SDK to a project
 
@@ -10,10 +10,10 @@ VPS-SDK for Android
 repositories {
         …
         maven {
-            url 'https://gitlab.com/api/v4/projects/29278122/packages/maven'
+            url 'https://gitlab.arvr.sberlabs.com/api/v4/projects/58/packages/maven'
             credentials(HttpHeaderCredentials) {
                 name = "Deploy-Token"
-                value = "khGe1_kixW-8sLtUBqgU"
+                value = "3VBiQyK9wwnkHmvd-gT7"
             }
             authentication {
                 header(HttpHeaderAuthentication)
@@ -26,7 +26,7 @@ repositories {
 ```gradle
 dependencies {
       …
-      implementation "com.arvrlab.vps:vps-sdk:0.0.1"
+      implementation "com.arvrlab.vps:vps-sdk:0.1.0"
 }
 ```
 
