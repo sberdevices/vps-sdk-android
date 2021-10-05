@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="settings">Настройки</string>
-    <string name="permission_denied_explanation">Permission was denied, but is needed for core functionality.</string>
-    <string name="permission_rationale">Location permission needed for core functionality</string>
+    <string name="warning">Warning</string>
+    <string name="camera_permission_warning">Camera permission needed for core functionality. Open app settings?</string>
+    <string name="location_permission_warning">Location permission needed for core functionality. Open app settings?</string>
+    <string name="location_enable">GPS is disable. Open Location settings?</string>
 </resources>

@@ -15,6 +15,7 @@ interface VpsService {
     }
 
     val worldNode: Node
+    val isRun: Boolean
 
     fun bindArSceneView(arSceneView: ArSceneView)
     fun resume()

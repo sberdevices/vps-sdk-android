@@ -32,6 +32,9 @@ internal class VpsServiceImpl(
     override val worldNode: Node
         get() = arManager.worldNode
 
+    override val isRun: Boolean
+        get() = vpsJob != null
+
     private val vpsHandlerException: CoroutineExceptionHandler =
         CoroutineExceptionHandler { _, throwable ->
             Logger.error(throwable)

@@ -71,7 +71,7 @@ internal object Module {
         factory { ArManager() }
         factory { get<Context>().getSystemService(LocationManager::class.java) }
         factory<VpsService> { VpsServiceImpl(get(), get(), get()) }
-        factory { VpsArViewModel(get(), get()) }
+        factory { VpsArViewModel(get(), get(), get()) }
     }
 
 }
