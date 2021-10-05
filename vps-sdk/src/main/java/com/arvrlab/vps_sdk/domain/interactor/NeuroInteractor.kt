@@ -4,10 +4,10 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Matrix
 import android.os.Looper
-import android.util.Base64
 import com.arvrlab.vps_sdk.data.repository.INeuroRepository
 import com.arvrlab.vps_sdk.domain.model.NeuroModel
 import com.arvrlab.vps_sdk.util.Constant.URL_DELIMITER
+import com.arvrlab.vps_sdk.util.toHalf
 import org.tensorflow.lite.Interpreter
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -19,7 +19,6 @@ internal class NeuroInteractor(
 ) : INeuroInteractor {
 
     private companion object {
-        const val FLOAT_SIZE = 4
         const val MATRIX_ROTATE = 90f
     }
 
@@ -69,7 +68,7 @@ internal class NeuroInteractor(
 
     private fun convertToByteArray(neuroModel: NeuroModel): ByteArray =
         ByteArrayOutputStream().use { fileData ->
-            val version: Byte = 0x0
+            val version: Byte = 0x1
             val id: Byte = 0x0
             fileData.write(byteArrayOf(version, id))
 
@@ -77,7 +76,7 @@ internal class NeuroInteractor(
             fileData.write(keyPoints.size.toByteArray())
             fileData.write(keyPoints)
 
-            val scores = getByteFromFloatArray(neuroModel.scores)
+            val scores = getByteArrayFromFloatArray(neuroModel.scores)
             fileData.write(scores.size.toByteArray())
             fileData.write(scores)
 
@@ -85,7 +84,7 @@ internal class NeuroInteractor(
             fileData.write(descriptors.size.toByteArray())
             fileData.write(descriptors)
 
-            val globalDescriptor = getByteFromFloatArray(neuroModel.globalDescriptor)
+            val globalDescriptor = getByteArrayFromFloatArray(neuroModel.globalDescriptor)
             fileData.write(globalDescriptor.size.toByteArray())
             fileData.write(globalDescriptor)
 
@@ -132,12 +131,11 @@ internal class NeuroInteractor(
         dstWidth: Int,
         dstHeight: Int
     ): ByteBuffer {
-        val imageByteBuffer = ByteBuffer
-            .allocateDirect(1 * dstWidth * dstHeight * FLOAT_SIZE)
-            .order(ByteOrder.nativeOrder())
-        imageByteBuffer.rewind()
-
         val resizedBitmap = getPreProcessedBitmap(bitmap, dstWidth, dstHeight)
+
+        val imageByteBuffer = ByteBuffer
+            .allocateDirect(resizedBitmap.allocationByteCount)
+            .order(ByteOrder.nativeOrder())
 
         fillBuffer(resizedBitmap, imageByteBuffer)
 
@@ -172,16 +170,8 @@ internal class NeuroInteractor(
         }
     }
 
-    private fun getByteFromFloatArray(floatArray: FloatArray): ByteArray =
+    private fun getByteFromArrayFloatArray(array: Array<FloatArray>): ByteArray =
         ByteArrayOutputStream().use { out ->
-            val byteArray = getByteArrayFromFloatArray(floatArray)
-            val base64Str = convertToBase64Bytes(byteArray)
-            out.write(base64Str)
-            out.toByteArray()
-        }
-
-    private fun getByteFromArrayFloatArray(array: Array<FloatArray>): ByteArray {
-        val arr = ByteArrayOutputStream().use { out ->
             array.forEach { floatArray ->
                 val buff = getByteArrayFromFloatArray(floatArray)
                 out.write(buff)
@@ -189,17 +179,11 @@ internal class NeuroInteractor(
             out.toByteArray()
         }
 
-        return convertToBase64Bytes(arr)
-    }
-
-    private fun convertToBase64Bytes(buff: ByteArray): ByteArray =
-        Base64.encode(buff, Base64.NO_WRAP)
-
     private fun getByteArrayFromFloatArray(floatArray: FloatArray): ByteArray {
-        val buff: ByteBuffer = ByteBuffer.allocate(4 * floatArray.size)
+        val buff: ByteBuffer = ByteBuffer.allocate(2 * floatArray.size)
         buff.order(ByteOrder.LITTLE_ENDIAN)
         for (value in floatArray) {
-            buff.putFloat(value)
+            buff.putShort(value.toHalf())
         }
         return buff.array()
     }
