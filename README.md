@@ -1,7 +1,7 @@
 VPS-SDK for Android
 ====================================
 
-![GitLab Maven](https://img.shields.io/static/v1?label=Gitlab%20Maven&message=v.0.1.0&color=success&style=flat)
+![GitLab Maven](https://img.shields.io/static/v1?label=Gitlab%20Maven&message=v.0.2.0&color=success&style=flat)
 
 ## Add VPS-SDK to a project
 
@@ -26,7 +26,7 @@ repositories {
 ```gradle
 dependencies {
       …
-      implementation "com.arvrlab.vps:vps-sdk:0.1.0"
+      implementation "com.arvrlab.vps:vps-sdk:0.2.0"
 }
 ```
 
@@ -91,12 +91,14 @@ supportFragmentManager.beginTransaction()
 
 ```kotlin
 val vpsConfig = VpsConfig(
-                    <url>,
+                    <vpsUrl>,
                     <location_ID>,
-                    <force>,            //optional
-                    <request_interval>, //optional
-                    <use_location>,     //optional
-                    <use_neuro>         //optional
+                    <onlyForce>,                //optional, default true
+                    <intervalLocalizationMS>,   //optional, default 6000
+                    <useGps>,                   //optional, default false
+                    <localizationType>,         //optional, default Photo [Photo, MobileVps]
+                    <countImages>,              //optional, default 1
+                    <intervalImagesMS>          //optional, default 1000
                 )
 ```
 
@@ -110,6 +112,9 @@ vpsService.setVpsConfig(vpsConfig)
 //optional
 vpsService.setVpsCallback(object : VpsCallback {
                 override fun onSuccess() {
+                }
+
+                override fun onFail() {
                 }
 
                 override fun onStateChange(isEnable: Boolean) {
@@ -180,3 +185,5 @@ override fun onDestroy() {
 ```kotlin
 vpsService.worldNode
 ```
+
+*If `VpsService` is running then field `isRun` return `true`*

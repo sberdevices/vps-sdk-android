@@ -1,12 +1,15 @@
 package com.arvrlab.vps_sdk.ui
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
-import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import com.arvrlab.vps_sdk.R
+import com.arvrlab.vps_sdk.ui.VpsArViewModel.Dialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.ar.core.CameraConfig
 import com.google.ar.core.CameraConfigFilter
@@ -15,17 +18,17 @@ import com.google.ar.core.Session
 import com.google.ar.sceneform.ux.ArFragment
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.util.*
 
 class VpsArFragment : ArFragment() {
 
     private companion object {
         const val FAR_CLIP_PLANE = 1000f
+        const val PACKAGE = "package"
     }
 
-    private val viewModel: VpsArViewModel by viewModels {
-        VpsArViewModelFactory(requireActivity().application)
-    }
+    private val viewModel: VpsArViewModel by viewModel()
 
     val vpsService: VpsService
         get() = viewModel
@@ -42,13 +45,17 @@ class VpsArFragment : ArFragment() {
             }
         }
         lifecycleScope.launch {
-            viewModel.locationPermissionDialog.collect {
-                showLocationPermissionDialog()
+            viewModel.showDialog.collect { (dialog, requestCode) ->
+                when (dialog) {
+                    Dialog.CAMERA_PERMISSION -> showCameraPermissionDialog(requestCode)
+                    Dialog.LOCATION_PERMISSION -> showLocationPermissionDialog()
+                    Dialog.LOCATION_ENABLE -> showLocationEnableDialog(requestCode)
+                }
             }
         }
         lifecycleScope.launch {
-            viewModel.cameraPermissionDialog.collect {
-                showCameraPermissionDialog()
+            viewModel.locationSettings.collect { requestCode ->
+                showLocationSettings(requestCode)
             }
         }
         vpsService.bindArSceneView(arSceneView)
@@ -79,6 +86,11 @@ class VpsArFragment : ArFragment() {
         vpsService.destroy()
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        viewModel.onActivityResult(requestCode, resultCode)
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -89,10 +101,8 @@ class VpsArFragment : ArFragment() {
 
     override fun getSessionConfiguration(session: Session): Config {
         session.cameraConfig = getHighestResolution(session)
-
-        return Config(session).apply {
-            focusMode = Config.FocusMode.AUTO
-        }
+        return super.getSessionConfiguration(session)
+            .also { it.focusMode = Config.FocusMode.AUTO }
     }
 
     private fun getHighestResolution(session: Session): CameraConfig? {
@@ -109,52 +119,54 @@ class VpsArFragment : ArFragment() {
         return cameraConfigs.maxByOrNull { it.imageSize.height }
     }
 
-    private fun showCameraPermissionDialog() {
-        MaterialAlertDialogBuilder(requireActivity())
-            .setTitle("Camera permission required")
-            .setMessage("Add camera permission via Settings?")
-            .setPositiveButton(
-                android.R.string.ok
-            ) { _, _ ->
-                val intent = Intent().apply {
-                    action = android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                    data = Uri.fromParts("package", requireActivity().packageName, null)
-                }
-
-                requireActivity().startActivity(intent)
-                canRequestDangerousPermissions = true
+    private fun showCameraPermissionDialog(requestCode: Int) {
+        showDialog(R.string.camera_permission_warning) {
+            if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
+                viewModel.requestCameraPermission(requestCode)
+            } else {
+                showApplicationSettings()
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .setOnDismissListener {
-                // canRequestDangerousPermissions will be true if "OK" was selected from the dialog,
-                // false otherwise.  If "OK" was selected do nothing on dismiss, the app will
-                // continue and may ask for permission again if needed.
-                // If anything else happened, finish the activity when this dialog is
-                // dismissed.
-                if (!canRequestDangerousPermissions) {
-                    requireActivity().finish()
-                }
-            }
-            .show()
+        }
     }
 
     private fun showLocationPermissionDialog() {
-        MaterialAlertDialogBuilder(requireActivity())
-            .setTitle("Location permission required")
-            .setMessage("Add location permission via Settings?")
-            .setPositiveButton(
-                android.R.string.ok
-            ) { _, _ ->
-                val intent = Intent().apply {
-                    action = android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                    data = Uri.fromParts("package", requireActivity().packageName, null)
-                }
-                requireActivity().startActivity(intent)
-
-                canRequestDangerousPermissions = true
+        showDialog(R.string.location_permission_warning) {
+            if (shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                viewModel.requestLocationPermission()
+            } else {
+                showApplicationSettings()
             }
-            .setCancelable(false)
+        }
+    }
+
+    private fun showLocationEnableDialog(requestCode: Int) {
+        showDialog(R.string.location_enable) {
+            showLocationSettings(requestCode)
+        }
+    }
+
+    private fun showDialog(message: Int, positiveAction: () -> Unit) {
+        MaterialAlertDialogBuilder(requireActivity())
+            .setTitle(R.string.warning)
+            .setMessage(message)
+            .setPositiveButton(android.R.string.ok) { _, _ -> positiveAction() }
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun showApplicationSettings() {
+        val intent = Intent().apply {
+            action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+            data = Uri.fromParts(PACKAGE, requireActivity().packageName, null)
+        }
+        requireActivity().startActivity(intent)
+    }
+
+    private fun showLocationSettings(requestCode: Int) {
+        startActivityForResult(
+            Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS),
+            requestCode
+        )
     }
 
 }

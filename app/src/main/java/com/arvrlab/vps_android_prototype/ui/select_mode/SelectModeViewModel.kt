@@ -3,10 +3,9 @@ package com.arvrlab.vps_android_prototype.ui.select_mode
 import androidx.lifecycle.ViewModel
 import com.arvrlab.vps_android_prototype.R
 import com.arvrlab.vps_android_prototype.data.SceneModel
-import com.arvrlab.vps_android_prototype.util.BOOTCAMP_BASE_URL
-import com.arvrlab.vps_android_prototype.util.BOOTCAMP_LOCATION_ID
-import com.arvrlab.vps_android_prototype.util.POLYTECH_BASE_URL
-import com.arvrlab.vps_android_prototype.util.POLYTECH_LOCATION_ID
+import com.arvrlab.vps_android_prototype.util.*
+import com.arvrlab.vps_sdk.data.MobileVps
+import com.arvrlab.vps_sdk.data.Photo
 
 class SelectModeViewModel : ViewModel() {
 
@@ -33,7 +32,7 @@ class SelectModeViewModel : ViewModel() {
     }
 
     fun onIntervalChanged(inteval: String) {
-        sceneModel.timerInterval = try {
+        sceneModel.intervalLocalizationMS = try {
             inteval.toLong()
         } catch (e: Exception) {
             6000L
@@ -44,12 +43,32 @@ class SelectModeViewModel : ViewModel() {
         sceneModel.onlyForce = onlyForce
     }
 
-    fun onNeedLocationChanged(isNeedLocation: Boolean) {
-        sceneModel.needLocation = isNeedLocation
+    fun onNeedLocationChanged(useGps: Boolean) {
+        sceneModel.useGps = useGps
     }
 
-    fun onUseNeuroChanged(isNeedNeuro: Boolean) {
-        sceneModel.isNeuro = isNeedNeuro
+    fun onUseNeuroChanged(useNeuro: Boolean) {
+        sceneModel.localizationType = if (useNeuro)
+            MobileVps()
+        else
+            Photo
+    }
+
+    fun onImagesCountChanged(imagesCount: String) {
+        sceneModel.imagesCount = try {
+            imagesCount.toInt()
+        } catch (e: Exception) {
+            Logger.error(e)
+            1
+        }
+    }
+
+    fun onImagesIntervalChanged(intevalImages: String) {
+        sceneModel.intervalImagesMS = try {
+            intevalImages.toLong()
+        } catch (e: Exception) {
+            1000L
+        }
     }
 
 }

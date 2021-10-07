@@ -2,6 +2,7 @@ plugins {
     id(PluginName.library)
     id(PluginName.kotlinAndroid)
     id(PluginName.kotlinKapt)
+    id(PluginName.kotlinParcelize)
 }
 apply(from = rootProject.file("publishing.gradle"))
 
@@ -49,6 +50,8 @@ dependencies {
 
     implementation(Lib.coroutinesCore)
     implementation(Lib.coroutinesAndroid)
+
+    implementation(Lib.koinAndroid)
 
     implementation(Lib.okhttp)
     implementation(Lib.loggingInterceptor)

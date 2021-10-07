@@ -2,6 +2,7 @@ package com.arvrlab.vps_android_prototype.ui.scene
 
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
 import androidx.annotation.RawRes
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
@@ -43,12 +44,14 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
         val vpsConfig = navArgs.sceneModel
             .let { sceneModel ->
                 VpsConfig(
-                    sceneModel.url,
-                    sceneModel.locationID,
-                    sceneModel.onlyForce,
-                    sceneModel.timerInterval,
-                    sceneModel.needLocation,
-                    sceneModel.isNeuro
+                    vpsUrl = sceneModel.url,
+                    locationID = sceneModel.locationID,
+                    onlyForce = sceneModel.onlyForce,
+                    intervalLocalizationMS = sceneModel.intervalLocalizationMS,
+                    useGps = sceneModel.useGps,
+                    localizationType = sceneModel.localizationType,
+                    countImages = sceneModel.imagesCount,
+                    intervalImagesMS = sceneModel.intervalImagesMS
                 )
             }
 
@@ -80,6 +83,10 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
         return object : VpsCallback {
             override fun onSuccess() {
                 Logger.debug("vps localization: success")
+            }
+
+            override fun onFail() {
+                Toast.makeText(requireContext(), "localization fail", Toast.LENGTH_SHORT).show()
             }
 
             override fun onStateChange(isEnable: Boolean) {

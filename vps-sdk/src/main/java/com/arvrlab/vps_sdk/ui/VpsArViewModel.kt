@@ -1,26 +1,32 @@
 package com.arvrlab.vps_sdk.ui
 
-import android.Manifest
-import android.app.Application
-import android.content.pm.PackageManager
-import androidx.core.app.ActivityCompat
+import android.Manifest.permission.ACCESS_FINE_LOCATION
+import android.Manifest.permission.CAMERA
+import android.content.Context
+import android.location.LocationManager
+import android.location.LocationManager.GPS_PROVIDER
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.arvrlab.vps_sdk.data.VpsConfig
+import com.arvrlab.vps_sdk.util.hasSelfPermission
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 internal class VpsArViewModel(
-    private val application: Application,
-    private val vpsService: VpsService
+    private val context: Context,
+    private val vpsService: VpsService,
+    private val locationManager: LocationManager
 ) : ViewModel(), VpsService by vpsService, LifecycleObserver {
 
     private companion object {
-        const val ACCESS_FINE_LOCATION_REQUEST_CODE = 1000
-        const val CAMERA_PERMISSION_REQUEST_CODE = 1010
+        const val PERMISSIONS_REQUEST_CODE = 100
+        const val LOCATION_SETTINGS_REQUEST_CODE = 101
+
+        // request code from BaseArFragment
+        const val RC_PERMISSIONS = 1010
     }
 
     private val _requestPermissions: MutableSharedFlow<Pair<Array<String>, Int>> =
@@ -28,63 +34,112 @@ internal class VpsArViewModel(
     val requestPermissions: SharedFlow<Pair<Array<String>, Int>> =
         _requestPermissions.asSharedFlow()
 
-    private val _locationPermissionDialog: MutableSharedFlow<Unit> = MutableSharedFlow()
-    val locationPermissionDialog: SharedFlow<Unit> = _locationPermissionDialog.asSharedFlow()
+    private val _showDialog: MutableSharedFlow<Pair<Dialog, Int>> = MutableSharedFlow()
+    val showDialog: SharedFlow<Pair<Dialog, Int>> = _showDialog.asSharedFlow()
 
-    private val _cameraPermissionDialog: MutableSharedFlow<Unit> = MutableSharedFlow()
-    val cameraPermissionDialog: SharedFlow<Unit> = _cameraPermissionDialog.asSharedFlow()
+    private val _locationSettings: MutableSharedFlow<Int> = MutableSharedFlow()
+    val locationSettings: SharedFlow<Int> = _locationSettings.asSharedFlow()
 
-    private var needLocation: Boolean = false
+    private var useGps: Boolean = false
+
+    private var vpsStart: Boolean = false
 
     override fun setVpsConfig(vpsConfig: VpsConfig) {
         vpsService.setVpsConfig(vpsConfig)
-        needLocation = vpsConfig.needLocation
+        useGps = vpsConfig.useGps
     }
 
     override fun startVpsService() {
-        if (needLocation && !checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
-            viewModelScope.launch {
-                _requestPermissions.emit(
-                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION) to ACCESS_FINE_LOCATION_REQUEST_CODE
-                )
+        vpsStart = true
+        when {
+            !checkUsedPermissions() -> return
+            useGps && !locationManager.isGpsEnable() -> {
+                viewModelScope.launch {
+                    _showDialog.emit(Dialog.LOCATION_ENABLE to LOCATION_SETTINGS_REQUEST_CODE)
+                }
             }
-        } else {
-            vpsService.startVpsService()
+            else -> vpsService.startVpsService()
+        }
+    }
+
+    override fun stopVpsService() {
+        vpsStart = false
+        vpsService.stopVpsService()
+    }
+
+    fun onActivityResult(requestCode: Int, resultCode: Int) {
+        if (requestCode == LOCATION_SETTINGS_REQUEST_CODE) {
+            if (!locationManager.isGpsEnable()) {
+                viewModelScope.launch {
+                    _showDialog.emit(Dialog.LOCATION_ENABLE to requestCode)
+                }
+                return
+            }
+            startVpsService()
         }
     }
 
     fun onRequestPermissionsResult(requestCode: Int) {
-        if (requestCode == ACCESS_FINE_LOCATION_REQUEST_CODE) {
-            checkResultLocation()
-        }
-        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
-            checkResultCamera()
+        when (requestCode) {
+            RC_PERMISSIONS, PERMISSIONS_REQUEST_CODE -> {
+                if (!context.hasSelfPermission(CAMERA)) {
+                    viewModelScope.launch {
+                        _showDialog.emit(Dialog.CAMERA_PERMISSION to requestCode)
+                    }
+                    return
+                }
+                if (requestCode == RC_PERMISSIONS) return
+
+                if (useGps && !context.hasSelfPermission(ACCESS_FINE_LOCATION)) {
+                    viewModelScope.launch {
+                        _showDialog.emit(Dialog.LOCATION_PERMISSION to requestCode)
+                    }
+                    return
+                }
+
+                if (vpsStart) {
+                    startVpsService()
+                }
+            }
         }
     }
 
-    private fun checkResultLocation() {
-        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
-            vpsService.startVpsService()
-            return
-        }
-
+    fun requestCameraPermission(requestCode: Int) {
         viewModelScope.launch {
-            _locationPermissionDialog.emit(Unit)
+            _requestPermissions.emit(arrayOf(CAMERA) to requestCode)
         }
     }
 
-    private fun checkResultCamera() {
-        if (checkSelfPermission(Manifest.permission.CAMERA)) {
-            return
-        }
+    fun requestLocationPermission() {
         viewModelScope.launch {
-            _cameraPermissionDialog.emit(Unit)
+            _requestPermissions.emit(arrayOf(ACCESS_FINE_LOCATION) to PERMISSIONS_REQUEST_CODE)
         }
     }
 
-    private fun checkSelfPermission(permission: String): Boolean =
-        ActivityCompat.checkSelfPermission(
-            application,
-            permission
-        ) == PackageManager.PERMISSION_GRANTED
+    private fun checkUsedPermissions(): Boolean {
+        val permissions = arrayListOf<String>()
+        if (!context.hasSelfPermission(CAMERA)) {
+            permissions.add(CAMERA)
+        }
+        if (useGps && !context.hasSelfPermission(ACCESS_FINE_LOCATION)) {
+            permissions.add(ACCESS_FINE_LOCATION)
+        }
+        if (permissions.isNotEmpty()) {
+            viewModelScope.launch {
+                _requestPermissions.emit(permissions.toTypedArray() to PERMISSIONS_REQUEST_CODE)
+            }
+            return false
+        }
+        return true
+    }
+
+    private fun LocationManager.isGpsEnable(): Boolean =
+        this.isProviderEnabled(GPS_PROVIDER)
+
+    enum class Dialog {
+        CAMERA_PERMISSION,
+        LOCATION_PERMISSION,
+        LOCATION_ENABLE,
+    }
+
 }

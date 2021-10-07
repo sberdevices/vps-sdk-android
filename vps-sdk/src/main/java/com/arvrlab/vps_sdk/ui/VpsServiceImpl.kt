@@ -4,13 +4,14 @@ import android.annotation.SuppressLint
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.media.Image
 import android.os.Bundle
 import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.domain.interactor.IVpsInteractor
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
+import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
 import com.arvrlab.vps_sdk.domain.model.NodePositionModel
 import com.arvrlab.vps_sdk.util.Logger
+import com.arvrlab.vps_sdk.util.waitIfNeedAsync
 import com.google.ar.core.exceptions.NotYetAvailableException
 import com.google.ar.sceneform.ArSceneView
 import com.google.ar.sceneform.Node
@@ -31,9 +32,9 @@ internal class VpsServiceImpl(
     override val worldNode: Node
         get() = arManager.worldNode
 
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Main)
+    override val isRun: Boolean
+        get() = vpsJob != null
 
-    private var vpsJob: Job? = null
     private val vpsHandlerException: CoroutineExceptionHandler =
         CoroutineExceptionHandler { _, throwable ->
             Logger.error(throwable)
@@ -42,6 +43,14 @@ internal class VpsServiceImpl(
                 vpsCallback?.onError(throwable)
             }
         }
+
+    private val scope: CoroutineScope = CoroutineScope(
+        SupervisorJob() +
+                Dispatchers.Main +
+                vpsHandlerException
+    )
+
+    private var vpsJob: Job? = null
 
     private var lastNodePosition: NodePositionModel = NodePositionModel()
 
@@ -92,6 +101,9 @@ internal class VpsServiceImpl(
     }
 
     override fun startVpsService() {
+        if (!::vpsConfig.isInitialized)
+            throw IllegalStateException("VpsConfig not set. First call setVpsConfig(VpsConfig)")
+
         if (vpsJob != null) return
 
         internalStartVpsService()
@@ -108,62 +120,123 @@ internal class VpsServiceImpl(
     }
 
     private fun internalStartVpsService() {
-        scope.launch(vpsHandlerException) {
-            gpsLocation = null
-            requestLocationIfNeed()
+        gpsLocation = null
+        requestLocationIfNeed()
 
-            var firstLocalize = true
-            var failureCount = 0
-            var force = vpsConfig.onlyForce
-            vpsJob = launch(Dispatchers.Default) {
-                waitResumed()
+        vpsJob = scope.launch(Dispatchers.Default) {
+            while (!isResumed) delay(DELAY)
 
-                Logger.debug("startVpsService")
-                withContext(Dispatchers.Main) {
-                    vpsCallback?.onStateChange(true)
-                }
-                while (isActive) {
-                    if (!firstLocalize && failureCount >= 2 && !force) {
-                        force = true
-                    }
-
-                    arManager.savePositions()
-
-                    val image: Image
-                    val currentNodePosition: NodePositionModel
-                    withContext(Dispatchers.Main) {
-                        image = waitAcquireCameraImage()
-                        currentNodePosition = arManager.getCurrentNodePosition(lastNodePosition)
-                    }
-
-                    vpsInteractor.calculateNodePosition(
-                        url = vpsConfig.url,
-                        locationID = vpsConfig.locationID,
-                        image = image,
-                        isNeuro = vpsConfig.isNeuro,
-                        nodePosition = currentNodePosition,
-                        force = force,
-                        gpsLocation = gpsLocation
-                    )?.let {
-                        firstLocalize = false
-                        lastNodePosition = it
-                        withContext(Dispatchers.Main) {
-                            arManager.updatePositions(lastNodePosition)
-                        }
-                        vpsCallback?.onSuccess()
-                    } ?: run {
-                        failureCount++
-                        Logger.debug("localization fail: $failureCount")
-                    }
-                    delay(vpsConfig.timerInterval)
-                }
+            Logger.debug("startVpsService")
+            withContext(Dispatchers.Main) {
+                vpsCallback?.onStateChange(true)
+            }
+            if (vpsConfig.countImages == 1) {
+                localizationBySingleImage()
+            } else {
+                localizationBySerialImage()
             }
         }
     }
 
+    private suspend fun localizationBySingleImage() {
+        var firstLocalize = true
+        var failureCount = 0
+        var force = vpsConfig.onlyForce
+
+        while (vpsJob?.isActive == true) {
+            if (!firstLocalize && failureCount >= 2 && !force) {
+                force = true
+            }
+
+            getNodePositionBySingleImage(force)?.let {
+                firstLocalize = false
+                lastNodePosition = it
+                withContext(Dispatchers.Main) {
+                    arManager.restoreWorldPosition(0, lastNodePosition)
+                    vpsCallback?.onSuccess()
+                }
+            } ?: run {
+                withContext(Dispatchers.Main) {
+                    vpsCallback?.onFail()
+                }
+                failureCount++
+                Logger.debug("localization fail: $failureCount")
+            }
+            delay(vpsConfig.intervalLocalizationMS)
+        }
+    }
+
+    private suspend fun localizationBySerialImage() {
+        var failureCount = 0
+        while (vpsJob?.isActive == true) {
+            getNodePositionBySerialImage()?.let { (nodePositionModel, indexImage) ->
+                lastNodePosition = nodePositionModel
+                withContext(Dispatchers.Main) {
+                    arManager.restoreWorldPosition(indexImage, lastNodePosition)
+                }
+                vpsCallback?.onSuccess()
+            } ?: run {
+                failureCount++
+                Logger.debug("localization fail: $failureCount")
+            }
+            delay(vpsConfig.intervalLocalizationMS)
+        }
+    }
+
+    private suspend fun getNodePositionBySingleImage(force: Boolean): NodePositionModel? {
+        val byteArray: ByteArray
+        val currentNodePosition: NodePositionModel
+
+        withContext(Dispatchers.Main) {
+            arManager.saveWorldPosition(0)
+            currentNodePosition = arManager.getWorldNodePosition(lastNodePosition)
+            byteArray = waitAcquireCameraImage()
+        }
+
+        return vpsInteractor.calculateNodePosition(
+            url = vpsConfig.vpsUrl,
+            locationID = vpsConfig.locationID,
+            source = byteArray,
+            localizationType = vpsConfig.localizationType,
+            nodePosition = currentNodePosition,
+            force = force,
+            gpsLocation = gpsLocation
+        )
+    }
+
+    private suspend fun getNodePositionBySerialImage(): LocalizationBySerialImages? {
+        val byteArrays = mutableListOf<ByteArray>()
+        val nodePositions = mutableListOf<NodePositionModel>()
+
+        withContext(Dispatchers.Main) {
+            repeat(vpsConfig.countImages) { index ->
+                val delay = waitIfNeedAsync(
+                    { index < vpsConfig.countImages - 1 },
+                    vpsConfig.intervalImagesMS
+                )
+
+                arManager.saveWorldPosition(index)
+                nodePositions.add(arManager.getWorldNodePosition(lastNodePosition))
+                byteArrays.add(waitAcquireCameraImage())
+
+                Logger.debug("acquire image: ${index + 1}")
+                delay?.await()
+            }
+        }
+
+        return vpsInteractor.calculateNodePosition(
+            url = vpsConfig.vpsUrl,
+            locationID = vpsConfig.locationID,
+            sources = byteArrays,
+            localizationType = vpsConfig.localizationType,
+            nodePositions = nodePositions,
+            gpsLocations = gpsLocation?.let { listOf(it) }
+        )
+    }
+
     @SuppressLint("MissingPermission")
     private fun requestLocationIfNeed() {
-        if (vpsConfig.needLocation && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+        if (vpsConfig.useGps && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             locationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER,
                 MIN_INTERVAL_MS,
@@ -173,19 +246,15 @@ internal class VpsServiceImpl(
         }
     }
 
-    private suspend fun waitResumed() {
-        while (!isResumed) delay(DELAY)
-    }
-
-    private suspend fun waitAcquireCameraImage(): Image {
-        var image: Image? = null
-        while (image == null) {
+    private suspend fun waitAcquireCameraImage(): ByteArray {
+        var byteArray: ByteArray? = null
+        while (byteArray == null) {
             try {
                 delay(DELAY)
-                image = arManager.acquireCameraImage()
+                byteArray = arManager.acquireCameraImageAsByteArray()
             } catch (e: NotYetAvailableException) {
             }
         }
-        return image
+        return byteArray
     }
 }
