@@ -3,7 +3,7 @@ package com.arvrlab.vps_sdk.ui
 import com.arvrlab.vps_sdk.data.VpsConfig
 import com.google.ar.sceneform.ArSceneView
 import com.google.ar.sceneform.Node
-import org.koin.dsl.koinApplication
+import org.koin.core.context.GlobalContext
 
 interface VpsService {
 
@@ -11,7 +11,7 @@ interface VpsService {
 
         @JvmStatic
         fun newInstance(): VpsService =
-            koinApplication().koin.get()
+            GlobalContext.get().get()
     }
 
     val worldNode: Node
