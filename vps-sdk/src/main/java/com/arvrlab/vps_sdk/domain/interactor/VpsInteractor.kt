@@ -81,14 +81,19 @@ internal class VpsInteractor(
         neuroInteractor.close()
     }
 
-    private fun convertByteArray(source: ByteArray, localizationType: LocalizationType): ByteArray =
+    private suspend fun convertByteArray(
+        source: ByteArray,
+        localizationType: LocalizationType
+    ): ByteArray =
         when (localizationType) {
             is Photo -> createJpgByteArray(source)
-            is MobileVps -> createNeuroByteArray(localizationType.neuroModelUrl, source)
+            is MobileVps -> {
+                neuroInteractor.loadNeuroModel(localizationType)
+                createNeuroByteArray(source)
+            }
         }
 
-    private fun createNeuroByteArray(neuroModelUrl: String, byteArray: ByteArray): ByteArray {
-        neuroInteractor.loadNeuroModel(neuroModelUrl)
+    private suspend fun createNeuroByteArray(byteArray: ByteArray): ByteArray {
         val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
         return neuroInteractor.codingBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT)
     }

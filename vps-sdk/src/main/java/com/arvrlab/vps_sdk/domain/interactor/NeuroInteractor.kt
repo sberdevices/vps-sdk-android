@@ -4,10 +4,14 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Matrix
 import android.os.Looper
+import com.arvrlab.vps_sdk.data.MobileVps
 import com.arvrlab.vps_sdk.data.repository.INeuroRepository
 import com.arvrlab.vps_sdk.domain.model.NeuroModel
 import com.arvrlab.vps_sdk.util.Constant.URL_DELIMITER
 import com.arvrlab.vps_sdk.util.toHalf
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.withContext
 import org.tensorflow.lite.Interpreter
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -22,41 +26,67 @@ internal class NeuroInteractor(
         const val MATRIX_ROTATE = 90f
     }
 
-    private var interpreter: Interpreter? = null
-    private var neuroModelFile: File? = null
+    private var mvnInterpreter: Interpreter? = null
+    private var mspInterpreter: Interpreter? = null
+    private var mvnNeuroFile: File? = null
+    private var mspNeuroFile: File? = null
 
-    override fun loadNeuroModel(url: String) {
+    override suspend fun loadNeuroModel(mobileVps: MobileVps) {
         if (Looper.myLooper() == Looper.getMainLooper())
             throw IllegalThreadStateException("Must be called from non UI thread.")
 
-        if (url.substringAfterLast(URL_DELIMITER) != neuroModelFile?.name) {
-            neuroModelFile = neuroRepository.getNeuroModelFile(url)
+        @Suppress("DeferredResultUnused")
+        withContext(Dispatchers.IO) {
+            async {
+                val mnvNeuroUrl = mobileVps.mnvNeuroUrl
+                if (mnvNeuroUrl.substringAfterLast(URL_DELIMITER) != mvnNeuroFile?.name) {
+                    mvnNeuroFile = neuroRepository.getNeuroModelFile(mnvNeuroUrl)
+                }
+            }
+
+            async {
+                val mspNeuroUrl = mobileVps.mspNeuroUrl
+                if (mspNeuroUrl.substringAfterLast(URL_DELIMITER) != mspNeuroFile?.name) {
+                    mspNeuroFile = neuroRepository.getNeuroModelFile(mspNeuroUrl)
+                }
+            }
         }
     }
 
-    override fun codingBitmap(bitmap: Bitmap, dstWidth: Int, dstHeight: Int): ByteArray {
+    override suspend fun codingBitmap(bitmap: Bitmap, dstWidth: Int, dstHeight: Int): ByteArray {
         val neuroModel = convertToNeuroModel(bitmap, dstWidth, dstHeight)
         return convertToByteArray(neuroModel)
     }
 
     override fun close() {
-        interpreter?.close()
-        interpreter = null
+        mvnInterpreter?.close()
+        mvnInterpreter = null
+        mspInterpreter?.close()
+        mspInterpreter = null
     }
 
-    private fun convertToNeuroModel(bitmap: Bitmap, dstWidth: Int, dstHeight: Int): NeuroModel {
+    private suspend fun convertToNeuroModel(
+        bitmap: Bitmap,
+        dstWidth: Int,
+        dstHeight: Int
+    ): NeuroModel {
         initInterpreterIfNeed()
 
         val byteBuffer = convertBitmapToBuffer(bitmap, dstWidth, dstHeight)
 
-        val outputMap = initOutputMap(interpreter)
+        val globalDescriptor: Array<FloatArray>
+        val outputMap: Map<Int, Any>
+        withContext(Dispatchers.Default) {
+            val mvnDerred = async { runMvnNeuro(byteBuffer) }
+            val mspDerred = async { runMspNeuro(byteBuffer) }
 
-        interpreter?.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap)
+            globalDescriptor = mvnDerred.await()
+            outputMap = mspDerred.await()
+        }
 
-        val globalDescriptor = outputMap[0] as FloatArray
-        val keyPoints = (outputMap[1] as Array<FloatArray>)
-        val descriptors = (outputMap[2] as Array<FloatArray>)
-        val scores = outputMap[3] as FloatArray
+        val keyPoints = outputMap[0] as Array<FloatArray>
+        val descriptors = outputMap[1] as Array<FloatArray>
+        val scores = outputMap[2] as FloatArray
 
         return NeuroModel(
             keyPoints = keyPoints,
@@ -69,7 +99,7 @@ internal class NeuroInteractor(
     private fun convertToByteArray(neuroModel: NeuroModel): ByteArray =
         ByteArrayOutputStream().use { fileData ->
             val version: Byte = 0x1
-            val id: Byte = 0x0
+            val id: Byte = 0x2
             fileData.write(byteArrayOf(version, id))
 
             val keyPoints = getByteFromArrayFloatArray(neuroModel.keyPoints)
@@ -84,7 +114,7 @@ internal class NeuroInteractor(
             fileData.write(descriptors.size.toByteArray())
             fileData.write(descriptors)
 
-            val globalDescriptor = getByteArrayFromFloatArray(neuroModel.globalDescriptor)
+            val globalDescriptor = getByteFromArrayFloatArray(neuroModel.globalDescriptor)
             fileData.write(globalDescriptor.size.toByteArray())
             fileData.write(globalDescriptor)
 
@@ -92,36 +122,52 @@ internal class NeuroInteractor(
         }
 
     private fun initInterpreterIfNeed() {
-        if (interpreter != null) return
-
         val interpreterOptions = Interpreter.Options()
             .apply { setNumThreads(4) }
 
-        interpreter = Interpreter(
-            neuroModelFile
-                ?: throw IllegalStateException("Neuro model not load. First call loadNeuroModel(url: String)."),
-            interpreterOptions
-        )
-    }
-
-    private fun initOutputMap(interpreter: Interpreter?): Map<Int, Any> {
-        val outputMap = mutableMapOf<Int, Any>()
-
-        if (interpreter == null) {
-            return mapOf()
+        if (mvnInterpreter == null) {
+            mvnInterpreter = Interpreter(
+                mvnNeuroFile ?: throw IllegalStateException("Need load neuro model first."),
+                interpreterOptions
+            )
         }
 
-        val globalDescriptorShape = interpreter.getOutputTensor(0).shape()
-        outputMap[0] = FloatArray(globalDescriptorShape[0])
+        if (mspInterpreter == null) {
+            mspInterpreter = Interpreter(
+                mspNeuroFile ?: throw IllegalStateException("Need load neuro model first."),
+                interpreterOptions
+            )
+        }
+    }
 
-        val keyPointsShape = interpreter.getOutputTensor(1).shape()
-        outputMap[1] = Array(keyPointsShape[0]) { FloatArray(keyPointsShape[1]) }
+    private fun runMvnNeuro(byteBuffer: ByteBuffer): Array<FloatArray> {
+        val outputMap = mutableMapOf<Int, Any>()
 
-        val descriptorsShape = interpreter.getOutputTensor(2).shape()
-        outputMap[2] = Array(descriptorsShape[0]) { FloatArray(descriptorsShape[1]) }
+        mvnInterpreter?.let {
+            val globalDescriptorShape = it.getOutputTensor(0).shape()
+            outputMap[0] = Array(globalDescriptorShape[0]) { FloatArray(globalDescriptorShape[1]) }
+        }
 
-        val scoresShape = interpreter.getOutputTensor(3).shape()
-        outputMap[3] = FloatArray(scoresShape[0])
+        mvnInterpreter?.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap)
+
+        return outputMap[0] as Array<FloatArray>
+    }
+
+    private fun runMspNeuro(byteBuffer: ByteBuffer): Map<Int, Any> {
+        val outputMap = mutableMapOf<Int, Any>()
+
+        mspInterpreter?.let {
+            val keyPointsShape = it.getOutputTensor(0).shape()
+            outputMap[0] = Array(keyPointsShape[0]) { FloatArray(keyPointsShape[1]) }
+
+            val descriptorsShape = it.getOutputTensor(1).shape()
+            outputMap[1] = Array(descriptorsShape[0]) { FloatArray(descriptorsShape[1]) }
+
+            val scoresShape = it.getOutputTensor(2).shape()
+            outputMap[2] = FloatArray(scoresShape[0])
+        }
+
+        mspInterpreter?.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap)
 
         return outputMap
     }

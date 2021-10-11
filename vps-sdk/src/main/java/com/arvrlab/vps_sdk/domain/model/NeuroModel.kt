@@ -4,7 +4,7 @@ internal data class NeuroModel(
     val keyPoints: Array<FloatArray> = arrayOf(),
     val scores: FloatArray = floatArrayOf(),
     val descriptors: Array<FloatArray> = arrayOf(),
-    val globalDescriptor: FloatArray = floatArrayOf()
+    val globalDescriptor: Array<FloatArray> = arrayOf()
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
