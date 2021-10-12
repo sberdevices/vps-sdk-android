@@ -74,25 +74,21 @@ internal class NeuroInteractor(
 
         val byteBuffer = convertBitmapToBuffer(bitmap, dstWidth, dstHeight)
 
-        val globalDescriptor: Array<FloatArray>
-        val outputMap: Map<Int, Any>
+        val mvnOutputMap: Map<Int, Any>
+        val mspOutputMap: Map<Int, Any>
         withContext(Dispatchers.Default) {
-            val mvnDerred = async { runMvnNeuro(byteBuffer) }
-            val mspDerred = async { runMspNeuro(byteBuffer) }
+            val mvnDeferred = async { mvnInterpreter.runForMultipleInputsOutputs(byteBuffer) }
+            val mspDeferred = async { mspInterpreter.runForMultipleInputsOutputs(byteBuffer) }
 
-            globalDescriptor = mvnDerred.await()
-            outputMap = mspDerred.await()
+            mvnOutputMap = mvnDeferred.await()
+            mspOutputMap = mspDeferred.await()
         }
 
-        val keyPoints = outputMap[0] as Array<FloatArray>
-        val descriptors = outputMap[1] as Array<FloatArray>
-        val scores = outputMap[2] as FloatArray
-
         return NeuroModel(
-            keyPoints = keyPoints,
-            scores = scores,
-            descriptors = descriptors,
-            globalDescriptor = globalDescriptor
+            keyPoints = mspOutputMap[0] ?: NeuroModel.EMPTY,
+            scores = mspOutputMap[2] ?: NeuroModel.EMPTY,
+            descriptors = mspOutputMap[1] ?: NeuroModel.EMPTY,
+            globalDescriptor = mvnOutputMap[0] ?: NeuroModel.EMPTY
         )
     }
 
@@ -102,19 +98,19 @@ internal class NeuroInteractor(
             val id: Byte = 0x2
             fileData.write(byteArrayOf(version, id))
 
-            val keyPoints = getByteFromArrayFloatArray(neuroModel.keyPoints)
+            val keyPoints = neuroModel.keyPoints.toByteArray()
             fileData.write(keyPoints.size.toByteArray())
             fileData.write(keyPoints)
 
-            val scores = getByteArrayFromFloatArray(neuroModel.scores)
+            val scores = neuroModel.scores.toByteArray()
             fileData.write(scores.size.toByteArray())
             fileData.write(scores)
 
-            val descriptors = getByteFromArrayFloatArray(neuroModel.descriptors)
+            val descriptors = neuroModel.descriptors.toByteArray()
             fileData.write(descriptors.size.toByteArray())
             fileData.write(descriptors)
 
-            val globalDescriptor = getByteFromArrayFloatArray(neuroModel.globalDescriptor)
+            val globalDescriptor = neuroModel.globalDescriptor.toByteArray()
             fileData.write(globalDescriptor.size.toByteArray())
             fileData.write(globalDescriptor)
 
@@ -138,38 +134,6 @@ internal class NeuroInteractor(
                 interpreterOptions
             )
         }
-    }
-
-    private fun runMvnNeuro(byteBuffer: ByteBuffer): Array<FloatArray> {
-        val outputMap = mutableMapOf<Int, Any>()
-
-        mvnInterpreter?.let {
-            val globalDescriptorShape = it.getOutputTensor(0).shape()
-            outputMap[0] = Array(globalDescriptorShape[0]) { FloatArray(globalDescriptorShape[1]) }
-        }
-
-        mvnInterpreter?.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap)
-
-        return outputMap[0] as Array<FloatArray>
-    }
-
-    private fun runMspNeuro(byteBuffer: ByteBuffer): Map<Int, Any> {
-        val outputMap = mutableMapOf<Int, Any>()
-
-        mspInterpreter?.let {
-            val keyPointsShape = it.getOutputTensor(0).shape()
-            outputMap[0] = Array(keyPointsShape[0]) { FloatArray(keyPointsShape[1]) }
-
-            val descriptorsShape = it.getOutputTensor(1).shape()
-            outputMap[1] = Array(descriptorsShape[0]) { FloatArray(descriptorsShape[1]) }
-
-            val scoresShape = it.getOutputTensor(2).shape()
-            outputMap[2] = FloatArray(scoresShape[0])
-        }
-
-        mspInterpreter?.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap)
-
-        return outputMap
     }
 
     private fun convertBitmapToBuffer(
@@ -207,6 +171,36 @@ internal class NeuroInteractor(
         return Bitmap.createBitmap(src, 0, 0, width, height, matrix, true)
     }
 
+    private fun Interpreter?.runForMultipleInputsOutputs(byteBuffer: ByteBuffer): Map<Int, Any> {
+        val outputMap = this?.getOutputMap() ?: return mapOf()
+
+        this.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap)
+
+        return outputMap
+    }
+
+    private fun Interpreter.getOutputMap(): Map<Int, Any> {
+        val outputMap = mutableMapOf<Int, Any>()
+
+        val outputTensorCount = this.outputTensorCount
+        repeat(outputTensorCount) { index ->
+            val shape = this.getOutputTensor(index).shape()
+            outputMap[index] = shape.createFloatArray(0)
+        }
+        return outputMap
+    }
+
+    private fun IntArray.createFloatArray(index: Int): Any =
+        if (this.size - 1 == index) {
+            FloatArray(this[index])
+        } else {
+            when (val array = this.createFloatArray(index + 1)) {
+                is FloatArray -> Array(this[index]) { array.copyOf() }
+                is Array<*> -> Array(this[index]) { array.copyOf() }
+                else -> throw IllegalStateException("Will never happen")
+            }
+        }
+
     private fun fillBuffer(bitmap: Bitmap, imgData: ByteBuffer) {
         for (y in 0 until bitmap.height) {
             for (x in 0 until bitmap.width) {
@@ -216,29 +210,38 @@ internal class NeuroInteractor(
         }
     }
 
-    private fun getByteFromArrayFloatArray(array: Array<FloatArray>): ByteArray =
+    private fun Any.toByteArray(): ByteArray =
         ByteArrayOutputStream().use { out ->
-            array.forEach { floatArray ->
-                val buff = getByteArrayFromFloatArray(floatArray)
-                out.write(buff)
+            when (this) {
+                is FloatArray -> {
+                    out.write(this.toByteArray())
+                }
+                is Array<*> -> {
+                    this.filterNotNull()
+                        .forEach {
+                            out.write(it.toByteArray())
+                        }
+                }
             }
             out.toByteArray()
         }
 
-    private fun getByteArrayFromFloatArray(floatArray: FloatArray): ByteArray {
-        val buff: ByteBuffer = ByteBuffer.allocate(2 * floatArray.size)
-        buff.order(ByteOrder.LITTLE_ENDIAN)
-        for (value in floatArray) {
-            buff.putShort(value.toHalf())
-        }
-        return buff.array()
-    }
+    private fun FloatArray.toByteArray(): ByteArray =
+        ByteBuffer.allocate(2 * this.size)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .also { buff ->
+                this.forEach { float ->
+                    buff.putShort(float.toHalf())
+                }
+            }
+            .array()
 
-    private fun Int.toByteArray(): ByteArray = byteArrayOf(
-        (this ushr 24).toByte(),
-        (this ushr 16).toByte(),
-        (this ushr 8).toByte(),
-        this.toByte()
-    )
+    private fun Int.toByteArray(): ByteArray =
+        byteArrayOf(
+            (this ushr 24).toByte(),
+            (this ushr 16).toByte(),
+            (this ushr 8).toByte(),
+            this.toByte()
+        )
 
 }
