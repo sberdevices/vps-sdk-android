@@ -27,6 +27,9 @@ internal class VpsServiceImpl(
         const val MIN_INTERVAL_MS = 1000L
         const val MIN_DISTANCE_IN_METERS = 1f
         const val DELAY = 100L
+
+        const val NO_DELAY = 0L
+        const val ERROR_LOCALIZATION_DELAY = 1000L
     }
 
     override val worldNode: Node
@@ -130,57 +133,64 @@ internal class VpsServiceImpl(
             withContext(Dispatchers.Main) {
                 vpsCallback?.onStateChange(true)
             }
-            if (vpsConfig.countImages == 1) {
-                localizationBySingleImage()
-            } else {
-                localizationBySerialImage()
-            }
+            localization()
         }
     }
 
-    private suspend fun localizationBySingleImage() {
+    private suspend fun localization() {
+        val force = vpsConfig.onlyForce
         var firstLocalize = true
         var failureCount = 0
-        var force = vpsConfig.onlyForce
 
         while (vpsJob?.isActive == true) {
-            if (!firstLocalize && failureCount >= 2 && !force) {
-                force = true
+            val result: Any? = if (firstLocalize && vpsConfig.useSerialImages) {
+                getNodePositionBySerialImage()
+            } else {
+                var _force = force || firstLocalize
+                if (!firstLocalize && failureCount >= 5 && !force) {
+                    _force = true
+                }
+                getNodePositionBySingleImage(_force)
             }
 
-            getNodePositionBySingleImage(force)?.let {
+            if (result == null) {
+                failLocalization(++failureCount)
+            } else {
                 firstLocalize = false
-                lastNodePosition = it
-                withContext(Dispatchers.Main) {
-                    arManager.restoreWorldPosition(0, lastNodePosition)
-                    vpsCallback?.onSuccess()
+                when (result) {
+                    is LocalizationBySerialImages -> successLocalization(
+                        result.nodePositionModel,
+                        result.indexImage
+                    )
+                    is NodePositionModel -> successLocalization(result)
                 }
-            } ?: run {
-                withContext(Dispatchers.Main) {
-                    vpsCallback?.onFail()
-                }
-                failureCount++
-                Logger.debug("localization fail: $failureCount")
             }
-            delay(vpsConfig.intervalLocalizationMS)
+
+            val timeMillis = when {
+                result != null -> vpsConfig.intervalLocalizationMS  //success, any localization
+                !firstLocalize -> ERROR_LOCALIZATION_DELAY          //error, non first localization
+                else -> NO_DELAY                                    //error, first localization
+            }
+            delay(timeMillis)
         }
     }
 
-    private suspend fun localizationBySerialImage() {
-        var failureCount = 0
-        while (vpsJob?.isActive == true) {
-            getNodePositionBySerialImage()?.let { (nodePositionModel, indexImage) ->
-                lastNodePosition = nodePositionModel
-                withContext(Dispatchers.Main) {
-                    arManager.restoreWorldPosition(indexImage, lastNodePosition)
-                }
-                vpsCallback?.onSuccess()
-            } ?: run {
-                failureCount++
-                Logger.debug("localization fail: $failureCount")
-            }
-            delay(vpsConfig.intervalLocalizationMS)
+    private suspend fun successLocalization(
+        nodePositionModel: NodePositionModel,
+        nodePositionIndex: Int = 0
+    ) {
+        lastNodePosition = nodePositionModel
+        withContext(Dispatchers.Main) {
+            arManager.restoreWorldPosition(nodePositionIndex, lastNodePosition)
+            vpsCallback?.onSuccess()
         }
+    }
+
+    private suspend fun failLocalization(failureCount: Int) {
+        withContext(Dispatchers.Main) {
+            vpsCallback?.onFail()
+        }
+        Logger.debug("localization fail: $failureCount")
     }
 
     private suspend fun getNodePositionBySingleImage(force: Boolean): NodePositionModel? {
@@ -188,9 +198,9 @@ internal class VpsServiceImpl(
         val currentNodePosition: NodePositionModel
 
         withContext(Dispatchers.Main) {
+            byteArray = waitAcquireCameraImage()
             arManager.saveWorldPosition(0)
             currentNodePosition = arManager.getWorldNodePosition(lastNodePosition)
-            byteArray = waitAcquireCameraImage()
         }
 
         return vpsInteractor.calculateNodePosition(
@@ -215,9 +225,9 @@ internal class VpsServiceImpl(
                     vpsConfig.intervalImagesMS
                 )
 
+                byteArrays.add(waitAcquireCameraImage())
                 arManager.saveWorldPosition(index)
                 nodePositions.add(arManager.getWorldNodePosition(lastNodePosition))
-                byteArrays.add(waitAcquireCameraImage())
 
                 Logger.debug("acquire image: ${index + 1}")
                 delay?.await()
