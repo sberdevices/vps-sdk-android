@@ -78,7 +78,6 @@ class VpsArFragment : ArFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        vpsService.unbindArSceneView()
         requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 

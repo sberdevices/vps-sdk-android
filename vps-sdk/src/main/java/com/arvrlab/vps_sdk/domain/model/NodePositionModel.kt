@@ -7,4 +7,8 @@ internal data class NodePositionModel(
     val roll: Float = 0.0f,
     val pitch: Float = 0.0f,
     val yaw: Float = 0.0f
-)
+) {
+    companion object {
+        val EMPTY = NodePositionModel()
+    }
+}

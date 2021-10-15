@@ -10,25 +10,16 @@ import androidx.core.util.containsKey
 import com.arvrlab.vps_sdk.domain.model.NodePositionModel
 import com.arvrlab.vps_sdk.util.Constant.QUALITY
 import com.google.ar.sceneform.*
-import com.google.ar.sceneform.math.Matrix
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 import com.google.ar.sceneform.utilities.AndroidPreconditions
 import java.io.ByteArrayOutputStream
-import kotlin.math.PI
-import kotlin.math.asin
-import kotlin.math.atan2
 
 internal class ArManager {
 
-    private companion object {
-        const val PI_DIV_180 = PI / 180f
-        const val _180_DIV_PI = 180 / PI
-        const val PI_HALF = PI / 2
-    }
-
-    val worldNode: Node by lazy {
+    val modelNode: AnchorNode by lazy {
         AnchorNode()
+            .also { it.addChild(positionInModelNode) }
     }
 
     private var arSceneView: ArSceneView? = null
@@ -40,36 +31,33 @@ internal class ArManager {
         get() = scene.camera
 
     private var tempWorldPosition: SparseArray<WorldPosition> = SparseArray(1)
-    private var cameraStartPosition: Vector3 = Vector3()
-    private var cameraStartRotation: Quaternion = Quaternion()
-    private var photoMatrix: Matrix? = null
-
-    private var rotationAngle: Float? = null
+    private var cameraPrevPosition: Vector3 = Vector3()
+    private var cameraPrevRotation: Quaternion = Quaternion()
 
     private var isModelCreated: Boolean = false
 
-    private val rotationNode: Node by lazy {
+    private val rotationNode: AnchorNode by lazy {
         AnchorNode()
-            .also { it.addChild(worldNode) }
+            .also { it.addChild(modelNode) }
     }
-    private val cameraAlternativeNode: Node by lazy {
+    private val cameraAlternativeNode: AnchorNode by lazy {
         AnchorNode()
             .also { it.addChild(rotationNode) }
+    }
+    private val positionInModelNode: Node by lazy {
+        Node()
     }
 
     fun bindArSceneView(arSceneView: ArSceneView) {
         this.arSceneView = arSceneView
     }
 
-    fun unbind() {
-        this.arSceneView = null
-    }
-
     fun destroy() {
-        unbind()
-        rotationNode.setParent(null)
-        cameraAlternativeNode.setParent(null)
-        worldNode.renderable = null
+        rotationNode.removeChild(modelNode)
+        cameraAlternativeNode.removeChild(rotationNode)
+        scene.removeChild(cameraAlternativeNode)
+        modelNode.renderable = null
+        arSceneView = null
 
         isModelCreated = false
     }
@@ -80,7 +68,6 @@ internal class ArManager {
             WorldPosition(
                 cameraStartPosition = camera.worldPosition,
                 cameraStartRotation = camera.worldRotation,
-                photoMatrix = camera.worldModelMatrix
             )
         )
     }
@@ -90,57 +77,37 @@ internal class ArManager {
             throw IllegalStateException("WorldPosition with index $index not found")
 
         tempWorldPosition[index].let {
-            cameraStartPosition = it.cameraStartPosition
-            cameraStartRotation = it.cameraStartRotation
-            photoMatrix = it.photoMatrix
+            cameraPrevPosition = it.cameraStartPosition
+            cameraPrevRotation = it.cameraStartRotation
         }
         tempWorldPosition.clear()
 
-        updateRotationAngle(nodePosition)
-
         createNodeHierarchyIfNeed()
 
-        cameraAlternativeNode.worldRotation = cameraStartRotation.toStartRotation()
-        cameraAlternativeNode.worldPosition = cameraStartPosition
+        cameraAlternativeNode.worldPosition = cameraPrevPosition
+        cameraAlternativeNode.worldRotation = cameraPrevRotation.toStartRotation()
 
         rotationNode.localRotation = nodePosition.toQuaternion()
-        worldNode.localPosition = nodePosition.toVector3()
+        modelNode.localPosition = nodePosition.toVector3()
     }
 
     @MainThread
-    fun getWorldNodePosition(lastNodePosition: NodePositionModel): NodePositionModel {
-        val newCamera = Node()
-            .apply {
-                worldPosition = camera.worldPosition
-                worldRotation = camera.worldRotation
-            }
-
-        AnchorNode().apply {
-            addChild(newCamera)
-            worldRotation = Quaternion(Vector3(0f, rotationAngle ?: 0f, 0f))
+    fun getWorldNodePosition(): NodePositionModel {
+        with(positionInModelNode) {
+            worldPosition = camera.worldPosition
+            worldRotation = camera.worldRotation
         }
 
-        val newPos = Vector3(
-            lastNodePosition.x,
-            lastNodePosition.y,
-            lastNodePosition.z
-        )
-
-        val newAngle = Node()
-            .apply {
-                worldPosition = newCamera.worldPosition
-                worldRotation = newCamera.worldRotation
-            }
-            .localRotation
-            .toEulerAngles()
+        val localPosition = positionInModelNode.localPosition
+        val localRotation = positionInModelNode.localRotation
 
         return NodePositionModel(
-            x = newPos.x,
-            y = newPos.y,
-            z = newPos.z,
-            roll = newAngle.x,
-            pitch = newAngle.z,
-            yaw = newAngle.y,
+            x = localPosition.x,
+            y = localPosition.y,
+            z = localPosition.z,
+            roll = localRotation.x,
+            pitch = localRotation.z,
+            yaw = localRotation.y,
         )
     }
 
@@ -161,19 +128,6 @@ internal class ArManager {
         isModelCreated = true
 
         scene.addChild(cameraAlternativeNode)
-    }
-
-    private fun updateRotationAngle(nodePosition: NodePositionModel) {
-        val anglesY = Quaternion(
-            Vector3(
-                (nodePosition.roll * PI_DIV_180).toFloat(),
-                (nodePosition.yaw * PI_DIV_180).toFloat(),
-                (nodePosition.pitch * PI_DIV_180).toFloat()
-            )
-        ).toEulerAngles().y
-        val cameraAngles = Quaternion(photoMatrix?.toPositionVector()).toEulerAngles().y
-
-        rotationAngle = anglesY + cameraAngles
     }
 
     private fun Image.toByteArray(): ByteArray {
@@ -199,9 +153,9 @@ internal class ArManager {
     }
 
     private fun Quaternion.toStartRotation(): Quaternion {
-        val dir = Quaternion.rotateVector(this, Vector3(0f, 0f, 1f))
+        val dir = Quaternion.rotateVector(this, Vector3.back())
         dir.y = 0f
-        return Quaternion.rotationBetweenVectors(Vector3(0f, 0f, 1f), dir)
+        return Quaternion.rotationBetweenVectors(Vector3.back(), dir)
     }
 
     private fun NodePositionModel.toVector3(): Vector3 =
@@ -211,43 +165,9 @@ internal class ArManager {
         Quaternion(Vector3(0f, if (yaw > 0) 180f - yaw else yaw, 0f))
             .inverted()
 
-    private fun Matrix.toPositionVector(): Vector3 =
-        Vector3()
-            .also { decomposeTranslation(it) }
-
-    //x y z => roll yaw pitch
-    private fun Quaternion.toEulerAngles(): Vector3 {
-        val test = x * y + z * w
-        if (test > 0.499) { // singularity at north pole
-            val y = 2 * atan2(x, w)
-            val z = PI_HALF
-            val x = 0f
-            return Vector3(x, y, z.toFloat())
-        }
-        if (test < -0.499) { // singularity at south pole
-            val y = -2 * atan2(x, w)
-            val z = -PI_HALF
-            val x = 0f
-            return Vector3(x, y, z.toFloat())
-        }
-        val sqx = x * x
-        val sqy = y * y
-        val sqz = z * z
-        val y = atan2(2 * y * w - 2 * x * z, 1 - 2 * sqy - 2 * sqz)
-        val z = asin(2 * test)
-        val x = atan2(2 * x * w - 2 * y * z, 1 - 2 * sqx - 2 * sqz)
-
-        return Vector3(
-            (x * _180_DIV_PI).toFloat(),
-            (y * _180_DIV_PI).toFloat(),
-            (z * _180_DIV_PI).toFloat()
-        )
-    }
-
     private class WorldPosition(
         val cameraStartPosition: Vector3 = Vector3(),
         val cameraStartRotation: Quaternion = Quaternion(),
-        val photoMatrix: Matrix? = null
     )
 
 }

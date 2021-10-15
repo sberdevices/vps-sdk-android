@@ -29,11 +29,10 @@ internal class VpsServiceImpl(
         const val DELAY = 100L
 
         const val NO_DELAY = 0L
-        const val ERROR_LOCALIZATION_DELAY = 1000L
     }
 
     override val worldNode: Node
-        get() = arManager.worldNode
+        get() = arManager.modelNode
 
     override val isRun: Boolean
         get() = vpsJob != null
@@ -55,7 +54,7 @@ internal class VpsServiceImpl(
 
     private var vpsJob: Job? = null
 
-    private var lastNodePosition: NodePositionModel = NodePositionModel()
+    private var lastNodePosition: NodePositionModel = NodePositionModel.EMPTY
 
     private lateinit var vpsConfig: VpsConfig
     private var vpsCallback: VpsCallback? = null
@@ -83,10 +82,6 @@ internal class VpsServiceImpl(
 
     override fun pause() {
         isResumed = false
-    }
-
-    override fun unbindArSceneView() {
-        arManager.unbind()
     }
 
     override fun destroy() {
@@ -166,11 +161,10 @@ internal class VpsServiceImpl(
                 }
             }
 
-            val timeMillis = when {
-                result != null -> vpsConfig.intervalLocalizationMS  //success, any localization
-                !firstLocalize -> ERROR_LOCALIZATION_DELAY          //error, non first localization
-                else -> NO_DELAY                                    //error, first localization
-            }
+            val timeMillis = if (result != null || !firstLocalize)
+                vpsConfig.intervalLocalizationMS
+            else
+                NO_DELAY
             delay(timeMillis)
         }
     }
@@ -200,7 +194,11 @@ internal class VpsServiceImpl(
         withContext(Dispatchers.Main) {
             byteArray = waitAcquireCameraImage()
             arManager.saveWorldPosition(0)
-            currentNodePosition = arManager.getWorldNodePosition(lastNodePosition)
+            currentNodePosition =
+                if (force)
+                    NodePositionModel.EMPTY
+                else
+                    arManager.getWorldNodePosition()
         }
 
         return vpsInteractor.calculateNodePosition(
@@ -227,7 +225,7 @@ internal class VpsServiceImpl(
 
                 byteArrays.add(waitAcquireCameraImage())
                 arManager.saveWorldPosition(index)
-                nodePositions.add(arManager.getWorldNodePosition(lastNodePosition))
+                nodePositions.add(arManager.getWorldNodePosition())
 
                 Logger.debug("acquire image: ${index + 1}")
                 delay?.await()

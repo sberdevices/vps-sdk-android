@@ -40,7 +40,7 @@ internal class VpsRepository(
     ): NodePositionModel? {
         val vpsApi = vpsApiManager.getVpsApi(url)
 
-        val jsonBody = vpsLocationModel.toRequestVpsModel(false)
+        val jsonBody = vpsLocationModel.toRequestVpsModel()
             .toBodyPart(JSON)
         val contentBody = when (vpsLocationModel.localizationType) {
             is Photo -> vpsLocationModel.toBodyPart(IMAGE_MEDIA_TYPE, IMAGE)
@@ -66,7 +66,7 @@ internal class VpsRepository(
         val parts = arrayListOf<MultipartBody.Part>()
         vpsLocationModel.forEachIndexed { index, model ->
             parts.add(
-                model.toRequestVpsModel(true)
+                model.toRequestVpsModel()
                     .toBodyPart("$MES$index")
             )
             parts.add(
@@ -88,27 +88,21 @@ internal class VpsRepository(
         return null
     }
 
-    private fun VpsLocationModel.toRequestVpsModel(isSerialImages: Boolean): RequestVpsModel {
-        val localPos = if (!this.force || isSerialImages) {
-            RequestLocalPosModel(
-                x = this.nodePosition.x,
-                y = this.nodePosition.y,
-                z = this.nodePosition.z,
-                roll = this.nodePosition.roll,
-                pitch = this.nodePosition.pitch,
-                yaw = this.nodePosition.yaw,
-            )
-        } else {
-            RequestLocalPosModel()
-        }
-
-        return RequestVpsModel(
+    private fun VpsLocationModel.toRequestVpsModel(): RequestVpsModel =
+        RequestVpsModel(
             data = RequestDataModel(
                 attributes = RequestAttributesModel(
                     forcedLocalisation = this.force,
                     location = RequestLocationModel(
                         locationId = this.locationID,
-                        localPos = localPos,
+                        localPos = RequestLocalPosModel(
+                            x = this.nodePosition.x,
+                            y = this.nodePosition.y,
+                            z = this.nodePosition.z,
+                            roll = this.nodePosition.roll,
+                            pitch = this.nodePosition.pitch,
+                            yaw = this.nodePosition.yaw,
+                        ),
                         gps = this.gpsLocation?.let {
                             RequestGpsModel(
                                 accuracy = it.accuracy,
@@ -122,7 +116,6 @@ internal class VpsRepository(
                 )
             )
         )
-    }
 
     private fun RequestVpsModel.toBodyPart(name: String): MultipartBody.Part {
         val requestBody = requestVpsAdapter.toJson(this).toRequestBody(JSON_MEDIA_TYPE)
@@ -139,13 +132,16 @@ internal class VpsRepository(
     }
 
     private fun ResponseRelativeModel?.toNodePositionModel(): NodePositionModel =
-        NodePositionModel(
-            x = this?.x ?: 0f,
-            y = this?.y ?: 0f,
-            z = this?.z ?: 0f,
-            roll = this?.roll ?: 0f,
-            pitch = this?.pitch ?: 0f,
-            yaw = this?.yaw ?: 0f,
-        )
+        if (this == null)
+            NodePositionModel.EMPTY
+        else
+            NodePositionModel(
+                x = this.x ?: 0f,
+                y = this.y ?: 0f,
+                z = this.z ?: 0f,
+                roll = this.roll ?: 0f,
+                pitch = this.pitch ?: 0f,
+                yaw = this.yaw ?: 0f,
+            )
 
 }
