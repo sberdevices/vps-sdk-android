@@ -9,9 +9,8 @@ import com.arvrlab.vps_sdk.data.repository.INeuroRepository
 import com.arvrlab.vps_sdk.domain.model.NeuroModel
 import com.arvrlab.vps_sdk.util.Constant.URL_DELIMITER
 import com.arvrlab.vps_sdk.util.toHalf
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
 import org.tensorflow.lite.Interpreter
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -24,7 +23,13 @@ internal class NeuroInteractor(
 
     private companion object {
         const val MATRIX_ROTATE = 90f
+
+        const val CLOSE_DELAY = 100L
     }
+
+    private val coroutineScope: CoroutineScope =
+        CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val mutex: Mutex = Mutex()
 
     private var mvnInterpreter: Interpreter? = null
     private var mspInterpreter: Interpreter? = null
@@ -36,7 +41,7 @@ internal class NeuroInteractor(
             throw IllegalThreadStateException("Must be called from non UI thread.")
 
         @Suppress("DeferredResultUnused")
-        withContext(Dispatchers.IO) {
+        coroutineScope.launch(Dispatchers.IO) {
             async {
                 val mnvNeuroUrl = mobileVps.mnvNeuroUrl
                 if (mnvNeuroUrl.substringAfterLast(URL_DELIMITER) != mvnNeuroFile?.name) {
@@ -50,7 +55,7 @@ internal class NeuroInteractor(
                     mspNeuroFile = neuroRepository.getNeuroModelFile(mspNeuroUrl)
                 }
             }
-        }
+        }.join()
     }
 
     override suspend fun codingBitmap(bitmap: Bitmap, dstWidth: Int, dstHeight: Int): ByteArray {
@@ -59,10 +64,16 @@ internal class NeuroInteractor(
     }
 
     override fun close() {
-        mvnInterpreter?.close()
-        mvnInterpreter = null
-        mspInterpreter?.close()
-        mspInterpreter = null
+        coroutineScope.launch {
+            while (mutex.isLocked) delay(CLOSE_DELAY)
+
+            mvnInterpreter?.close()
+            mvnInterpreter = null
+            mspInterpreter?.close()
+            mspInterpreter = null
+
+            coroutineScope.cancel()
+        }
     }
 
     private suspend fun convertToNeuroModel(
@@ -74,15 +85,19 @@ internal class NeuroInteractor(
 
         val byteBuffer = convertBitmapToBuffer(bitmap, dstWidth, dstHeight)
 
-        val mvnOutputMap: Map<Int, Any>
-        val mspOutputMap: Map<Int, Any>
-        withContext(Dispatchers.Default) {
+        lateinit var mvnOutputMap: Map<Int, Any>
+        lateinit var mspOutputMap: Map<Int, Any>
+        coroutineScope.launch(Dispatchers.Default) {
+            mutex.lock()
+
             val mvnDeferred = async { mvnInterpreter.runForMultipleInputsOutputs(byteBuffer) }
             val mspDeferred = async { mspInterpreter.runForMultipleInputsOutputs(byteBuffer) }
 
             mvnOutputMap = mvnDeferred.await()
             mspOutputMap = mspDeferred.await()
-        }
+
+            mutex.unlock()
+        }.join()
 
         return NeuroModel(
             keyPoints = mspOutputMap[0] ?: NeuroModel.EMPTY,
@@ -119,7 +134,10 @@ internal class NeuroInteractor(
 
     private fun initInterpreterIfNeed() {
         val interpreterOptions = Interpreter.Options()
-            .apply { setNumThreads(4) }
+            .apply {
+                setNumThreads(4)
+                setCancellable(true)
+            }
 
         if (mvnInterpreter == null) {
             mvnInterpreter = Interpreter(
