@@ -9,6 +9,7 @@ import androidx.annotation.MainThread
 import androidx.core.util.containsKey
 import com.arvrlab.vps_sdk.domain.model.NodePositionModel
 import com.arvrlab.vps_sdk.util.Constant.QUALITY
+import com.arvrlab.vps_sdk.util.getEulerAngles
 import com.google.ar.sceneform.*
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
@@ -31,19 +32,17 @@ internal class ArManager {
         get() = scene.camera
 
     private var tempWorldPosition: SparseArray<WorldPosition> = SparseArray(1)
-    private var cameraPrevPosition: Vector3 = Vector3()
-    private var cameraPrevRotation: Quaternion = Quaternion()
 
-    private var isModelCreated: Boolean = false
+    private val alternativeCamera: Node by lazy {
+        Node()
+    }
+    private val rotationNode: Node by lazy {
+        Node()
+    }
+    private val translationNode: Node by lazy {
+        Node()
+    }
 
-    private val rotationNode: AnchorNode by lazy {
-        AnchorNode()
-            .also { it.addChild(modelNode) }
-    }
-    private val cameraAlternativeNode: AnchorNode by lazy {
-        AnchorNode()
-            .also { it.addChild(rotationNode) }
-    }
     private val positionInModelNode: Node by lazy {
         Node()
     }
@@ -53,13 +52,12 @@ internal class ArManager {
     }
 
     fun destroy() {
-        rotationNode.removeChild(modelNode)
-        cameraAlternativeNode.removeChild(rotationNode)
-        scene.removeChild(cameraAlternativeNode)
         modelNode.renderable = null
+        translationNode.removeChild(modelNode)
+        rotationNode.removeChild(translationNode)
+        alternativeCamera.removeChild(rotationNode)
+        scene.removeChild(alternativeCamera)
         arSceneView = null
-
-        isModelCreated = false
     }
 
     fun saveWorldPosition(index: Int) {
@@ -76,38 +74,40 @@ internal class ArManager {
         if (!tempWorldPosition.containsKey(index))
             throw IllegalStateException("WorldPosition with index $index not found")
 
-        tempWorldPosition[index].let {
-            cameraPrevPosition = it.cameraStartPosition
-            cameraPrevRotation = it.cameraStartRotation
-        }
+        val (cameraPrevPosition, cameraPrevRotation) = tempWorldPosition[index]
         tempWorldPosition.clear()
 
-        createNodeHierarchyIfNeed()
+        if (modelNode.parent == null) {
+            translationNode.addChild(modelNode)
+            rotationNode.addChild(translationNode)
+            alternativeCamera.addChild(rotationNode)
+            scene.addChild(alternativeCamera)
+        }
+        alternativeCamera.localRotation = cameraPrevRotation
+            .alignHorizontal()
+        alternativeCamera.localPosition = cameraPrevPosition
 
-        cameraAlternativeNode.worldPosition = cameraPrevPosition
-        cameraAlternativeNode.worldRotation = cameraPrevRotation.toStartRotation()
-
-        rotationNode.localRotation = nodePosition.toQuaternion()
-        modelNode.localPosition = nodePosition.toVector3()
+        rotationNode.localRotation = nodePosition.getRotation()
+            .alignHorizontal()
+        translationNode.localPosition = nodePosition.getPosition()
     }
 
     @MainThread
     fun getWorldNodePosition(): NodePositionModel {
-        with(positionInModelNode) {
-            worldPosition = camera.worldPosition
-            worldRotation = camera.worldRotation
-        }
+        positionInModelNode.worldPosition = camera.worldPosition
+        positionInModelNode.worldRotation = camera.worldRotation
 
         val localPosition = positionInModelNode.localPosition
         val localRotation = positionInModelNode.localRotation
+            .getEulerAngles()
 
         return NodePositionModel(
             x = localPosition.x,
             y = localPosition.y,
             z = localPosition.z,
             roll = localRotation.x,
-            pitch = localRotation.z,
-            yaw = localRotation.y,
+            pitch = localRotation.y,
+            yaw = localRotation.z,
         )
     }
 
@@ -122,13 +122,6 @@ internal class ArManager {
 
     private fun checkArSceneView(): ArSceneView =
         checkNotNull(arSceneView) { "ArSceneView is null. Call bindArSceneView(ArSceneView)" }
-
-    private fun createNodeHierarchyIfNeed() {
-        if (isModelCreated) return
-        isModelCreated = true
-
-        scene.addChild(cameraAlternativeNode)
-    }
 
     private fun Image.toByteArray(): ByteArray {
         val yBuffer = planes[0].buffer
@@ -152,22 +145,15 @@ internal class ArManager {
         }
     }
 
-    private fun Quaternion.toStartRotation(): Quaternion {
-        val dir = Quaternion.rotateVector(this, Vector3.back())
-        dir.y = 0f
-        return Quaternion.rotationBetweenVectors(Vector3.back(), dir)
-    }
+    private fun Quaternion.alignHorizontal(): Quaternion =
+        this.apply {
+            x = 0f
+            z = 0f
+        }
 
-    private fun NodePositionModel.toVector3(): Vector3 =
-        Vector3(-this.x, -this.y, -this.z)
-
-    private fun NodePositionModel.toQuaternion(): Quaternion =
-        Quaternion(Vector3(0f, if (yaw > 0) 180f - yaw else yaw, 0f))
-            .inverted()
-
-    private class WorldPosition(
-        val cameraStartPosition: Vector3 = Vector3(),
-        val cameraStartRotation: Quaternion = Quaternion(),
+    private data class WorldPosition(
+        val cameraStartPosition: Vector3,
+        val cameraStartRotation: Quaternion,
     )
 
 }

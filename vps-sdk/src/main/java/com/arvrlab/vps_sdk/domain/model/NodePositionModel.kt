@@ -1,5 +1,8 @@
 package com.arvrlab.vps_sdk.domain.model
 
+import com.google.ar.sceneform.math.Quaternion
+import com.google.ar.sceneform.math.Vector3
+
 internal data class NodePositionModel(
     val x: Float = 0.0f,
     val y: Float = 0.0f,
@@ -11,4 +14,11 @@ internal data class NodePositionModel(
     companion object {
         val EMPTY = NodePositionModel()
     }
+
+    fun getPosition(): Vector3 =
+        Vector3(-x, -y, -z)
+
+    fun getRotation(): Quaternion =
+        Quaternion.eulerAngles(Vector3(-roll, -pitch, -yaw))
+
 }

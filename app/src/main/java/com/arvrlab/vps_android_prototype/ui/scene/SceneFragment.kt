@@ -51,6 +51,7 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
                 VpsConfig(
                     vpsUrl = sceneModel.url,
                     locationID = sceneModel.locationID,
+                    onlyForce = sceneModel.onlyForce,
                     intervalLocalizationMS = sceneModel.intervalLocalizationMS,
                     useGps = sceneModel.useGps,
                     localizationType = sceneModel.localizationType,
