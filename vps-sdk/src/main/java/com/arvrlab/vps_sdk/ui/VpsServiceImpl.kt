@@ -208,7 +208,8 @@ internal class VpsServiceImpl(
             localizationType = vpsConfig.localizationType,
             nodePose = currentNodePose,
             force = force,
-            gpsLocation = gpsLocation
+            gpsLocation = gpsLocation,
+            cameraIntrinsics = arManager.getCameraIntrinsics()
         )
     }
 
@@ -238,7 +239,8 @@ internal class VpsServiceImpl(
             sources = byteArrays,
             localizationType = vpsConfig.localizationType,
             nodePoses = nodePoses,
-            gpsLocations = gpsLocation?.let { listOf(it) }
+            gpsLocations = gpsLocation?.let { listOf(it) },
+            cameraIntrinsics = arManager.getCameraIntrinsics()
         )
     }
 

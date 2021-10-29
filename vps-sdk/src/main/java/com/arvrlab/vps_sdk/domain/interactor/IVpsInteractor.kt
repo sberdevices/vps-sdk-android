@@ -1,6 +1,7 @@
 package com.arvrlab.vps_sdk.domain.interactor
 
 import com.arvrlab.vps_sdk.data.LocalizationType
+import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
 import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
 import com.arvrlab.vps_sdk.domain.model.NodePoseModel
@@ -15,6 +16,7 @@ internal interface IVpsInteractor {
         nodePose: NodePoseModel,
         force: Boolean = false,
         gpsLocation: GpsLocationModel? = null,
+        cameraIntrinsics: CameraIntrinsics
     ): NodePoseModel?
 
     suspend fun calculateNodePose(
@@ -24,6 +26,7 @@ internal interface IVpsInteractor {
         localizationType: LocalizationType,
         nodePoses: List<NodePoseModel>,
         gpsLocations: List<GpsLocationModel>? = null,
+        cameraIntrinsics: CameraIntrinsics
     ): LocalizationBySerialImages?
 
     fun destroy()

@@ -7,10 +7,14 @@ import android.media.Image
 import android.util.SparseArray
 import androidx.annotation.MainThread
 import androidx.core.util.containsKey
+import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
 import com.arvrlab.vps_sdk.domain.model.NodePoseModel
 import com.arvrlab.vps_sdk.util.Constant.QUALITY
 import com.arvrlab.vps_sdk.util.getEulerAngles
-import com.google.ar.sceneform.*
+import com.google.ar.sceneform.ArSceneView
+import com.google.ar.sceneform.Camera
+import com.google.ar.sceneform.Node
+import com.google.ar.sceneform.Scene
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 import com.google.ar.sceneform.utilities.AndroidPreconditions
@@ -126,6 +130,20 @@ internal class ArManager {
             ?: throw IllegalStateException("Frame is null")
         return image.toByteArray()
             .also { image.close() }
+    }
+
+    fun getCameraIntrinsics(): CameraIntrinsics {
+        val camera = arSceneView?.arFrame?.camera ?: return CameraIntrinsics.EMPTY
+
+        val principalPoint = camera.imageIntrinsics.principalPoint
+        val focalLength = camera.imageIntrinsics.focalLength
+
+        return CameraIntrinsics(
+            fx = focalLength[0],
+            fy = focalLength[1],
+            cx = principalPoint[0],
+            cy = principalPoint[1]
+        )
     }
 
     private fun checkArSceneView(): ArSceneView =

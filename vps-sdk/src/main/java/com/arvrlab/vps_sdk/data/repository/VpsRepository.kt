@@ -112,6 +112,12 @@ internal class VpsRepository(
                                 timestamp = it.elapsedRealtimeNanos
                             )
                         }
+                    ),
+                    intrinsics = RequestIntrinsicsModel(
+                        cx = cameraIntrinsics.cx,
+                        cy = cameraIntrinsics.cy,
+                        fx = cameraIntrinsics.fx,
+                        fy = cameraIntrinsics.fy,
                     )
                 )
             )
