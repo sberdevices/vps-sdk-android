@@ -6,6 +6,7 @@ import android.graphics.Color
 import com.arvrlab.vps_sdk.data.LocalizationType
 import com.arvrlab.vps_sdk.data.MobileVps
 import com.arvrlab.vps_sdk.data.Photo
+import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
 import com.arvrlab.vps_sdk.data.repository.IVpsRepository
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
 import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
@@ -28,7 +29,8 @@ internal class VpsInteractor(
         localizationType: LocalizationType,
         nodePose: NodePoseModel,
         force: Boolean,
-        gpsLocation: GpsLocationModel?
+        gpsLocation: GpsLocationModel?,
+        cameraIntrinsics: CameraIntrinsics
     ): NodePoseModel? {
         val byteArray = convertByteArray(source, localizationType)
 
@@ -38,7 +40,8 @@ internal class VpsInteractor(
             nodePose = nodePose,
             force = force,
             localizationType = localizationType,
-            byteArray = byteArray
+            byteArray = byteArray,
+            cameraIntrinsics = cameraIntrinsics
         )
         return vpsRepository.requestLocalizationBySingleImage(url, vpsLocationModel)
     }
@@ -49,7 +52,8 @@ internal class VpsInteractor(
         sources: List<ByteArray>,
         localizationType: LocalizationType,
         nodePoses: List<NodePoseModel>,
-        gpsLocations: List<GpsLocationModel>?
+        gpsLocations: List<GpsLocationModel>?,
+        cameraIntrinsics: List<CameraIntrinsics>
     ): LocalizationBySerialImages? {
         if (sources.size != nodePoses.size) {
             throw IllegalStateException()
@@ -66,7 +70,8 @@ internal class VpsInteractor(
                     nodePose = nodePoses[0],
                     force = true,
                     localizationType = localizationType,
-                    byteArray = byteArray
+                    byteArray = byteArray,
+                    cameraIntrinsics = cameraIntrinsics[index]
                 )
             )
         }
