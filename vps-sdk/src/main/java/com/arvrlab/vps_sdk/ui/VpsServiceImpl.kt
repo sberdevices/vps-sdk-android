@@ -10,6 +10,7 @@ import com.arvrlab.vps_sdk.domain.interactor.IVpsInteractor
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
 import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
 import com.arvrlab.vps_sdk.domain.model.NodePoseModel
+import com.arvrlab.vps_sdk.ui.VpsService.State
 import com.arvrlab.vps_sdk.util.Logger
 import com.arvrlab.vps_sdk.util.waitIfNeedAsync
 import com.google.ar.core.exceptions.NotYetAvailableException
@@ -53,6 +54,7 @@ internal class VpsServiceImpl(
     )
 
     private var vpsJob: Job? = null
+    private var state: State = State.STOP
 
     private var lastNodePose: NodePoseModel = NodePoseModel.EMPTY
 
@@ -78,10 +80,17 @@ internal class VpsServiceImpl(
 
     override fun resume() {
         isResumed = true
+        if (state == State.PAUSE) {
+            internalStartVpsService()
+        }
     }
 
     override fun pause() {
         isResumed = false
+        if (state == State.RUN) {
+            state = State.PAUSE
+            internalStopVpsService()
+        }
     }
 
     override fun destroy() {
@@ -102,34 +111,41 @@ internal class VpsServiceImpl(
         if (!::vpsConfig.isInitialized)
             throw IllegalStateException("VpsConfig not set. First call setVpsConfig(VpsConfig)")
 
-        if (vpsJob != null) return
-
         internalStartVpsService()
     }
 
     override fun stopVpsService() {
-        if (vpsJob == null) return
-
-        Logger.debug("stopVpsService")
-        vpsCallback?.onStateChange(false)
-        vpsJob?.cancel()
-        vpsJob = null
-        locationManager.removeUpdates(locationListener)
+        if (state != State.STOP) {
+            state = State.STOP
+            internalStopVpsService()
+        }
     }
 
     private fun internalStartVpsService() {
+        if (vpsJob != null) return
+
         gpsLocation = null
         requestLocationIfNeed()
 
         vpsJob = scope.launch(Dispatchers.Default) {
             while (!isResumed) delay(DELAY)
 
-            Logger.debug("startVpsService")
+            state = State.RUN
             withContext(Dispatchers.Main) {
-                vpsCallback?.onStateChange(true)
+                vpsCallback?.onStateChange(state)
             }
             localization()
         }
+    }
+
+    private fun internalStopVpsService() {
+        vpsCallback?.onStateChange(state)
+
+        if (vpsJob == null) return
+
+        locationManager.removeUpdates(locationListener)
+        vpsJob?.cancel()
+        vpsJob = null
     }
 
     private suspend fun localization() {
@@ -151,6 +167,7 @@ internal class VpsServiceImpl(
             if (result == null) {
                 failLocalization(++failureCount)
             } else {
+                failureCount = 0
                 firstLocalize = false
                 when (result) {
                     is LocalizationBySerialImages -> successLocalization(
@@ -265,4 +282,5 @@ internal class VpsServiceImpl(
         }
         return byteArray
     }
+
 }

@@ -89,18 +89,21 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
         return object : VpsCallback {
             override fun onSuccess() {
                 Toast.makeText(requireContext(), "localization success", Toast.LENGTH_SHORT).show()
-                Logger.debug("vps localization: success")
+                Logger.debug("VPS localization success")
             }
 
             override fun onFail() {
+                Logger.debug("VPS localization fail")
                 Toast.makeText(requireContext(), "localization fail", Toast.LENGTH_SHORT).show()
             }
 
-            override fun onStateChange(isEnable: Boolean) {
-                changeButtonsAvailability(isEnable)
+            override fun onStateChange(state: VpsService.State) {
+                Logger.debug("VPS service: $state")
+                changeButtonsAvailability(state == VpsService.State.RUN)
             }
 
             override fun onError(error: Throwable) {
+                Logger.error(error)
                 showError(error)
             }
         }

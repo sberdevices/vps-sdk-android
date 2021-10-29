@@ -28,4 +28,8 @@ interface VpsService {
     fun startVpsService()
     fun stopVpsService()
 
+    enum class State {
+        RUN, PAUSE, STOP
+    }
+
 }
