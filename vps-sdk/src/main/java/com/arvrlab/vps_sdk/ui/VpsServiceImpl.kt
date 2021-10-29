@@ -72,21 +72,21 @@ internal class VpsServiceImpl(
         }
     }
 
-    private var isResumed: Boolean = false
+    private var hasFocus: Boolean = false
 
     override fun bindArSceneView(arSceneView: ArSceneView) {
         arManager.bindArSceneView(arSceneView)
     }
 
     override fun resume() {
-        isResumed = true
+        hasFocus = true
         if (state == State.PAUSE) {
             internalStartVpsService()
         }
     }
 
     override fun pause() {
-        isResumed = false
+        hasFocus = false
         if (state == State.RUN) {
             state = State.PAUSE
             internalStopVpsService()
@@ -128,7 +128,7 @@ internal class VpsServiceImpl(
         requestLocationIfNeed()
 
         vpsJob = scope.launch(Dispatchers.Default) {
-            while (!isResumed) delay(DELAY)
+            while (!hasFocus) delay(DELAY)
 
             state = State.RUN
             withContext(Dispatchers.Main) {
