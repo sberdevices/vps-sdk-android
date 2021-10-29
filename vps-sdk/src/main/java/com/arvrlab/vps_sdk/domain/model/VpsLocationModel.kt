@@ -5,7 +5,7 @@ import com.arvrlab.vps_sdk.data.LocalizationType
 internal data class VpsLocationModel(
     val locationID: String,
     val gpsLocation: GpsLocationModel?,
-    val nodePosition: NodePositionModel,
+    val nodePose: NodePoseModel,
     val force: Boolean,
     val localizationType: LocalizationType,
     val byteArray: ByteArray
@@ -18,7 +18,7 @@ internal data class VpsLocationModel(
 
         if (locationID != other.locationID) return false
         if (gpsLocation != other.gpsLocation) return false
-        if (nodePosition != other.nodePosition) return false
+        if (nodePose != other.nodePose) return false
         if (force != other.force) return false
         if (localizationType != other.localizationType) return false
         if (!byteArray.contentEquals(other.byteArray)) return false
@@ -29,7 +29,7 @@ internal data class VpsLocationModel(
     override fun hashCode(): Int {
         var result = locationID.hashCode()
         result = 31 * result + (gpsLocation?.hashCode() ?: 0)
-        result = 31 * result + nodePosition.hashCode()
+        result = 31 * result + nodePose.hashCode()
         result = 31 * result + force.hashCode()
         result = 31 * result + localizationType.hashCode()
         result = 31 * result + byteArray.contentHashCode()

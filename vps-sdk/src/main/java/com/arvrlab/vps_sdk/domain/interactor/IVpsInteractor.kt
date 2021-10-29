@@ -3,26 +3,26 @@ package com.arvrlab.vps_sdk.domain.interactor
 import com.arvrlab.vps_sdk.data.LocalizationType
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
 import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
-import com.arvrlab.vps_sdk.domain.model.NodePositionModel
+import com.arvrlab.vps_sdk.domain.model.NodePoseModel
 
 internal interface IVpsInteractor {
 
-    suspend fun calculateNodePosition(
+    suspend fun calculateNodePose(
         url: String,
         locationID: String,
         source: ByteArray,
         localizationType: LocalizationType,
-        nodePosition: NodePositionModel,
+        nodePose: NodePoseModel,
         force: Boolean = false,
         gpsLocation: GpsLocationModel? = null,
-    ): NodePositionModel?
+    ): NodePoseModel?
 
-    suspend fun calculateNodePosition(
+    suspend fun calculateNodePose(
         url: String,
         locationID: String,
         sources: List<ByteArray>,
         localizationType: LocalizationType,
-        nodePositions: List<NodePositionModel>,
+        nodePoses: List<NodePoseModel>,
         gpsLocations: List<GpsLocationModel>? = null,
     ): LocalizationBySerialImages?
 

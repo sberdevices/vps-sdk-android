@@ -22,6 +22,11 @@ import com.google.ar.sceneform.rendering.ModelRenderable
 
 class SceneFragment : Fragment(R.layout.fmt_scene) {
 
+    private companion object {
+        const val ALPHA_ENABLE = 0.5f
+        const val ALPHA_DISABLE = 0f
+    }
+
     private val binding by viewBinding(FmtSceneBinding::bind)
 
     private val vpsArFragment: VpsArFragment
@@ -50,6 +55,7 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
                     intervalLocalizationMS = sceneModel.intervalLocalizationMS,
                     useGps = sceneModel.useGps,
                     localizationType = sceneModel.localizationType,
+                    useSerialImages = sceneModel.useSerialImages,
                     countImages = sceneModel.imagesCount,
                     intervalImagesMS = sceneModel.intervalImagesMS
                 )
@@ -74,7 +80,7 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
                 vpsService.stopVpsService()
             }
             cbPolytechVisibility.setOnCheckedChangeListener { _, isChecked ->
-                vpsService.worldNode.setArAlpha(if (isChecked) 0.5f else 0.0f)
+                vpsService.worldNode.setArAlpha(if (isChecked) ALPHA_ENABLE else ALPHA_DISABLE)
             }
         }
     }
@@ -82,6 +88,7 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
     private fun getVpsCallback(): VpsCallback {
         return object : VpsCallback {
             override fun onSuccess() {
+                Toast.makeText(requireContext(), "localization success", Toast.LENGTH_SHORT).show()
                 Logger.debug("vps localization: success")
             }
 
@@ -107,7 +114,7 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
             .thenApply { renderable ->
                 with(vpsService.worldNode) {
                     setRenderable(renderable)
-                    setArAlpha(0.5f)
+                    setArAlpha(ALPHA_ENABLE)
                 }
             }
             .exceptionally { Logger.error(it) }
@@ -119,6 +126,11 @@ class SceneFragment : Fragment(R.layout.fmt_scene) {
 
         this.renderableInstance?.filamentAsset?.let { asset ->
             for (entity in asset.entities) {
+                val entityName = asset.getName(entity)
+                if (entityName == "Plane") {
+                    engine.destroyEntity(entity)
+                    continue
+                }
                 val renderable = renderableManager.getInstance(entity)
                 if (renderable != 0) {
                     val r = 7f / 255

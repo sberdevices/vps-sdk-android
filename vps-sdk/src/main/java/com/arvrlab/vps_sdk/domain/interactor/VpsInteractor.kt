@@ -9,7 +9,7 @@ import com.arvrlab.vps_sdk.data.Photo
 import com.arvrlab.vps_sdk.data.repository.IVpsRepository
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
 import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
-import com.arvrlab.vps_sdk.domain.model.NodePositionModel
+import com.arvrlab.vps_sdk.domain.model.NodePoseModel
 import com.arvrlab.vps_sdk.domain.model.VpsLocationModel
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_HEIGHT
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_WIDTH
@@ -21,21 +21,21 @@ internal class VpsInteractor(
     private val neuroInteractor: INeuroInteractor
 ) : IVpsInteractor {
 
-    override suspend fun calculateNodePosition(
+    override suspend fun calculateNodePose(
         url: String,
         locationID: String,
         source: ByteArray,
         localizationType: LocalizationType,
-        nodePosition: NodePositionModel,
+        nodePose: NodePoseModel,
         force: Boolean,
         gpsLocation: GpsLocationModel?
-    ): NodePositionModel? {
+    ): NodePoseModel? {
         val byteArray = convertByteArray(source, localizationType)
 
         val vpsLocationModel = VpsLocationModel(
             locationID = locationID,
             gpsLocation = gpsLocation,
-            nodePosition = nodePosition,
+            nodePose = nodePose,
             force = force,
             localizationType = localizationType,
             byteArray = byteArray
@@ -43,15 +43,15 @@ internal class VpsInteractor(
         return vpsRepository.requestLocalizationBySingleImage(url, vpsLocationModel)
     }
 
-    override suspend fun calculateNodePosition(
+    override suspend fun calculateNodePose(
         url: String,
         locationID: String,
         sources: List<ByteArray>,
         localizationType: LocalizationType,
-        nodePositions: List<NodePositionModel>,
+        nodePoses: List<NodePoseModel>,
         gpsLocations: List<GpsLocationModel>?
     ): LocalizationBySerialImages? {
-        if (sources.size != nodePositions.size) {
+        if (sources.size != nodePoses.size) {
             throw IllegalStateException()
         }
 
@@ -63,7 +63,7 @@ internal class VpsInteractor(
                 VpsLocationModel(
                     locationID = locationID,
                     gpsLocation = gpsLocations?.getOrNull(index),
-                    nodePosition = nodePositions[0],
+                    nodePose = nodePoses[0],
                     force = true,
                     localizationType = localizationType,
                     byteArray = byteArray
