@@ -7,7 +7,7 @@ import android.media.Image
 import android.util.SparseArray
 import androidx.annotation.MainThread
 import androidx.core.util.containsKey
-import com.arvrlab.vps_sdk.domain.model.NodePositionModel
+import com.arvrlab.vps_sdk.domain.model.NodePoseModel
 import com.arvrlab.vps_sdk.util.Constant.QUALITY
 import com.arvrlab.vps_sdk.util.getEulerAngles
 import com.google.ar.sceneform.*
@@ -18,9 +18,9 @@ import java.io.ByteArrayOutputStream
 
 internal class ArManager {
 
-    val modelNode: AnchorNode by lazy {
-        AnchorNode()
-            .also { it.addChild(positionInModelNode) }
+    val worldNode: Node by lazy {
+        Node()
+            .also { it.addChild(poseInModelNode) }
     }
 
     private var arSceneView: ArSceneView? = null
@@ -31,9 +31,9 @@ internal class ArManager {
     private val camera: Camera
         get() = scene.camera
 
-    private var tempWorldPosition: SparseArray<WorldPosition> = SparseArray(1)
+    private var tempCameraPose: SparseArray<CameraPose> = SparseArray(1)
 
-    private val alternativeCamera: Node by lazy {
+    private val cameraPrevPoseNode: Node by lazy {
         Node()
     }
     private val rotationNode: Node by lazy {
@@ -43,7 +43,7 @@ internal class ArManager {
         Node()
     }
 
-    private val positionInModelNode: Node by lazy {
+    private val poseInModelNode: Node by lazy {
         Node()
     }
 
@@ -52,56 +52,64 @@ internal class ArManager {
     }
 
     fun destroy() {
-        modelNode.renderable = null
-        translationNode.removeChild(modelNode)
+        worldNode.renderable = null
+        translationNode.removeChild(worldNode)
         rotationNode.removeChild(translationNode)
-        alternativeCamera.removeChild(rotationNode)
-        scene.removeChild(alternativeCamera)
+        cameraPrevPoseNode.removeChild(rotationNode)
+        scene.removeChild(cameraPrevPoseNode)
         arSceneView = null
     }
 
-    fun saveWorldPosition(index: Int) {
-        tempWorldPosition.put(
+    /**
+    * index для локализации по одному фото всегда 0,
+    * для локализации по серии фото - передается порядковый номер фото, начиная с 0
+    */
+    fun saveCameraPose(index: Int) {
+        tempCameraPose.put(
             index,
-            WorldPosition(
-                cameraStartPosition = camera.worldPosition,
-                cameraStartRotation = camera.worldRotation,
+            CameraPose(
+                cameraPrevPosition = camera.worldPosition,
+                cameraPrevRotation = camera.worldRotation,
             )
         )
     }
 
-    fun restoreWorldPosition(index: Int, nodePosition: NodePositionModel) {
-        if (!tempWorldPosition.containsKey(index))
+    /**
+     * index для локализации по одному фото всегда 0,
+     * для локализации по серии фото - используется индекс, который вернул сервер
+     */
+    fun restoreCameraPose(index: Int, nodePose: NodePoseModel) {
+        if (!tempCameraPose.containsKey(index))
             throw IllegalStateException("WorldPosition with index $index not found")
 
-        val (cameraPrevPosition, cameraPrevRotation) = tempWorldPosition[index]
-        tempWorldPosition.clear()
+        val (cameraPrevPosition, cameraPrevRotation) = tempCameraPose[index]
+        tempCameraPose.clear()
 
-        if (modelNode.parent == null) {
-            translationNode.addChild(modelNode)
+        if (worldNode.parent == null) {
+            translationNode.addChild(worldNode)
             rotationNode.addChild(translationNode)
-            alternativeCamera.addChild(rotationNode)
-            scene.addChild(alternativeCamera)
+            cameraPrevPoseNode.addChild(rotationNode)
+            scene.addChild(cameraPrevPoseNode)
         }
-        alternativeCamera.localRotation = cameraPrevRotation
+        cameraPrevPoseNode.localRotation = cameraPrevRotation
             .alignHorizontal()
-        alternativeCamera.localPosition = cameraPrevPosition
+        cameraPrevPoseNode.localPosition = cameraPrevPosition
 
-        rotationNode.localRotation = nodePosition.getRotation()
+        rotationNode.localRotation = nodePose.getRotation()
             .alignHorizontal()
-        translationNode.localPosition = nodePosition.getPosition()
+        translationNode.localPosition = nodePose.getPosition()
     }
 
     @MainThread
-    fun getWorldNodePosition(): NodePositionModel {
-        positionInModelNode.worldPosition = camera.worldPosition
-        positionInModelNode.worldRotation = camera.worldRotation
+    fun getCameraLocalPose(): NodePoseModel {
+        poseInModelNode.worldPosition = camera.worldPosition
+        poseInModelNode.worldRotation = camera.worldRotation
 
-        val localPosition = positionInModelNode.localPosition
-        val localRotation = positionInModelNode.localRotation
+        val localPosition = poseInModelNode.localPosition
+        val localRotation = poseInModelNode.localRotation
             .getEulerAngles()
 
-        return NodePositionModel(
+        return NodePoseModel(
             x = localPosition.x,
             y = localPosition.y,
             z = localPosition.z,
@@ -145,15 +153,16 @@ internal class ArManager {
         }
     }
 
+    //TODO: также добавить нормализацию(Quaternion.normalized()) и проерить его работу
     private fun Quaternion.alignHorizontal(): Quaternion =
         this.apply {
             x = 0f
             z = 0f
         }
 
-    private data class WorldPosition(
-        val cameraStartPosition: Vector3,
-        val cameraStartRotation: Quaternion,
+    private data class CameraPose(
+        val cameraPrevPosition: Vector3,
+        val cameraPrevRotation: Quaternion,
     )
 
 }

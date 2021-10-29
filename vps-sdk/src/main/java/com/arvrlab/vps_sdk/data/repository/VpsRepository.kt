@@ -6,7 +6,7 @@ import com.arvrlab.vps_sdk.data.api.IVpsApiManager
 import com.arvrlab.vps_sdk.data.model.request.*
 import com.arvrlab.vps_sdk.data.model.response.ResponseRelativeModel
 import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
-import com.arvrlab.vps_sdk.domain.model.NodePositionModel
+import com.arvrlab.vps_sdk.domain.model.NodePoseModel
 import com.arvrlab.vps_sdk.domain.model.VpsLocationModel
 import com.squareup.moshi.JsonAdapter
 import okhttp3.MediaType
@@ -37,7 +37,7 @@ internal class VpsRepository(
     override suspend fun requestLocalizationBySingleImage(
         url: String,
         vpsLocationModel: VpsLocationModel
-    ): NodePositionModel? {
+    ): NodePoseModel? {
         val vpsApi = vpsApiManager.getVpsApi(url)
 
         val jsonBody = vpsLocationModel.toRequestVpsModel()
@@ -96,12 +96,12 @@ internal class VpsRepository(
                     location = RequestLocationModel(
                         locationId = this.locationID,
                         localPos = RequestLocalPosModel(
-                            x = this.nodePosition.x,
-                            y = this.nodePosition.y,
-                            z = this.nodePosition.z,
-                            roll = this.nodePosition.roll,
-                            pitch = this.nodePosition.pitch,
-                            yaw = this.nodePosition.yaw,
+                            x = this.nodePose.x,
+                            y = this.nodePose.y,
+                            z = this.nodePose.z,
+                            roll = this.nodePose.roll,
+                            pitch = this.nodePose.pitch,
+                            yaw = this.nodePose.yaw,
                         ),
                         gps = this.gpsLocation?.let {
                             RequestGpsModel(
@@ -131,11 +131,11 @@ internal class VpsRepository(
         return MultipartBody.Part.createFormData(name, fileName, requestBody)
     }
 
-    private fun ResponseRelativeModel?.toNodePositionModel(): NodePositionModel =
+    private fun ResponseRelativeModel?.toNodePositionModel(): NodePoseModel =
         if (this == null)
-            NodePositionModel.EMPTY
+            NodePoseModel.EMPTY
         else
-            NodePositionModel(
+            NodePoseModel(
                 x = this.x ?: 0f,
                 y = this.y ?: 0f,
                 z = this.z ?: 0f,

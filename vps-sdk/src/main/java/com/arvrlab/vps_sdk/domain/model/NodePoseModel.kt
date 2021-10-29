@@ -3,7 +3,7 @@ package com.arvrlab.vps_sdk.domain.model
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 
-internal data class NodePositionModel(
+internal data class NodePoseModel(
     val x: Float = 0.0f,
     val y: Float = 0.0f,
     val z: Float = 0.0f,
@@ -12,7 +12,7 @@ internal data class NodePositionModel(
     val yaw: Float = 0.0f
 ) {
     companion object {
-        val EMPTY = NodePositionModel()
+        val EMPTY = NodePoseModel()
     }
 
     fun getPosition(): Vector3 =
