@@ -35,7 +35,7 @@ class SelectModeViewModel : ViewModel() {
         sceneModel.intervalLocalizationMS = try {
             inteval.toLong()
         } catch (e: Exception) {
-            6000L
+            5000L
         }
     }
 
@@ -52,6 +52,10 @@ class SelectModeViewModel : ViewModel() {
             MobileVps()
         else
             Photo
+    }
+
+    fun onUseSerialImagesChanged(useSerialImages: Boolean) {
+        sceneModel.useSerialImages = useSerialImages
     }
 
     fun onImagesCountChanged(imagesCount: String) {

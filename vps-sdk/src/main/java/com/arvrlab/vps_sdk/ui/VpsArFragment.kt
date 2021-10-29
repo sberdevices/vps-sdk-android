@@ -63,6 +63,7 @@ class VpsArFragment : ArFragment() {
         planeDiscoveryController.hide()
         planeDiscoveryController.setInstructionView(null)
         arSceneView.scene.camera.farClipPlane = FAR_CLIP_PLANE
+        arSceneView.planeRenderer.isEnabled = false
     }
 
     override fun onResume() {
@@ -77,7 +78,6 @@ class VpsArFragment : ArFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        vpsService.unbindArSceneView()
         requireActivity().window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 

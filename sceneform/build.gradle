@@ -24,7 +24,7 @@ android {
         targetSdk 30
 
         group = DependenciesKt.groupName
-        version = "1.0"
+        version = "1.0.0"
     }
     compileOptions {
         // Sceneform libraries use language constructs from Java 8.

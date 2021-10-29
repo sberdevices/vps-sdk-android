@@ -389,6 +389,10 @@ public abstract class BaseArFragment extends Fragment
         // Force the non-blocking mode for the session.
 
         config.setUpdateMode(Config.UpdateMode.LATEST_CAMERA_IMAGE);
+
+        // fix autofocus
+        session.resume();
+
         session.configure(config);
         getArSceneView().setupSession(session);
         return;

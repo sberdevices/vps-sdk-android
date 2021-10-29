@@ -6,10 +6,11 @@ import android.graphics.Color
 import com.arvrlab.vps_sdk.data.LocalizationType
 import com.arvrlab.vps_sdk.data.MobileVps
 import com.arvrlab.vps_sdk.data.Photo
+import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
 import com.arvrlab.vps_sdk.data.repository.IVpsRepository
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
 import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
-import com.arvrlab.vps_sdk.domain.model.NodePositionModel
+import com.arvrlab.vps_sdk.domain.model.NodePoseModel
 import com.arvrlab.vps_sdk.domain.model.VpsLocationModel
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_HEIGHT
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_WIDTH
@@ -21,37 +22,40 @@ internal class VpsInteractor(
     private val neuroInteractor: INeuroInteractor
 ) : IVpsInteractor {
 
-    override suspend fun calculateNodePosition(
+    override suspend fun calculateNodePose(
         url: String,
         locationID: String,
         source: ByteArray,
         localizationType: LocalizationType,
-        nodePosition: NodePositionModel,
+        nodePose: NodePoseModel,
         force: Boolean,
-        gpsLocation: GpsLocationModel?
-    ): NodePositionModel? {
+        gpsLocation: GpsLocationModel?,
+        cameraIntrinsics: CameraIntrinsics
+    ): NodePoseModel? {
         val byteArray = convertByteArray(source, localizationType)
 
         val vpsLocationModel = VpsLocationModel(
             locationID = locationID,
             gpsLocation = gpsLocation,
-            nodePosition = nodePosition,
+            nodePose = nodePose,
             force = force,
             localizationType = localizationType,
-            byteArray = byteArray
+            byteArray = byteArray,
+            cameraIntrinsics = cameraIntrinsics
         )
         return vpsRepository.requestLocalizationBySingleImage(url, vpsLocationModel)
     }
 
-    override suspend fun calculateNodePosition(
+    override suspend fun calculateNodePose(
         url: String,
         locationID: String,
         sources: List<ByteArray>,
         localizationType: LocalizationType,
-        nodePositions: List<NodePositionModel>,
-        gpsLocations: List<GpsLocationModel>?
+        nodePoses: List<NodePoseModel>,
+        gpsLocations: List<GpsLocationModel>?,
+        cameraIntrinsics: List<CameraIntrinsics>
     ): LocalizationBySerialImages? {
-        if (sources.size != nodePositions.size) {
+        if (sources.size != nodePoses.size) {
             throw IllegalStateException()
         }
 
@@ -63,10 +67,11 @@ internal class VpsInteractor(
                 VpsLocationModel(
                     locationID = locationID,
                     gpsLocation = gpsLocations?.getOrNull(index),
-                    nodePosition = nodePositions[0],
+                    nodePose = nodePoses[0],
                     force = true,
                     localizationType = localizationType,
-                    byteArray = byteArray
+                    byteArray = byteArray,
+                    cameraIntrinsics = cameraIntrinsics[index]
                 )
             )
         }
@@ -81,14 +86,19 @@ internal class VpsInteractor(
         neuroInteractor.close()
     }
 
-    private fun convertByteArray(source: ByteArray, localizationType: LocalizationType): ByteArray =
+    private suspend fun convertByteArray(
+        source: ByteArray,
+        localizationType: LocalizationType
+    ): ByteArray =
         when (localizationType) {
             is Photo -> createJpgByteArray(source)
-            is MobileVps -> createNeuroByteArray(localizationType.neuroModelUrl, source)
+            is MobileVps -> {
+                neuroInteractor.loadNeuroModel(localizationType)
+                createNeuroByteArray(source)
+            }
         }
 
-    private fun createNeuroByteArray(neuroModelUrl: String, byteArray: ByteArray): ByteArray {
-        neuroInteractor.loadNeuroModel(neuroModelUrl)
+    private suspend fun createNeuroByteArray(byteArray: ByteArray): ByteArray {
         val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
         return neuroInteractor.codingBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT)
     }

@@ -41,7 +41,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="number"
-            android:text="6000"
+            android:text="5000"
             android:textAlignment="textStart" />
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -49,7 +49,6 @@
         android:id="@+id/cbOnlyForce"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:checked="true"
         android:text="ForceLocalization"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/tilTimerInterval" />
@@ -66,6 +65,7 @@
         android:id="@+id/cbUseNeuro"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:checked="true"
         android:text="С помощью нейросети"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/cbNeedLocation" />
@@ -74,6 +74,7 @@
         android:id="@+id/cbSerialImages"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:checked="true"
         android:text="Несколько изображений"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/cbUseNeuro" />
@@ -86,7 +87,6 @@
         android:layout_marginEnd="4dp"
         android:ems="15"
         android:hint="Количество снимков"
-        android:visibility="gone"
         app:layout_constraintEnd_toStartOf="@id/tilImagesInterval"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/cbSerialImages">
@@ -96,7 +96,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="number"
-            android:text="3"
+            android:text="5"
             android:textAlignment="textStart" />
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -108,7 +108,6 @@
         android:layout_marginStart="4dp"
         android:ems="15"
         android:hint="Интервал между снимками (млс)"
-        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/tilImagesCount"
         app:layout_constraintTop_toBottomOf="@+id/cbSerialImages">
@@ -128,6 +127,6 @@
         android:layout_height="wrap_content"
         android:text="Начать"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tilImagesInterval" />
+        app:layout_constraintTop_toBottomOf="@id/tilImagesCount" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

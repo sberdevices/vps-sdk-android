@@ -54,6 +54,7 @@ class SelectModeFragment : Fragment(R.layout.fmt_select_mode) {
                 }
             }
             cbSerialImages.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.onUseSerialImagesChanged(isChecked)
                 if (isChecked) {
                     etImagesCount.addTextChangedListener(imagesCountTextWatcher)
                     viewModel.onImagesCountChanged(etImagesCount.text.toString())
@@ -61,7 +62,6 @@ class SelectModeFragment : Fragment(R.layout.fmt_select_mode) {
                     viewModel.onImagesIntervalChanged(etImagesInterval.text.toString())
                 } else {
                     etImagesCount.removeTextChangedListener(imagesCountTextWatcher)
-                    viewModel.onImagesCountChanged("1")
                     etImagesInterval.removeTextChangedListener(imagesIntervalTextWatcher)
                 }
                 tilImagesCount.isVisible = isChecked

@@ -1,7 +1,7 @@
 VPS-SDK for Android
 ====================================
 
-![GitLab Maven](https://img.shields.io/static/v1?label=Gitlab%20Maven&message=v.0.2.0&color=success&style=flat)
+![GitLab Maven](https://img.shields.io/static/v1?label=Gitlab%20Maven&message=v.0.3.0&color=success&style=flat)
 
 ## Add VPS-SDK to a project
 
@@ -26,7 +26,7 @@ repositories {
 ```gradle
 dependencies {
       …
-      implementation "com.arvrlab.vps:vps-sdk:0.2.0"
+      implementation "com.arvrlab.vps:vps-sdk:0.3.0"
 }
 ```
 
@@ -93,11 +93,12 @@ supportFragmentManager.beginTransaction()
 val vpsConfig = VpsConfig(
                     <vpsUrl>,
                     <location_ID>,
-                    <onlyForce>,                //optional, default true
-                    <intervalLocalizationMS>,   //optional, default 6000
+                    <onlyForce>,                //optional, default false
+                    <intervalLocalizationMS>,   //optional, default 5000
                     <useGps>,                   //optional, default false
-                    <localizationType>,         //optional, default Photo [Photo, MobileVps]
-                    <countImages>,              //optional, default 1
+                    <localizationType>,         //optional, default MobileVps [Photo, MobileVps]
+                    <useSerialImages>,          //optional, default true
+                    <countImages>,              //optional, default 5
                     <intervalImagesMS>          //optional, default 1000
                 )
 ```
@@ -117,7 +118,7 @@ vpsService.setVpsCallback(object : VpsCallback {
                 override fun onFail() {
                 }
 
-                override fun onStateChange(isEnable: Boolean) {
+                override fun onStateChange(state: State) {
                 }
 
                 override fun onError(error: Throwable) {
@@ -134,7 +135,7 @@ vpsService.startVpsService()
 *Stop `VpsService`*
 
 ```kotlin
-vpsService.startVpsService()
+vpsService.stopVpsService()
 ```
 
 <br/>
@@ -143,7 +144,7 @@ vpsService.startVpsService()
 
 *Create new instance `VpsService`*
 ```kotlin
-VpsService.newInstance(context: Context): VpsService
+VpsService.newInstance(): VpsService
 ```
 
 *After need sync lifecycle of `VpsService` with lifecycle your `ArFragment`.*
@@ -161,11 +162,6 @@ override fun onResume() {
 override fun onPause() {
     super.onPause()
     vpsService.pause()
-}
-
-override fun onDestroyView() {
-    super.onDestroyView()
-    vpsService.unbindArSceneView()
 }
 
 override fun onDestroy() {
