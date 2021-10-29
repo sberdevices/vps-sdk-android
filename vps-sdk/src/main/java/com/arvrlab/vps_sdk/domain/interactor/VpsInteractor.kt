@@ -53,7 +53,7 @@ internal class VpsInteractor(
         localizationType: LocalizationType,
         nodePoses: List<NodePoseModel>,
         gpsLocations: List<GpsLocationModel>?,
-        cameraIntrinsics: CameraIntrinsics
+        cameraIntrinsics: List<CameraIntrinsics>
     ): LocalizationBySerialImages? {
         if (sources.size != nodePoses.size) {
             throw IllegalStateException()
@@ -71,7 +71,7 @@ internal class VpsInteractor(
                     force = true,
                     localizationType = localizationType,
                     byteArray = byteArray,
-                    cameraIntrinsics = cameraIntrinsics
+                    cameraIntrinsics = cameraIntrinsics[index]
                 )
             )
         }

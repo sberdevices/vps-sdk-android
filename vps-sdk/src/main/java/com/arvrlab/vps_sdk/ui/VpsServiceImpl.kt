@@ -6,6 +6,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import com.arvrlab.vps_sdk.data.VpsConfig
+import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
 import com.arvrlab.vps_sdk.domain.interactor.IVpsInteractor
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
 import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
@@ -190,9 +191,11 @@ internal class VpsServiceImpl(
     private suspend fun getNodePoseBySingleImage(force: Boolean): NodePoseModel? {
         val byteArray: ByteArray
         val currentNodePose: NodePoseModel
+        val cameraIntrinsics: CameraIntrinsics
 
         withContext(Dispatchers.Main) {
             byteArray = waitAcquireCameraImage()
+            cameraIntrinsics = arManager.getCameraIntrinsics()
             arManager.saveCameraPose(0)
             currentNodePose =
                 if (force)
@@ -209,13 +212,14 @@ internal class VpsServiceImpl(
             nodePose = currentNodePose,
             force = force,
             gpsLocation = gpsLocation,
-            cameraIntrinsics = arManager.getCameraIntrinsics()
+            cameraIntrinsics = cameraIntrinsics
         )
     }
 
     private suspend fun getNodePoseBySerialImage(): LocalizationBySerialImages? {
         val byteArrays = mutableListOf<ByteArray>()
         val nodePoses = mutableListOf<NodePoseModel>()
+        val cameraIntrinsics = mutableListOf<CameraIntrinsics>()
 
         withContext(Dispatchers.Main) {
             repeat(vpsConfig.countImages) { index ->
@@ -225,6 +229,7 @@ internal class VpsServiceImpl(
                 )
 
                 byteArrays.add(waitAcquireCameraImage())
+                cameraIntrinsics.add(arManager.getCameraIntrinsics())
                 arManager.saveCameraPose(index)
                 nodePoses.add(arManager.getCameraLocalPose())
 
@@ -240,7 +245,7 @@ internal class VpsServiceImpl(
             localizationType = vpsConfig.localizationType,
             nodePoses = nodePoses,
             gpsLocations = gpsLocation?.let { listOf(it) },
-            cameraIntrinsics = arManager.getCameraIntrinsics()
+            cameraIntrinsics = cameraIntrinsics
         )
     }
 

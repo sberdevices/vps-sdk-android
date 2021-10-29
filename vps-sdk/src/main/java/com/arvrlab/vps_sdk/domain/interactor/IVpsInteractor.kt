@@ -26,7 +26,7 @@ internal interface IVpsInteractor {
         localizationType: LocalizationType,
         nodePoses: List<NodePoseModel>,
         gpsLocations: List<GpsLocationModel>? = null,
-        cameraIntrinsics: CameraIntrinsics
+        cameraIntrinsics: List<CameraIntrinsics>
     ): LocalizationBySerialImages?
 
     fun destroy()
