@@ -15,6 +15,7 @@ import com.google.ar.sceneform.ArSceneView
 import com.google.ar.sceneform.Camera
 import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.Scene
+import com.google.ar.sceneform.math.Matrix
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 import com.google.ar.sceneform.utilities.AndroidPreconditions
@@ -37,16 +38,6 @@ internal class ArManager {
 
     private var tempCameraPose: SparseArray<CameraPose> = SparseArray(1)
 
-    private val cameraPrevPoseNode: Node by lazy {
-        Node()
-    }
-    private val rotationNode: Node by lazy {
-        Node()
-    }
-    private val translationNode: Node by lazy {
-        Node()
-    }
-
     private val poseInModelNode: Node by lazy {
         Node()
     }
@@ -57,17 +48,14 @@ internal class ArManager {
 
     fun destroy() {
         worldNode.renderable = null
-        translationNode.removeChild(worldNode)
-        rotationNode.removeChild(translationNode)
-        cameraPrevPoseNode.removeChild(rotationNode)
-        scene.removeChild(cameraPrevPoseNode)
+        scene.removeChild(worldNode)
         arSceneView = null
     }
 
     /**
-    * index для локализации по одному фото всегда 0,
-    * для локализации по серии фото - передается порядковый номер фото, начиная с 0
-    */
+     * index для локализации по одному фото всегда 0,
+     * для локализации по серии фото - передается порядковый номер фото, начиная с 0
+     */
     fun saveCameraPose(index: Int) {
         tempCameraPose.put(
             index,
@@ -90,18 +78,13 @@ internal class ArManager {
         tempCameraPose.clear()
 
         if (worldNode.parent == null) {
-            translationNode.addChild(worldNode)
-            rotationNode.addChild(translationNode)
-            cameraPrevPoseNode.addChild(rotationNode)
-            scene.addChild(cameraPrevPoseNode)
+            scene.addChild(worldNode)
         }
-        cameraPrevPoseNode.localRotation = cameraPrevRotation
-            .alignHorizontal()
-        cameraPrevPoseNode.localPosition = cameraPrevPosition
 
-        rotationNode.localRotation = nodePose.getRotation()
-            .alignHorizontal()
-        translationNode.localPosition = nodePose.getPosition()
+        val cameraPrevPoseMatrix = getCameraPrevPoseMatrix(cameraPrevPosition, cameraPrevRotation)
+        val nodePoseMatrix = getNodePoseMatrix(nodePose)
+
+        updateWorldNodePose(cameraPrevPoseMatrix, nodePoseMatrix)
     }
 
     @MainThread
@@ -149,6 +132,33 @@ internal class ArManager {
     private fun checkArSceneView(): ArSceneView =
         checkNotNull(arSceneView) { "ArSceneView is null. Call bindArSceneView(ArSceneView)" }
 
+    private fun getCameraPrevPoseMatrix(position: Vector3, rotation: Quaternion): Matrix =
+        Matrix().apply {
+            makeTrs(position, rotation.alignHorizontal(), Vector3.one())
+        }
+
+    private fun getNodePoseMatrix(nodePose: NodePoseModel): Matrix =
+        Matrix().apply {
+            val positionMatrix = Matrix()
+                .apply { makeTranslation(nodePose.getPosition()) }
+            val rotationMatrix = Matrix()
+                .apply { makeRotation(nodePose.getRotation().alignHorizontal()) }
+
+            Matrix.multiply(rotationMatrix, positionMatrix, this)
+        }
+
+    private fun updateWorldNodePose(cameraPrevPoseMatrix: Matrix, nodePoseMatrix: Matrix) {
+        val worldPoseMatrix = Matrix()
+        Matrix.multiply(cameraPrevPoseMatrix, nodePoseMatrix, worldPoseMatrix)
+
+        val rotation = Quaternion()
+        worldPoseMatrix.decomposeRotation(Vector3.one(), rotation)
+        worldNode.localRotation = rotation
+        val translation = Vector3()
+        worldPoseMatrix.decomposeTranslation(translation)
+        worldNode.localPosition = translation
+    }
+
     private fun Image.toByteArray(): ByteArray {
         val yBuffer = planes[0].buffer
         val uBuffer = planes[1].buffer
@@ -171,12 +181,11 @@ internal class ArManager {
         }
     }
 
-    //TODO: также добавить нормализацию(Quaternion.normalized()) и проерить его работу
     private fun Quaternion.alignHorizontal(): Quaternion =
         this.apply {
             x = 0f
             z = 0f
-        }
+        }.normalized()
 
     private data class CameraPose(
         val cameraPrevPosition: Vector3,
