@@ -11,17 +11,20 @@ import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
 import com.arvrlab.vps_sdk.domain.model.NodePoseModel
 import com.arvrlab.vps_sdk.util.Constant.QUALITY
 import com.arvrlab.vps_sdk.util.getEulerAngles
-import com.google.ar.sceneform.ArSceneView
-import com.google.ar.sceneform.Camera
-import com.google.ar.sceneform.Node
-import com.google.ar.sceneform.Scene
+import com.arvrlab.vps_sdk.util.getQuaternion
+import com.arvrlab.vps_sdk.util.getTranslation
+import com.google.ar.sceneform.*
 import com.google.ar.sceneform.math.Matrix
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
 import com.google.ar.sceneform.utilities.AndroidPreconditions
 import java.io.ByteArrayOutputStream
 
-internal class ArManager {
+internal class ArManager : Scene.OnUpdateListener {
+
+    private companion object {
+        const val SMOOTH_RATIO = 0.5f
+    }
 
     val worldNode: Node by lazy {
         Node()
@@ -38,17 +41,34 @@ internal class ArManager {
 
     private var tempCameraPose: SparseArray<CameraPose> = SparseArray(1)
 
+    private val worldPoseMatrix: Matrix = Matrix()
     private val poseInModelNode: Node by lazy {
         Node()
     }
 
     fun bindArSceneView(arSceneView: ArSceneView) {
         this.arSceneView = arSceneView
+        scene.addOnUpdateListener(this)
+    }
+
+    override fun onUpdate(frameTime: FrameTime?) {
+        val newPosition = worldPoseMatrix.getTranslation()
+        val newQuaternion = worldPoseMatrix.getQuaternion()
+
+        if (!worldNode.localPosition.equals(newPosition) ||
+            !worldNode.localRotation.equals(newQuaternion)
+        ) {
+            updateWorldNodePose(
+                Quaternion.slerp(worldNode.localRotation, newQuaternion, SMOOTH_RATIO),
+                Vector3.lerp(worldNode.localPosition, newPosition, SMOOTH_RATIO)
+            )
+        }
     }
 
     fun destroy() {
         worldNode.renderable = null
         scene.removeChild(worldNode)
+        scene.removeOnUpdateListener(this)
         arSceneView = null
     }
 
@@ -77,14 +97,23 @@ internal class ArManager {
         val (cameraPrevPosition, cameraPrevRotation) = tempCameraPose[index]
         tempCameraPose.clear()
 
+        var isFirstRestore = false
+
         if (worldNode.parent == null) {
+            isFirstRestore = true
             scene.addChild(worldNode)
         }
 
         val cameraPrevPoseMatrix = getCameraPrevPoseMatrix(cameraPrevPosition, cameraPrevRotation)
         val nodePoseMatrix = getNodePoseMatrix(nodePose)
+        Matrix.multiply(cameraPrevPoseMatrix, nodePoseMatrix, worldPoseMatrix)
 
-        updateWorldNodePose(cameraPrevPoseMatrix, nodePoseMatrix)
+        if (isFirstRestore) {
+            updateWorldNodePose(
+                worldPoseMatrix.getQuaternion(),
+                worldPoseMatrix.getTranslation()
+            )
+        }
     }
 
     @MainThread
@@ -147,16 +176,9 @@ internal class ArManager {
             Matrix.multiply(rotationMatrix, positionMatrix, this)
         }
 
-    private fun updateWorldNodePose(cameraPrevPoseMatrix: Matrix, nodePoseMatrix: Matrix) {
-        val worldPoseMatrix = Matrix()
-        Matrix.multiply(cameraPrevPoseMatrix, nodePoseMatrix, worldPoseMatrix)
-
-        val rotation = Quaternion()
-        worldPoseMatrix.decomposeRotation(Vector3.one(), rotation)
+    private fun updateWorldNodePose(rotation: Quaternion, position: Vector3) {
         worldNode.localRotation = rotation
-        val translation = Vector3()
-        worldPoseMatrix.decomposeTranslation(translation)
-        worldNode.localPosition = translation
+        worldNode.localPosition = position
     }
 
     private fun Image.toByteArray(): ByteArray {
