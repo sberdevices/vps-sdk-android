@@ -2,7 +2,6 @@ plugins {
     id(PluginName.application)
     id(PluginName.kotlinAndroid)
     id(PluginName.kotlinKapt)
-    id(PluginName.navigationSafeargs)
     id(PluginName.kotlinParcelize)
 }
 
@@ -41,10 +40,6 @@ dependencies {
     implementation(Lib.material)
 
     implementation(Lib.viewBindingPropertyDelegate)
-
-    implementation(Lib.navigationRuntimeKtx)
-    implementation(Lib.navigationFragmentKtx)
-    implementation(Lib.navigationUiKtx)
 
     implementation(Lib.lifecycleRuntimeKtx)
     implementation(Lib.lifecycleViewmodelKtx)

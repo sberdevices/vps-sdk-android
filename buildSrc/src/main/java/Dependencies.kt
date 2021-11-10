@@ -19,7 +19,6 @@ object PluginName {
     const val application = "com.android.application"
     const val kotlinAndroid = "kotlin-android"
     const val kotlinKapt = "kotlin-kapt"
-    const val navigationSafeargs = "androidx.navigation.safeargs.kotlin"
     const val library = "com.android.library"
     const val kotlinParcelize = "kotlin-parcelize"
     const val mavenPublish = "maven-publish"
@@ -40,11 +39,6 @@ object Lib {
     private const val coroutines = "1.5.0"
     const val coroutinesCore = "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines"
     const val coroutinesAndroid = "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines"
-
-    private const val navigation = "2.3.5"
-    const val navigationRuntimeKtx = "androidx.navigation:navigation-runtime-ktx:$navigation"
-    const val navigationFragmentKtx = "androidx.navigation:navigation-fragment-ktx:$navigation"
-    const val navigationUiKtx = "androidx.navigation:navigation-ui-ktx:$navigation"
 
     private const val lifecycle = "2.3.1"
     const val lifecycleRuntimeKtx = "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle"
