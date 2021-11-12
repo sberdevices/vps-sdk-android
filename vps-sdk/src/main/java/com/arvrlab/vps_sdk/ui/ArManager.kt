@@ -99,7 +99,7 @@ internal class ArManager : Scene.OnUpdateListener {
 
         var isFirstRestore = false
 
-        if (worldNode.parent == null) {
+        if (!scene.children.contains(worldNode)) {
             isFirstRestore = true
             scene.addChild(worldNode)
         }
