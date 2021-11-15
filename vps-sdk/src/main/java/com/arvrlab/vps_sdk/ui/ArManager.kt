@@ -7,6 +7,7 @@ import android.media.Image
 import android.util.SparseArray
 import androidx.annotation.MainThread
 import androidx.core.util.containsKey
+import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
 import com.arvrlab.vps_sdk.domain.model.NodePoseModel
 import com.arvrlab.vps_sdk.util.Constant.QUALITY
@@ -23,12 +24,18 @@ import java.io.ByteArrayOutputStream
 internal class ArManager : Scene.OnUpdateListener {
 
     private companion object {
-        const val SMOOTH_RATIO = 0.5f
+        const val MS_IN_SEC = 1000f
+        const val MAX_RATIO = 1f
+        const val TIMER_DISABLE = -1f
+
+        const val DISTANCE_LIMIT = 2f
+        const val ANGLE_LIMIT = 10f
+        val FORWARD: Vector3 = Vector3.forward()
     }
 
     val worldNode: Node by lazy {
         Node()
-            .also { it.addChild(poseInModelNode) }
+            .also { it.addChild(poseInWorldNode) }
     }
 
     private var arSceneView: ArSceneView? = null
@@ -41,28 +48,27 @@ internal class ArManager : Scene.OnUpdateListener {
 
     private var tempCameraPose: SparseArray<CameraPose> = SparseArray(1)
 
-    private val worldPoseMatrix: Matrix = Matrix()
-    private val poseInModelNode: Node by lazy {
+    private val prevWorldPoseMatrix: Matrix = Matrix()
+    private val nextWorldPoseMatrix: Matrix = Matrix()
+    private val poseInWorldNode: Node by lazy {
         Node()
     }
 
-    fun bindArSceneView(arSceneView: ArSceneView) {
+    private var worldInterpolationDuration: Float = 1f
+    private var worldInterpolationTimer: Float = TIMER_DISABLE
+
+    fun init(arSceneView: ArSceneView, vpsConfig: VpsConfig) {
         this.arSceneView = arSceneView
+        this.worldInterpolationDuration = minOf(
+            vpsConfig.worldInterpolationDurationMS,
+            vpsConfig.intervalLocalizationMS
+        ) / MS_IN_SEC
+
         scene.addOnUpdateListener(this)
     }
 
-    override fun onUpdate(frameTime: FrameTime?) {
-        val newPosition = worldPoseMatrix.getTranslation()
-        val newQuaternion = worldPoseMatrix.getQuaternion()
-
-        if (!worldNode.localPosition.equals(newPosition) ||
-            !worldNode.localRotation.equals(newQuaternion)
-        ) {
-            updateWorldNodePose(
-                Quaternion.slerp(worldNode.localRotation, newQuaternion, SMOOTH_RATIO),
-                Vector3.lerp(worldNode.localPosition, newPosition, SMOOTH_RATIO)
-            )
-        }
+    override fun onUpdate(frameTime: FrameTime) {
+        updateWorldNodePose(frameTime.deltaSeconds)
     }
 
     fun destroy() {
@@ -70,6 +76,7 @@ internal class ArManager : Scene.OnUpdateListener {
         scene.removeChild(worldNode)
         scene.removeOnUpdateListener(this)
         arSceneView = null
+        worldInterpolationTimer = -1f
     }
 
     /**
@@ -97,32 +104,25 @@ internal class ArManager : Scene.OnUpdateListener {
         val (cameraPrevPosition, cameraPrevRotation) = tempCameraPose[index]
         tempCameraPose.clear()
 
-        var isFirstRestore = false
-
         if (!scene.children.contains(worldNode)) {
-            isFirstRestore = true
             scene.addChild(worldNode)
         }
 
         val cameraPrevPoseMatrix = getCameraPrevPoseMatrix(cameraPrevPosition, cameraPrevRotation)
         val nodePoseMatrix = getNodePoseMatrix(nodePose)
-        Matrix.multiply(cameraPrevPoseMatrix, nodePoseMatrix, worldPoseMatrix)
+        Matrix.multiply(cameraPrevPoseMatrix, nodePoseMatrix, nextWorldPoseMatrix)
+        prevWorldPoseMatrix.set(worldNode.worldModelMatrix)
 
-        if (isFirstRestore) {
-            updateWorldNodePose(
-                worldPoseMatrix.getQuaternion(),
-                worldPoseMatrix.getTranslation()
-            )
-        }
+        worldInterpolationTimer = 0f
     }
 
     @MainThread
     fun getCameraLocalPose(): NodePoseModel {
-        poseInModelNode.worldPosition = camera.worldPosition
-        poseInModelNode.worldRotation = camera.worldRotation
+        poseInWorldNode.worldPosition = camera.worldPosition
+        poseInWorldNode.worldRotation = camera.worldRotation
 
-        val localPosition = poseInModelNode.localPosition
-        val localRotation = poseInModelNode.localRotation
+        val localPosition = poseInWorldNode.localPosition
+        val localRotation = poseInWorldNode.localRotation
             .getEulerAngles()
 
         return NodePoseModel(
@@ -176,10 +176,54 @@ internal class ArManager : Scene.OnUpdateListener {
             Matrix.multiply(rotationMatrix, positionMatrix, this)
         }
 
-    private fun updateWorldNodePose(rotation: Quaternion, position: Vector3) {
-        worldNode.localRotation = rotation
-        worldNode.localPosition = position
+    private fun updateWorldNodePose(deltaTime: Float) {
+        if (worldInterpolationTimer == TIMER_DISABLE) return
+
+        val ratio = minOf(MAX_RATIO, worldInterpolationTimer / worldInterpolationDuration)
+        if (worldInterpolationTimer > worldInterpolationDuration) {
+            worldInterpolationTimer = TIMER_DISABLE
+        } else {
+            worldInterpolationTimer += deltaTime
+        }
+
+        updateWorldNodePosition(ratio)
+        updateWorldNodeRotation(ratio)
     }
+
+    private fun updateWorldNodePosition(ratio: Float) {
+        val newPosition = nextWorldPoseMatrix.getTranslation()
+
+        if (!worldNode.localPosition.equals(newPosition)) {
+            val prevPosition = prevWorldPoseMatrix.getTranslation()
+            worldNode.localPosition = if (length(prevPosition, newPosition) < DISTANCE_LIMIT) {
+                Vector3.lerp(prevPosition, newPosition, ratio)
+            } else {
+                newPosition
+            }
+        }
+    }
+
+    private fun updateWorldNodeRotation(ratio: Float) {
+        val newRotation = nextWorldPoseMatrix.getQuaternion()
+
+        if (!worldNode.localRotation.equals(newRotation)) {
+            val prevRotation = prevWorldPoseMatrix.getQuaternion()
+            worldNode.localRotation = if (length(prevRotation, newRotation) < ANGLE_LIMIT) {
+                Quaternion.slerp(prevRotation, newRotation, ratio)
+            } else {
+                newRotation
+            }
+        }
+    }
+
+    private fun length(lhs: Vector3, rhs: Vector3): Float =
+        Vector3.subtract(lhs, rhs).length()
+
+    private fun length(lhs: Quaternion, rhs: Quaternion): Float =
+        Vector3.angleBetweenVectors(
+            Quaternion.rotateVector(lhs, FORWARD),
+            Quaternion.rotateVector(rhs, FORWARD)
+        )
 
     private fun Image.toByteArray(): ByteArray {
         val yBuffer = planes[0].buffer
@@ -204,10 +248,9 @@ internal class ArManager : Scene.OnUpdateListener {
     }
 
     private fun Quaternion.alignHorizontal(): Quaternion {
-        val forward = Vector3.forward()
-        val dir = Quaternion.rotateVector(this, forward)
+        val dir = Quaternion.rotateVector(this, FORWARD)
         dir.y = 0f
-        return Quaternion.rotationBetweenVectors(forward, dir)
+        return Quaternion.rotationBetweenVectors(FORWARD, dir)
     }
 
     private data class CameraPose(

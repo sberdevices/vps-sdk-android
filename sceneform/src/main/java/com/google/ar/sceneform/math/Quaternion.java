@@ -293,7 +293,7 @@ public class Quaternion {
    * Returns the linear interpolation between two given rotations by a ratio. The ratio is clamped
    * between a range of 0 and 1.
    */
-  static Quaternion lerp(Quaternion a, Quaternion b, float ratio) {
+  public static Quaternion lerp(Quaternion a, Quaternion b, float ratio) {
     Preconditions.checkNotNull(a, "Parameter \"a\" was null.");
     Preconditions.checkNotNull(b, "Parameter \"b\" was null.");
     return new Quaternion(

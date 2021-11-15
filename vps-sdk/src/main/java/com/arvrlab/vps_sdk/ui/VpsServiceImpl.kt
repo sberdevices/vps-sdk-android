@@ -76,7 +76,7 @@ internal class VpsServiceImpl(
     private var hasFocus: Boolean = false
 
     override fun bindArSceneView(arSceneView: ArSceneView) {
-        arManager.bindArSceneView(arSceneView)
+        arManager.init(arSceneView, vpsConfig)
     }
 
     override fun resume() {
