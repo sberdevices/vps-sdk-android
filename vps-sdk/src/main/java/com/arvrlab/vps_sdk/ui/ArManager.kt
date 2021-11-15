@@ -181,11 +181,12 @@ internal class ArManager {
         }
     }
 
-    private fun Quaternion.alignHorizontal(): Quaternion =
-        this.apply {
-            x = 0f
-            z = 0f
-        }.normalized()
+    private fun Quaternion.alignHorizontal(): Quaternion {
+        val forward = Vector3.forward()
+        val dir = Quaternion.rotateVector(this, forward)
+        dir.y = 0f
+        return Quaternion.rotationBetweenVectors(forward, dir)
+    }
 
     private data class CameraPose(
         val cameraPrevPosition: Vector3,
