@@ -28,8 +28,9 @@ internal class ArManager : Scene.OnUpdateListener {
         const val MAX_RATIO = 1f
         const val TIMER_DISABLE = -1f
 
-        const val DISTANCE_LIMIT = 2f
-        const val ANGLE_LIMIT = 10f
+        const val INTERPOLATION_DURATION = 1f
+        const val INTERPOLATION_DISTANCE_LIMIT = 2f
+        const val INTERPOLATION_ANGLE_LIMIT = 10f
         val FORWARD: Vector3 = Vector3.forward()
     }
 
@@ -54,15 +55,17 @@ internal class ArManager : Scene.OnUpdateListener {
         Node()
     }
 
-    private var worldInterpolationDuration: Float = 1f
+    private var worldInterpolationDuration: Float = INTERPOLATION_DURATION
+    private var worldInterpolationDistanceLimit: Float = INTERPOLATION_DISTANCE_LIMIT
+    private var worldInterpolationAngleLimit: Float = INTERPOLATION_ANGLE_LIMIT
     private var worldInterpolationTimer: Float = TIMER_DISABLE
 
     fun init(arSceneView: ArSceneView, vpsConfig: VpsConfig) {
         this.arSceneView = arSceneView
-        this.worldInterpolationDuration = minOf(
-            vpsConfig.worldInterpolationDurationMS,
-            vpsConfig.intervalLocalizationMS
-        ) / MS_IN_SEC
+
+        this.worldInterpolationDuration = vpsConfig.worldInterpolationDurationMS / MS_IN_SEC
+        this.worldInterpolationDistanceLimit = vpsConfig.worldInterpolationDistanceLimit
+        this.worldInterpolationAngleLimit = vpsConfig.worldInterpolationAngleLimit
 
         scene.addOnUpdateListener(this)
     }
@@ -195,7 +198,7 @@ internal class ArManager : Scene.OnUpdateListener {
 
         if (!worldNode.localPosition.equals(newPosition)) {
             val prevPosition = prevWorldPoseMatrix.getTranslation()
-            worldNode.localPosition = if (length(prevPosition, newPosition) < DISTANCE_LIMIT) {
+            worldNode.localPosition = if (length(prevPosition, newPosition) < worldInterpolationDistanceLimit) {
                 Vector3.lerp(prevPosition, newPosition, ratio)
             } else {
                 newPosition
@@ -208,7 +211,7 @@ internal class ArManager : Scene.OnUpdateListener {
 
         if (!worldNode.localRotation.equals(newRotation)) {
             val prevRotation = prevWorldPoseMatrix.getQuaternion()
-            worldNode.localRotation = if (length(prevRotation, newRotation) < ANGLE_LIMIT) {
+            worldNode.localRotation = if (length(prevRotation, newRotation) < worldInterpolationAngleLimit) {
                 Quaternion.slerp(prevRotation, newRotation, ratio)
             } else {
                 newRotation
