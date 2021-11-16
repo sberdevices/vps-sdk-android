@@ -9,5 +9,8 @@ data class VpsConfig(
     val localizationType: LocalizationType = MobileVps(),
     val useSerialImages: Boolean = true,
     val countImages: Int = 5,
-    val intervalImagesMS: Long = 1000
+    val intervalImagesMS: Long = 1000,
+    val worldInterpolationDurationMS: Long = 500,
+    val worldInterpolationDistanceLimit: Float = 2f,
+    val worldInterpolationAngleLimit: Float = 10f
 )
