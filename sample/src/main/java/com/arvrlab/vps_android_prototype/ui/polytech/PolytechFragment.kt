@@ -17,7 +17,10 @@ class PolytechFragment : SceneFragment() {
 
     override var vpsConfig: VpsConfig = VpsConfig(
         vpsUrl = URL,
-        locationID = LOCATION_ID
+        locationID = LOCATION_ID,
+        onlyForce = true,
+        useSerialImages = false,
+        useGps = true
     )
 
     private val occluderNode: Node = Node()
@@ -49,11 +52,6 @@ class PolytechFragment : SceneFragment() {
 
         occluderNode.renderableInstance?.filamentAsset?.let { asset ->
             for (entity in asset.entities) {
-                val entityName = asset.getName(entity)
-                if (entityName == "Plane") {
-                    engine.destroyEntity(entity)
-                    continue
-                }
                 val renderable = renderableManager.getInstance(entity)
                 if (renderable != 0) {
                     val r = 7f / 255
