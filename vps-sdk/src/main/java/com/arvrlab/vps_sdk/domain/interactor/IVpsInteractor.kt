@@ -25,7 +25,7 @@ internal interface IVpsInteractor {
         sources: List<ByteArray>,
         localizationType: LocalizationType,
         nodePoses: List<NodePoseModel>,
-        gpsLocations: List<GpsLocationModel>? = null,
+        gpsLocations: List<GpsLocationModel?>,
         cameraIntrinsics: List<CameraIntrinsics>
     ): LocalizationBySerialImages?
 
