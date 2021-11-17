@@ -73,6 +73,8 @@ internal class ArManager : Scene.OnUpdateListener {
     }
 
     fun destroy() {
+        if (arSceneView == null) return
+
         worldNode.renderable = null
         scene.removeChild(worldNode)
         scene.removeOnUpdateListener(this)

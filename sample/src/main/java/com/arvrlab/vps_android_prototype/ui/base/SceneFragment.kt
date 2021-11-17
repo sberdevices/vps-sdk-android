@@ -65,11 +65,6 @@ abstract class SceneFragment : Fragment(R.layout.fmt_scene), VpsCallback {
         vpsService.startVpsService()
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        vpsService.destroy()
-    }
-
     override fun onSuccess() {
         updateVpsStatus(true)
     }
