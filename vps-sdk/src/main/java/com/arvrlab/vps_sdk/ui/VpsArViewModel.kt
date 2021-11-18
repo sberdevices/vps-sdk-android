@@ -5,11 +5,10 @@ import android.Manifest.permission.CAMERA
 import android.content.Context
 import android.location.LocationManager
 import android.location.LocationManager.GPS_PROVIDER
-import androidx.lifecycle.LifecycleObserver
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
 import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.util.hasSelfPermission
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -27,6 +26,8 @@ internal class VpsArViewModel(
 
         // request code from BaseArFragment
         const val RC_PERMISSIONS = 1010
+
+        const val READY_DELAY = 100L
     }
 
     private val _requestPermissions: MutableSharedFlow<Pair<Array<String>, Int>> =
@@ -44,21 +45,37 @@ internal class VpsArViewModel(
 
     private var vpsStart: Boolean = false
 
+    private var isReady: Boolean = false
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    private fun onResume() {
+        isReady = true
+    }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+    private fun onPause() {
+        isReady = false
+    }
+
     override fun setVpsConfig(vpsConfig: VpsConfig) {
         vpsService.setVpsConfig(vpsConfig)
         useGps = vpsConfig.useGps
     }
 
     override fun startVpsService() {
-        vpsStart = true
-        when {
-            !checkUsedPermissions() -> return
-            useGps && !locationManager.isGpsEnable() -> {
-                viewModelScope.launch {
-                    _showDialog.emit(Dialog.LOCATION_ENABLE to LOCATION_SETTINGS_REQUEST_CODE)
+        viewModelScope.launch {
+            while (!isReady) delay(READY_DELAY)
+
+            vpsStart = true
+            when {
+                !checkUsedPermissions() -> return@launch
+                useGps && !locationManager.isGpsEnable() -> {
+                    viewModelScope.launch {
+                        _showDialog.emit(Dialog.LOCATION_ENABLE to LOCATION_SETTINGS_REQUEST_CODE)
+                    }
                 }
+                else -> vpsService.startVpsService()
             }
-            else -> vpsService.startVpsService()
         }
     }
 
