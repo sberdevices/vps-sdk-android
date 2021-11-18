@@ -1,6 +1,7 @@
 package com.arvrlab.vps_sdk.domain.model
 
 import android.location.Location
+import java.util.concurrent.TimeUnit
 
 internal data class GpsLocationModel(
     val accuracy: Double,
@@ -16,7 +17,9 @@ internal data class GpsLocationModel(
                 altitude = location.altitude,
                 latitude = location.latitude,
                 longitude = location.longitude,
-                elapsedRealtimeNanos = location.elapsedRealtimeNanos.toDouble()
+                elapsedRealtimeNanos = TimeUnit.NANOSECONDS
+                    .toSeconds(location.elapsedRealtimeNanos)
+                    .toDouble()
             )
     }
 }

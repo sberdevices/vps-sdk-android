@@ -8,7 +8,7 @@ internal data class RequestLocationModel(
     @Json(name = "clientCoordinateSystem")
     val clientCoordinateSystem: String = "arcore",
     @Json(name = "compass")
-    val compass: RequestCompassModel = RequestCompassModel(),
+    val compass: RequestCompassModel? = null,
     @Json(name = "gps")
     val gps: RequestGpsModel? = null,
     @Json(name = "localPos")
