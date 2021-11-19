@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.location.LocationManager.GPS_PROVIDER
 import android.os.Bundle
 import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
@@ -26,11 +27,9 @@ internal class VpsServiceImpl(
 ) : VpsService {
 
     private companion object {
-        const val MIN_INTERVAL_MS = 1000L
+        const val MIN_INTERVAL_MS = 0L
         const val MIN_DISTANCE_IN_METERS = 1f
         const val DELAY = 100L
-
-        const val NO_DELAY = 0L
     }
 
     override val worldNode: Node
@@ -62,15 +61,8 @@ internal class VpsServiceImpl(
     private lateinit var vpsConfig: VpsConfig
     private var vpsCallback: VpsCallback? = null
 
-    private var gpsLocation: GpsLocationModel? = null
     private val locationListener: LocationListener by lazy {
-        object : LocationListener {
-            override fun onLocationChanged(location: Location) {
-                gpsLocation = GpsLocationModel.from(location)
-            }
-
-            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
-        }
+        DummyLocationListener()
     }
 
     private var hasFocus: Boolean = false
@@ -125,7 +117,6 @@ internal class VpsServiceImpl(
     private fun internalStartVpsService() {
         if (vpsJob != null) return
 
-        gpsLocation = null
         requestLocationIfNeed()
 
         vpsJob = scope.launch(Dispatchers.Default) {
@@ -144,6 +135,7 @@ internal class VpsServiceImpl(
 
         if (vpsJob == null) return
 
+        arManager.detachWorldNode()
         locationManager.removeUpdates(locationListener)
         vpsJob?.cancel()
         vpsJob = null
@@ -179,11 +171,7 @@ internal class VpsServiceImpl(
                 }
             }
 
-            val timeMillis = if (result != null || !firstLocalize)
-                vpsConfig.intervalLocalizationMS
-            else
-                NO_DELAY
-            delay(timeMillis)
+            delay(vpsConfig.intervalLocalizationMS)
         }
     }
 
@@ -210,15 +198,19 @@ internal class VpsServiceImpl(
         val currentNodePose: NodePoseModel
         val cameraIntrinsics: CameraIntrinsics
 
+        val gpsLocation = if (vpsConfig.useGps)
+            getLastKnownLocation() ?: return null
+        else
+            null
+
         withContext(Dispatchers.Main) {
             byteArray = waitAcquireCameraImage()
             cameraIntrinsics = arManager.getCameraIntrinsics()
             arManager.saveCameraPose(0)
-            currentNodePose =
-                if (force)
-                    NodePoseModel.EMPTY
-                else
-                    arManager.getCameraLocalPose()
+            currentNodePose = if (force)
+                NodePoseModel.EMPTY
+            else
+                arManager.getCameraLocalPose()
         }
 
         return vpsInteractor.calculateNodePose(
@@ -237,6 +229,7 @@ internal class VpsServiceImpl(
         val byteArrays = mutableListOf<ByteArray>()
         val nodePoses = mutableListOf<NodePoseModel>()
         val cameraIntrinsics = mutableListOf<CameraIntrinsics>()
+        val gpsLocations = mutableListOf<GpsLocationModel?>()
 
         withContext(Dispatchers.Main) {
             repeat(vpsConfig.countImages) { index ->
@@ -245,15 +238,23 @@ internal class VpsServiceImpl(
                     vpsConfig.intervalImagesMS
                 )
 
+                val gpsLocation = if (vpsConfig.useGps)
+                    getLastKnownLocation() ?: return@withContext
+                else
+                    null
+
                 byteArrays.add(waitAcquireCameraImage())
                 cameraIntrinsics.add(arManager.getCameraIntrinsics())
                 arManager.saveCameraPose(index)
                 nodePoses.add(arManager.getCameraLocalPose())
+                gpsLocations.add(gpsLocation)
 
                 Logger.debug("acquire image: ${index + 1}")
                 delay?.await()
             }
         }
+
+        if (byteArrays.size != vpsConfig.countImages) return null
 
         return vpsInteractor.calculateNodePose(
             url = vpsConfig.vpsUrl,
@@ -261,22 +262,32 @@ internal class VpsServiceImpl(
             sources = byteArrays,
             localizationType = vpsConfig.localizationType,
             nodePoses = nodePoses,
-            gpsLocations = gpsLocation?.let { listOf(it) },
+            gpsLocations = gpsLocations,
             cameraIntrinsics = cameraIntrinsics
         )
     }
 
     @SuppressLint("MissingPermission")
     private fun requestLocationIfNeed() {
-        if (vpsConfig.useGps && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+        if (vpsConfig.useGps) {
             locationManager.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER,
+                GPS_PROVIDER,
                 MIN_INTERVAL_MS,
                 MIN_DISTANCE_IN_METERS,
                 locationListener
             )
         }
     }
+
+    @SuppressLint("MissingPermission")
+    private fun getLastKnownLocation(): GpsLocationModel? =
+        if (locationManager.isProviderEnabled(GPS_PROVIDER)) {
+            locationManager.getLastKnownLocation(GPS_PROVIDER)
+                ?.let { GpsLocationModel.from(it) }
+        } else {
+            null
+        }
+
 
     private suspend fun waitAcquireCameraImage(): ByteArray {
         var byteArray: ByteArray? = null
@@ -288,6 +299,13 @@ internal class VpsServiceImpl(
             }
         }
         return byteArray
+    }
+
+    private class DummyLocationListener : LocationListener {
+        override fun onLocationChanged(location: Location) = Unit
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
+        override fun onProviderEnabled(provider: String) = Unit
+        override fun onProviderDisabled(provider: String) = Unit
     }
 
 }

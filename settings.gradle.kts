@@ -1,5 +1,5 @@
 include(
-    ":app",
+    ":sample",
     ":vps-sdk",
     ":sceneform",
     ":sceneformux"

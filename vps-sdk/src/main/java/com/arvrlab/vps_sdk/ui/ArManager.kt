@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream
 internal class ArManager : Scene.OnUpdateListener {
 
     private companion object {
+        const val WORLD_NODE_NAME = "World"
         const val MS_IN_SEC = 1000f
 
         const val INTERPOLATION_DURATION = 1f
@@ -34,7 +35,10 @@ internal class ArManager : Scene.OnUpdateListener {
 
     val worldNode: Node by lazy {
         Node()
-            .also { it.addChild(poseInWorldNode) }
+            .apply {
+                name = WORLD_NODE_NAME
+                addChild(poseInWorldNode)
+            }
     }
 
     private var arSceneView: ArSceneView? = null
@@ -73,8 +77,10 @@ internal class ArManager : Scene.OnUpdateListener {
     }
 
     fun destroy() {
+        if (arSceneView == null) return
+
         worldNode.renderable = null
-        scene.removeChild(worldNode)
+        detachWorldNode()
         scene.removeOnUpdateListener(this)
         arSceneView = null
         worldInterpolationTimer = -1f
@@ -157,6 +163,10 @@ internal class ArManager : Scene.OnUpdateListener {
             cx = principalPoint[0],
             cy = principalPoint[1]
         )
+    }
+
+    fun detachWorldNode() {
+        scene.removeChild(worldNode)
     }
 
     private fun checkArSceneView(): ArSceneView =

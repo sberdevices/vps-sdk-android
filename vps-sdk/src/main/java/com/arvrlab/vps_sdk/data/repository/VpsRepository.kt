@@ -107,7 +107,7 @@ internal class VpsRepository(
                             RequestGpsModel(
                                 accuracy = it.accuracy,
                                 altitude = it.altitude,
-                                latitude = it.longitude,
+                                latitude = it.latitude,
                                 longitude = it.longitude,
                                 timestamp = it.elapsedRealtimeNanos
                             )
