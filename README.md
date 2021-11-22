@@ -39,6 +39,12 @@ You can clone this repository and use an included example as a template. If you 
 
 4. Rebuild your gradle project.
 
+## Example
+
+There is an example project in this repository. 
+
+Just clone the repository and build it as a regular Android app. Make sure that your device support ARCore.
+
 ## Usage
 
 ### Android Manifest
@@ -175,3 +181,9 @@ vpsService.worldNode
 ```
 
 If `VpsService` is running then field `isRun` return `true`
+
+## License
+
+This project is licensed under [Sber Public License at-nc-sa v.2](LICENSE).
+
+Google SceneForm library is licensed under [Apache License 2.0](https://github.com/google-ar/sceneform-android-sdk/blob/master/LICENSE).
