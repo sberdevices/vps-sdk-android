@@ -2,8 +2,7 @@
 
 This is **Visual Positioning System** SDK for native Android apps. Main features are:
 - High-precision global user position localization for your AR apps
-- Easy to use public API
-- Ready to use fragments
+- Easy to use public API and premade Fragments
 - Integration in [SceneForm](https://github.com/google-ar/sceneform-android-sdk) fork
 
 ## Requirements
@@ -15,14 +14,14 @@ This is **Visual Positioning System** SDK for native Android apps. Main features
 
 ### From repository
 
-You can clone this repository and use an included example as a template. If you want to integrate this in an Gradle existing project:
+You can clone this repository and use an included example as a template. If you want to integrate this in an existing Gradle project:
 
 1. Open your project folder in a terminal and clone this repo:
     ```shell
     git clone https://github.com/sberdevices/vps-sdk-android.git
     ```
 
-2. Using composing builds connect project vps-android-sdk to your project. Add to your project `settings.gradle`:
+2. Using composing builds connect project `vps-android-sdk` to your project. Add to your project `settings.gradle`:
     ```gradle
     dependencyResolutionManagement {
         ...
@@ -30,7 +29,7 @@ You can clone this repository and use an included example as a template. If you 
     }
     ```
 
-3. In your module `build.gradle` add dependency:
+3. In your modules `build.gradle` add dependency:
     ```gradle
     dependencies {
         ...
@@ -67,7 +66,7 @@ To override visibility add this in your app's `AndroidManifest.xml`
     tools:replace="android:required" />
 ```
 
-### VpsArFragment
+### Using VpsArFragment
 
 You can use build-in `VpsArFragment`. You can add into xml or by code:
 
@@ -88,28 +87,18 @@ supportFragmentManager.beginTransaction()
             .commit()
 ```
 
-### Work with `VpsService` if using `VpsArFragment`
+### Setup VpsService
 
-*Create config for `VpsService`*
+Create a config for `VpsService`:
 
 ```kotlin
 val vpsConfig = VpsConfig(
                     <vpsUrl>,
-                    <location_ID>,
-                    <onlyForce>,                        //optional, default false
-                    <intervalLocalizationMS>,           //optional, default 5000L
-                    <useGps>,                           //optional, default false
-                    <localizationType>,                 //optional, default MobileVps [Photo, MobileVps]
-                    <useSerialImages>,                  //optional, default true
-                    <countImages>,                      //optional, default 5
-                    <intervalImagesMS>,                 //optional, default 1000L
-                    <worldInterpolationDurationMS>,     //optional, default 500L
-                    <worldInterpolationDistanceLimit>,  //optional, default 2f
-                    <worldInterpolationAngleLimit>      //optional, default 10f
+                    <location_ID>
                 )
 ```
 
-*Setup `VpsService`*
+Setup a `VpsService`:
 
 ```kotlin
 val vpsService = vpsArFragment.vpsService
@@ -132,28 +121,26 @@ vpsService.setVpsCallback(object : VpsCallback {
             })
 ```
 
-*Start `VpsService`*
+Start `VpsService`:
 
 ```kotlin
 vpsService.startVpsService()
 ```
 
-*Stop `VpsService`*
+Stop `VpsService`:
 
 ```kotlin
 vpsService.stopVpsService()
 ```
 
-<br/>
+### VpsService in a custom ArFragment
 
-### Work with `VpsService` if using own `ArFragment`
-
-*Create new instance `VpsService`*
+Create a new instance of `VpsService`:
 ```kotlin
 VpsService.newInstance(): VpsService
 ```
 
-*After need sync lifecycle of `VpsService` with lifecycle your `ArFragment`.*
+You will also need to sync lifecycle of `VpsService` with lifecycle your `ArFragment`:
 ```kotlin
 override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
@@ -176,16 +163,15 @@ override fun onDestroy() {
 }
 ```
 
-*And then `VpsService` can use as mentioned above.*
+After that you can use `VpsService` as mentioned above.
 
-<br/>
 
 ### Additional information about `VpsService`
 
-*You can set 3D model using `worldNode` in `VpsService`*
+You can add a custom 3D model using `worldNode` in `VpsService`
 
 ```kotlin
 vpsService.worldNode
 ```
 
-*If `VpsService` is running then field `isRun` return `true`*
+If `VpsService` is running then field `isRun` return `true`
