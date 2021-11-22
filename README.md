@@ -1,38 +1,56 @@
-VPS-SDK for Android
-====================================
+# VPS SDK (Android)
 
-## Add VPS-SDK to a project as submodule
+This is **Visual Positioning System** SDK for native Android apps. Main features are:
+- High-precision global user position localization for your AR apps
+- Easy to use public API
+- Ready to use fragments
+- Integration in [SceneForm](https://github.com/google-ar/sceneform-android-sdk) fork
 
-Clone this repository into yourself project.
+## Requirements
+- Android SDK 24+
+- Gradle 7.0+
+- ARCore supported device
 
-Using composing builds connect project vps-android-sdk to own project. For this in `settings.gradle` add next code:
+## Installation
 
-```gradle
-includeBuild("vps-android-sdk")
-```
+### From repository
 
-Then in `build.gradle` of your module add dependency 
-```gradle
-implementation "com.arvrlab.vps:vps-sdk:0.4.0"
-```
+You can clone this repository and use an included example as a template. If you want to integrate this in an Gradle existing project:
 
-<br/>
+1. Open your project folder in a terminal and clone this repo:
+    ```shell
+    git clone https://github.com/sberdevices/vps-sdk-android.git
+    ```
 
-## Setup VPS-SDK
+2. Using composing builds connect project vps-android-sdk to your project. Add to your project `settings.gradle`:
+    ```gradle
+    dependencyResolutionManagement {
+        ...
+        includeBuild("vps-android-sdk")
+    }
+    ```
 
-### Update your `AndroidManifest.xml`
+3. In your module `build.gradle` add dependency:
+    ```gradle
+    dependencies {
+        ...
+        implementation "com.arvrlab.vps:vps-sdk:0.4.0"
+    }
+    ```
 
-<br/>
+4. Rebuild your gradle project.
 
-**If android min sdk less 24 then need add to `AndroidManifest.xml`**
+## Usage
+
+### Android Manifest
+
+Add this in `AndroidManifest.xml`, if android min sdk less than 24: 
 
 ```xml
 <uses-sdk tools:overrideLibrary="com.arvrlab.vps_sdk, com.google.ar.sceneform.ux" />
 ```
 
-<br/>
-
-**By default `VPS-SDK` has limits visibility in the Google Play Store to ARCore supported devices**
+By default `VPS SDK` has limited visibility in the Google Play Store to ARCore supported devices
 
 ```xml
 <uses-feature
@@ -40,7 +58,7 @@ implementation "com.arvrlab.vps:vps-sdk:0.4.0"
     android:required="true" />
 ```
 
-*For override limits visibility adding in your app's `AndroidManifest.xml`*
+To override visibility add this in your app's `AndroidManifest.xml`
 
 ```xml
 <uses-feature
@@ -49,9 +67,10 @@ implementation "com.arvrlab.vps:vps-sdk:0.4.0"
     tools:replace="android:required" />
 ```
 
-<br/>
+### VpsArFragment
 
-## Add the `VpsArFragment` to your `screen`
+You can use build-in `VpsArFragment`. You can add into xml or by code:
+
 *res/layout/main_activity.xml*
 ```xml
 <androidx.fragment.app.FragmentContainerView
@@ -69,9 +88,7 @@ supportFragmentManager.beginTransaction()
             .commit()
 ```
 
-<br/>
-
-## Work with `VpsService` if using `VpsArFragment`
+### Work with `VpsService` if using `VpsArFragment`
 
 *Create config for `VpsService`*
 
@@ -129,7 +146,7 @@ vpsService.stopVpsService()
 
 <br/>
 
-## Work with `VpsService` if using own `ArFragment`
+### Work with `VpsService` if using own `ArFragment`
 
 *Create new instance `VpsService`*
 ```kotlin
@@ -163,7 +180,7 @@ override fun onDestroy() {
 
 <br/>
 
-## Additional information about `VpsService`
+### Additional information about `VpsService`
 
 *You can set 3D model using `worldNode` in `VpsService`*
 
