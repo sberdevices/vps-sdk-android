@@ -1,33 +1,19 @@
 VPS-SDK for Android
 ====================================
 
-![GitLab Maven](https://img.shields.io/static/v1?label=Gitlab%20Maven&message=v.0.3.0&color=success&style=flat)
+## Add VPS-SDK to a project as submodule
 
-## Add VPS-SDK to a project
+Clone this repository into yourself project.
 
-*build.gradle* or *settings.gradle*
+Using composing builds connect project vps-android-sdk to own project. For this in `settings.gradle` add next code:
+
 ```gradle
-repositories {
-        …
-        maven {
-            url 'https://gitlab.arvr.sberlabs.com/api/v4/projects/58/packages/maven'
-            credentials(HttpHeaderCredentials) {
-                name = "Deploy-Token"
-                value = "3VBiQyK9wwnkHmvd-gT7"
-            }
-            authentication {
-                header(HttpHeaderAuthentication)
-            }
-        }
-    }
+includeBuild("vps-android-sdk")
 ```
 
-*app/build.gradle*
+Then in `build.gradle` of your module add dependency 
 ```gradle
-dependencies {
-      …
-      implementation "com.arvrlab.vps:vps-sdk:0.3.0"
-}
+implementation "com.arvrlab.vps:vps-sdk:0.4.0"
 ```
 
 <br/>
@@ -93,13 +79,16 @@ supportFragmentManager.beginTransaction()
 val vpsConfig = VpsConfig(
                     <vpsUrl>,
                     <location_ID>,
-                    <onlyForce>,                //optional, default false
-                    <intervalLocalizationMS>,   //optional, default 5000
-                    <useGps>,                   //optional, default false
-                    <localizationType>,         //optional, default MobileVps [Photo, MobileVps]
-                    <useSerialImages>,          //optional, default true
-                    <countImages>,              //optional, default 5
-                    <intervalImagesMS>          //optional, default 1000
+                    <onlyForce>,                        //optional, default false
+                    <intervalLocalizationMS>,           //optional, default 5000L
+                    <useGps>,                           //optional, default false
+                    <localizationType>,                 //optional, default MobileVps [Photo, MobileVps]
+                    <useSerialImages>,                  //optional, default true
+                    <countImages>,                      //optional, default 5
+                    <intervalImagesMS>,                 //optional, default 1000L
+                    <worldInterpolationDurationMS>,     //optional, default 500L
+                    <worldInterpolationDistanceLimit>,  //optional, default 2f
+                    <worldInterpolationAngleLimit>      //optional, default 10f
                 )
 ```
 
