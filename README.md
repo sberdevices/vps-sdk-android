@@ -7,14 +7,15 @@ This is **Visual Positioning System** SDK for native Android apps. Main features
 
 ## Requirements
 - Android SDK 24+
-- Gradle 7.0+
 - ARCore supported device
 
 ## Installation
 
 ### From repository
 
-You can clone this repository and use an included example as a template. If you want to integrate this in an existing Gradle project:
+You can clone this repository and use an included example as a template. We recommend to use Gradle `7.0.2` to build it.
+
+If you want to integrate this in an existing Gradle project:
 
 1. Open your project folder in a terminal and clone this repo:
     ```shell
