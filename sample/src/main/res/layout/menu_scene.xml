@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/cbAutofocus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Autofocus" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/cbSerialPhotos"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Serial Photos" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/cbMobileVps"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Mobile VPS" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/cbAlwaysForce"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Always Force" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/cbGps"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="GPS" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/cbOccluder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Occluder" />
+
+</LinearLayout>

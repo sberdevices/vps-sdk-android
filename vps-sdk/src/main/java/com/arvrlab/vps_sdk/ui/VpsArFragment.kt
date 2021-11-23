@@ -14,6 +14,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.ar.core.CameraConfig
 import com.google.ar.core.CameraConfigFilter
 import com.google.ar.core.Config
+import com.google.ar.core.Config.FocusMode
 import com.google.ar.core.Session
 import com.google.ar.sceneform.ux.ArFragment
 import kotlinx.coroutines.flow.collect
@@ -102,8 +103,18 @@ class VpsArFragment : ArFragment() {
     override fun getSessionConfiguration(session: Session): Config {
         session.cameraConfig = getHighestResolution(session)
         return super.getSessionConfiguration(session)
-            .also { it.focusMode = Config.FocusMode.AUTO }
     }
+
+    fun setAutofocus(autofocus: Boolean) {
+        val session = arSceneView.session ?: return
+        val config = session.config ?: return
+
+        config.focusMode = if (autofocus) FocusMode.AUTO else FocusMode.FIXED
+        session.configure(config)
+    }
+
+    fun isAutofocus(): Boolean =
+        arSceneView.session?.config?.focusMode == FocusMode.AUTO
 
     private fun getHighestResolution(session: Session): CameraConfig? {
         val cameraConfigFilter = CameraConfigFilter(session)

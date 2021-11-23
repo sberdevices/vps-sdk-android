@@ -1,52 +1,59 @@
-VPS-SDK for Android
-====================================
+# VPS SDK (Android)
 
-![GitLab Maven](https://img.shields.io/static/v1?label=Gitlab%20Maven&message=v.0.3.0&color=success&style=flat)
+This is **Visual Positioning System** SDK for native Android apps. Main features are:
+- High-precision global user position localization for your AR apps
+- Easy to use public API and premade Fragments
+- Integration in [SceneForm](https://github.com/google-ar/sceneform-android-sdk) fork
 
-## Add VPS-SDK to a project
+## Requirements
+- Android SDK 24+
+- ARCore supported device
 
-*build.gradle* or *settings.gradle*
-```gradle
-repositories {
-        …
-        maven {
-            url 'https://gitlab.arvr.sberlabs.com/api/v4/projects/58/packages/maven'
-            credentials(HttpHeaderCredentials) {
-                name = "Deploy-Token"
-                value = "3VBiQyK9wwnkHmvd-gT7"
-            }
-            authentication {
-                header(HttpHeaderAuthentication)
-            }
-        }
+## Installation
+
+### From repository
+
+You can clone this repository and use an included example as a template. We recommend to use Gradle `7.0.2` to build it.
+
+If you want to integrate this in an existing Gradle project:
+
+1. Open your project folder in a terminal and clone this repo:
+    ```shell
+    git clone https://github.com/sberdevices/vps-sdk-android.git
+    ```
+
+2. Using composing builds connect project `vps-android-sdk` to your project. Add this line to your project `settings.gradle`:
+    ```gradle
+    includeBuild("vps-android-sdk")
+    ```
+
+3. In your modules `build.gradle` add dependency:
+    ```gradle
+    dependencies {
+        ...
+        implementation "com.arvrlab.vps:vps-sdk:0.4.0"
     }
-```
+    ```
 
-*app/build.gradle*
-```gradle
-dependencies {
-      …
-      implementation "com.arvrlab.vps:vps-sdk:0.3.0"
-}
-```
+4. Rebuild your gradle project.
 
-<br/>
+## Example
 
-## Setup VPS-SDK
+There is an example project in this repository. 
 
-### Update your `AndroidManifest.xml`
+Just clone the repository and build it as a regular Android app. Make sure that your device support ARCore.
 
-<br/>
+## Usage
 
-**If android min sdk less 24 then need add to `AndroidManifest.xml`**
+### Android Manifest
+
+Add this in `AndroidManifest.xml`, if android min sdk less than 24: 
 
 ```xml
 <uses-sdk tools:overrideLibrary="com.arvrlab.vps_sdk, com.google.ar.sceneform.ux" />
 ```
 
-<br/>
-
-**By default `VPS-SDK` has limits visibility in the Google Play Store to ARCore supported devices**
+By default `VPS SDK` has limited visibility in the Google Play Store to ARCore supported devices
 
 ```xml
 <uses-feature
@@ -54,7 +61,7 @@ dependencies {
     android:required="true" />
 ```
 
-*For override limits visibility adding in your app's `AndroidManifest.xml`*
+To override visibility add this in your app's `AndroidManifest.xml`
 
 ```xml
 <uses-feature
@@ -63,9 +70,10 @@ dependencies {
     tools:replace="android:required" />
 ```
 
-<br/>
+### Using VpsArFragment
 
-## Add the `VpsArFragment` to your `screen`
+You can use build-in `VpsArFragment`. You can add into xml or by code:
+
 *res/layout/main_activity.xml*
 ```xml
 <androidx.fragment.app.FragmentContainerView
@@ -83,27 +91,18 @@ supportFragmentManager.beginTransaction()
             .commit()
 ```
 
-<br/>
+### Setup VpsService
 
-## Work with `VpsService` if using `VpsArFragment`
-
-*Create config for `VpsService`*
+Create a config for `VpsService`:
 
 ```kotlin
 val vpsConfig = VpsConfig(
                     <vpsUrl>,
-                    <location_ID>,
-                    <onlyForce>,                //optional, default false
-                    <intervalLocalizationMS>,   //optional, default 5000
-                    <useGps>,                   //optional, default false
-                    <localizationType>,         //optional, default MobileVps [Photo, MobileVps]
-                    <useSerialImages>,          //optional, default true
-                    <countImages>,              //optional, default 5
-                    <intervalImagesMS>          //optional, default 1000
+                    <location_ID>
                 )
 ```
 
-*Setup `VpsService`*
+Setup a `VpsService`:
 
 ```kotlin
 val vpsService = vpsArFragment.vpsService
@@ -126,28 +125,26 @@ vpsService.setVpsCallback(object : VpsCallback {
             })
 ```
 
-*Start `VpsService`*
+Start `VpsService`:
 
 ```kotlin
 vpsService.startVpsService()
 ```
 
-*Stop `VpsService`*
+Stop `VpsService`:
 
 ```kotlin
 vpsService.stopVpsService()
 ```
 
-<br/>
+### VpsService in a custom ArFragment
 
-## Work with `VpsService` if using own `ArFragment`
-
-*Create new instance `VpsService`*
+Create a new instance of `VpsService`:
 ```kotlin
 VpsService.newInstance(): VpsService
 ```
 
-*After need sync lifecycle of `VpsService` with lifecycle your `ArFragment`.*
+You will also need to sync lifecycle of `VpsService` with lifecycle your `ArFragment`:
 ```kotlin
 override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
@@ -170,16 +167,21 @@ override fun onDestroy() {
 }
 ```
 
-*And then `VpsService` can use as mentioned above.*
+After that you can use `VpsService` as mentioned above.
 
-<br/>
 
-## Additional information about `VpsService`
+### Additional information about `VpsService`
 
-*You can set 3D model using `worldNode` in `VpsService`*
+You can add a custom 3D model using `worldNode` in `VpsService`
 
 ```kotlin
 vpsService.worldNode
 ```
 
-*If `VpsService` is running then field `isRun` return `true`*
+If `VpsService` is running then field `isRun` return `true`
+
+## License
+
+This project is licensed under [Sber Public License at-nc-sa v.2](LICENSE).
+
+Google SceneForm library is licensed under [Apache License 2.0](https://github.com/google-ar/sceneform-android-sdk/blob/master/LICENSE).

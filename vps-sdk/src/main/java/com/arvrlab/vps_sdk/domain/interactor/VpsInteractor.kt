@@ -52,7 +52,7 @@ internal class VpsInteractor(
         sources: List<ByteArray>,
         localizationType: LocalizationType,
         nodePoses: List<NodePoseModel>,
-        gpsLocations: List<GpsLocationModel>?,
+        gpsLocations: List<GpsLocationModel?>,
         cameraIntrinsics: List<CameraIntrinsics>
     ): LocalizationBySerialImages? {
         if (sources.size != nodePoses.size) {
@@ -66,7 +66,7 @@ internal class VpsInteractor(
             vpsLocationArray.add(
                 VpsLocationModel(
                     locationID = locationID,
-                    gpsLocation = gpsLocations?.getOrNull(index),
+                    gpsLocation = gpsLocations[index],
                     nodePose = nodePoses[0],
                     force = true,
                     localizationType = localizationType,
