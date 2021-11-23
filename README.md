@@ -5,6 +5,8 @@ This is **Visual Positioning System** SDK for native Android apps. Main features
 - Easy to use public API and premade Fragments
 - Integration in [SceneForm](https://github.com/google-ar/sceneform-android-sdk) fork
 
+For more information visit [our page on SmartMarket](https://developers.sber.ru/portal/tools/visual-positioning-system-sdk). If you want access to other VPS locations or want to scan your own proprerty, please contact us at <arvrlab@sberbank.ru>.
+
 ## Requirements
 - Android SDK 24+
 - ARCore supported device
