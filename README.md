@@ -21,12 +21,9 @@ You can clone this repository and use an included example as a template. If you 
     git clone https://github.com/sberdevices/vps-sdk-android.git
     ```
 
-2. Using composing builds connect project `vps-android-sdk` to your project. Add to your project `settings.gradle`:
+2. Using composing builds connect project `vps-android-sdk` to your project. Add this line to your project `settings.gradle`:
     ```gradle
-    dependencyResolutionManagement {
-        ...
-        includeBuild("vps-android-sdk")
-    }
+    includeBuild("vps-android-sdk")
     ```
 
 3. In your modules `build.gradle` add dependency:
