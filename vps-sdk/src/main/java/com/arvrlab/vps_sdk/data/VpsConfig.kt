@@ -13,4 +13,26 @@ data class VpsConfig(
     val worldInterpolationDurationMS: Long = 500,
     val worldInterpolationDistanceLimit: Float = 2f,
     val worldInterpolationAngleLimit: Float = 10f
-)
+) {
+    companion object {
+
+        fun getIndoorConfig(vpsUrl: String, locationID: String): VpsConfig =
+            VpsConfig(
+                vpsUrl = vpsUrl,
+                locationID = locationID,
+                onlyForce = false,
+                useGps = false,
+                useSerialImages = true
+            )
+
+        fun getOutdoorConfig(vpsUrl: String, locationID: String): VpsConfig =
+            VpsConfig(
+                vpsUrl = vpsUrl,
+                locationID = locationID,
+                onlyForce = true,
+                useGps = true,
+                useSerialImages = false
+            )
+
+    }
+}
