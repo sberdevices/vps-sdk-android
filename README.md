@@ -15,7 +15,7 @@ For more information visit [our page on SmartMarket](https://developers.sber.ru/
 
 ## Installation
 
-1. Open your module's `build.gradle`. Add `mavenCentral` repository if it doesn't exist:
+1. Open your project's `build.gradle`. Add `mavenCentral` repository if it doesn't exist:
     ```gradle
     allprojects {
         repositories {
@@ -40,7 +40,7 @@ For more information visit [our page on SmartMarket](https://developers.sber.ru/
 
 There is an example project in this repository. 
 
-Just clone the repository and build it as a regular Android app. We recommend to use Gradle 7.0.2 to build it. Make sure that your device support ARCore.
+Just clone the repository and build it as a regular Android app. Make sure that your device support ARCore.
 
 ## Usage
 
