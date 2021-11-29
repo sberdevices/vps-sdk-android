@@ -1,35 +1,84 @@
-apply plugin: PluginName.mavenPublish
+apply plugin: "maven-publish"
+apply plugin: "signing"
+
+tasks.register("sourceJar", Jar) {
+    from android.sourceSets.main.java.srcDirs
+    archiveClassifier.set("sources")
+}
 
 afterEvaluate {
+    signing {
+        def localProperties = loadLocalProperties()
+        def keyId = localProperties.getProperty("GPG_KEYID")
+        def secretKey = loadSecretKey()
+        def password = localProperties.getProperty("GPG_PASSWORD")
+        useInMemoryPgpKeys(keyId, secretKey, password)
+    }
     publishing {
         publications {
-            release(MavenPublication) {
+            releaseAar(MavenPublication) {
                 from components.release
+                artifact sourceJar
+
+                groupId = "com.sberlabs"
+                artifactId = "vps-sdk"
+                version = "0.4.0"
+
+                pom {
+                    name = "VPS SDK"
+                    description = "This is Visual Positioning System SDK for native Android apps"
+                    url = "https://github.com/sberdevices/vps-sdk-android"
+
+                    licenses {
+                        license {
+                            name = "Sber Public License at-nc-sa v.2"
+                            url = "https://github.com/sberdevices/vps-sdk-android/blob/main/LICENSE"
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            name = "Alexandr Evgrashin"
+                            email = "evgrashin.a.s@sberbank.ru"
+                        }
+                        developer {
+                            name = "Sergey Ugolkov"
+                            email = "Ugolkov.S.Vi@sberbank.ru"
+                        }
+                    }
+
+                    scm {
+                        url = "https://github.com/sberdevices/vps-sdk-android.git"
+                    }
+                }
             }
         }
 
         repositories {
             maven {
-                def deployToken = getDeployToken()
-                if (deployToken == null || deployToken == "") {
-                    println("Not found DEPLOY_TOKEN in local.properties")
-                    return
-                }
-                url "https://gitlab.arvr.sberlabs.com/api/v4/projects/58/packages/maven"
-                credentials(HttpHeaderCredentials) {
-                    name = "Deploy-Token"
-                    value = deployToken
-                }
-                authentication {
-                    header(HttpHeaderAuthentication)
+                name = "sonatypeStaging"
+                url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
+                def localProperties = loadLocalProperties()
+                credentials {
+                    username = localProperties.getProperty("OSSRH_USERNAME")
+                    password = localProperties.getProperty("OSSRH_PASSWORD")
                 }
             }
         }
     }
+
+    signing {
+        sign(publishing.publications)
+    }
 }
 
-static String getDeployToken() {
+static Properties loadLocalProperties() {
     def properties = new Properties()
-    properties.load(new FileReader(new File('local.properties')))
-    return properties.getProperty('DEPLOY_TOKEN')
+    properties.load(new FileReader(new File("local.properties")))
+    return properties
+}
+
+static String loadSecretKey() {
+    def file = new File("secret.key")
+    return new String(file.readBytes())
 }

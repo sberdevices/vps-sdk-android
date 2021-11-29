@@ -21,7 +21,6 @@ object PluginName {
     const val kotlinKapt = "kotlin-kapt"
     const val library = "com.android.library"
     const val kotlinParcelize = "kotlin-parcelize"
-    const val mavenPublish = "maven-publish"
 }
 
 object Lib {
