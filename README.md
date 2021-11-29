@@ -1,5 +1,6 @@
-# VPS SDK (Android) <br/>![MavenCentral](https://img.shields.io/static/v1?label=Maven%20Central&message=v.0.4.0&color=success&style=flat)
+# VPS SDK (Android)
 
+![MavenCentral](https://img.shields.io/static/v1?label=Maven%20Central&message=v.0.4.0&color=success&style=flat)
 
 This is **Visual Positioning System** SDK for native Android apps. Main features are:
 - High-precision global user position localization for your AR apps
@@ -12,9 +13,9 @@ For more information visit [our page on SmartMarket](https://developers.sber.ru/
 - Android SDK 24+
 - ARCore supported device
 
-## Add library to a project
+## Installation
 
-1. In your project add `mavenCentral` repository:
+1. Open your module's `build.gradle`. Add `mavenCentral` repository if it doesn't exist:
     ```gradle
     allprojects {
         repositories {
@@ -39,7 +40,7 @@ For more information visit [our page on SmartMarket](https://developers.sber.ru/
 
 There is an example project in this repository. 
 
-Just clone the repository and build it as a regular Android app. Make sure that your device support ARCore.
+Just clone the repository and build it as a regular Android app. We recommend to use Gradle 7.0.2 to build it. Make sure that your device support ARCore.
 
 ## Usage
 
