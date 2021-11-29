@@ -1,4 +1,4 @@
-const val groupName = "com.arvrlab.vps"
+const val groupName = "com.sberlabs"
 
 object Version {
     const val gradle = "7.0.2"
