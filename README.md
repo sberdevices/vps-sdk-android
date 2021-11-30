@@ -1,5 +1,7 @@
 # VPS SDK (Android)
 
+![MavenCentral](https://img.shields.io/static/v1?label=Maven%20Central&message=v.0.4.1&color=success&style=flat)
+
 This is **Visual Positioning System** SDK for native Android apps. Main features are:
 - High-precision global user position localization for your AR apps
 - Easy to use public API and premade Fragments
@@ -13,31 +15,26 @@ For more information visit [our page on SmartMarket](https://developers.sber.ru/
 
 ## Installation
 
-### From repository
-
-You can clone this repository and use an included example as a template. We recommend to use Gradle `7.0.2` to build it.
-
-If you want to integrate this in an existing Gradle project:
-
-1. Open your project folder in a terminal and clone this repo:
-    ```shell
-    git clone https://github.com/sberdevices/vps-sdk-android.git
-    ```
-
-2. Using composing builds connect project `vps-android-sdk` to your project. Add this line to your project `settings.gradle`:
+1. Open your project's `build.gradle`. Add `mavenCentral` repository if it doesn't exist:
     ```gradle
-    includeBuild("vps-android-sdk")
-    ```
-
-3. In your modules `build.gradle` add dependency:
-    ```gradle
-    dependencies {
-        ...
-        implementation "com.arvrlab.vps:vps-sdk:0.4.0"
+    allprojects {
+        repositories {
+            mavenCentral()
+            ...
+        }
     }
     ```
 
-4. Rebuild your gradle project.
+2. In your module's `build.gradle` add dependency:
+    ```gradle
+    dependencies {
+        ...
+        implementation "com.sberlabs:vps-sdk:0.4.1"
+    }
+    ```
+
+3. Sync Project with Gradle Files
+
 
 ## Example
 

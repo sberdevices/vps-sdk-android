@@ -1,4 +1,4 @@
-const val groupName = "com.arvrlab.vps"
+const val groupName = "com.sberlabs"
 
 object Version {
     const val gradle = "7.0.2"
@@ -21,7 +21,6 @@ object PluginName {
     const val kotlinKapt = "kotlin-kapt"
     const val library = "com.android.library"
     const val kotlinParcelize = "kotlin-parcelize"
-    const val mavenPublish = "maven-publish"
 }
 
 object Lib {
