@@ -6,13 +6,12 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.location.LocationManager.GPS_PROVIDER
 import android.os.Bundle
+import com.arvrlab.vps_sdk.common.CoordinateConverter
+import com.arvrlab.vps_sdk.ui.VpsService.State
 import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
 import com.arvrlab.vps_sdk.domain.interactor.IVpsInteractor
-import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
-import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
-import com.arvrlab.vps_sdk.domain.model.NodePoseModel
-import com.arvrlab.vps_sdk.ui.VpsService.State
+import com.arvrlab.vps_sdk.domain.model.*
 import com.arvrlab.vps_sdk.util.Logger
 import com.arvrlab.vps_sdk.util.waitIfNeedAsync
 import com.google.ar.core.exceptions.NotYetAvailableException
@@ -23,7 +22,8 @@ import kotlinx.coroutines.*
 internal class VpsServiceImpl(
     private val vpsInteractor: IVpsInteractor,
     private val arManager: ArManager,
-    private val locationManager: LocationManager
+    private val locationManager: LocationManager,
+    private val coordinateConverter: CoordinateConverter
 ) : VpsService {
 
     private companion object {
@@ -37,6 +37,9 @@ internal class VpsServiceImpl(
 
     override val isRun: Boolean
         get() = vpsJob != null
+
+    override val cameraLocalPose: NodePoseModel
+        get() = arManager.getCameraLocalPose()
 
     private val vpsHandlerException: CoroutineExceptionHandler =
         CoroutineExceptionHandler { _, throwable ->
@@ -56,7 +59,7 @@ internal class VpsServiceImpl(
     private var vpsJob: Job? = null
     private var state: State = State.STOP
 
-    private var lastNodePose: NodePoseModel = NodePoseModel.EMPTY
+    private var lastPose: PoseModel = PoseModel.EMPTY
 
     private lateinit var vpsConfig: VpsConfig
     private var vpsCallback: VpsCallback? = null
@@ -164,10 +167,14 @@ internal class VpsServiceImpl(
                 firstLocalize = false
                 when (result) {
                     is LocalizationBySerialImages -> successLocalization(
-                        result.nodePoseModel,
+                        result.poseModel,
                         result.indexImage
                     )
-                    is NodePoseModel -> successLocalization(result)
+                    is PoseModel -> {
+                        successLocalization(
+                            result,
+                        )
+                    }
                 }
             }
 
@@ -176,14 +183,16 @@ internal class VpsServiceImpl(
     }
 
     private suspend fun successLocalization(
-        nodePoseModel: NodePoseModel,
+        poseModel: PoseModel,
         nodePositionIndex: Int = 0
     ) {
-        lastNodePose = nodePoseModel
         withContext(Dispatchers.Main) {
-            arManager.restoreCameraPose(nodePositionIndex, lastNodePose)
+            arManager.restoreCameraPose(nodePositionIndex, poseModel.nodePoseModel)
             vpsCallback?.onSuccess()
         }
+        coordinateConverter.updatePoseModel(poseModel)
+
+        lastPose = poseModel
     }
 
     private suspend fun failLocalization(failureCount: Int) {
@@ -193,7 +202,7 @@ internal class VpsServiceImpl(
         Logger.debug("localization fail: $failureCount")
     }
 
-    private suspend fun getNodePoseBySingleImage(force: Boolean): NodePoseModel? {
+    private suspend fun getNodePoseBySingleImage(force: Boolean): PoseModel? {
         val byteArray: ByteArray
         val currentNodePose: NodePoseModel
         val cameraIntrinsics: CameraIntrinsics
@@ -208,7 +217,7 @@ internal class VpsServiceImpl(
             cameraIntrinsics = arManager.getCameraIntrinsics()
             arManager.saveCameraPose(0)
             currentNodePose = if (force)
-                NodePoseModel.EMPTY
+                NodePoseModel.ZERO
             else
                 arManager.getCameraLocalPose()
         }
@@ -287,7 +296,6 @@ internal class VpsServiceImpl(
         } else {
             null
         }
-
 
     private suspend fun waitAcquireCameraImage(): ByteArray {
         var byteArray: ByteArray? = null

@@ -8,9 +8,11 @@ import com.arvrlab.vps_sdk.data.MobileVps
 import com.arvrlab.vps_sdk.data.Photo
 import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
 import com.arvrlab.vps_sdk.data.repository.IVpsRepository
+import com.arvrlab.vps_sdk.domain.model.*
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
 import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
 import com.arvrlab.vps_sdk.domain.model.NodePoseModel
+import com.arvrlab.vps_sdk.domain.model.PoseModel
 import com.arvrlab.vps_sdk.domain.model.VpsLocationModel
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_HEIGHT
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_WIDTH
@@ -31,7 +33,7 @@ internal class VpsInteractor(
         force: Boolean,
         gpsLocation: GpsLocationModel?,
         cameraIntrinsics: CameraIntrinsics
-    ): NodePoseModel? {
+    ): PoseModel? {
         val byteArray = convertByteArray(source, localizationType)
 
         val vpsLocationModel = VpsLocationModel(

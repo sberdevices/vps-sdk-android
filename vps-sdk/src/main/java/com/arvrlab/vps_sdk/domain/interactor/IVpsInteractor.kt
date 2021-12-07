@@ -5,6 +5,7 @@ import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
 import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
 import com.arvrlab.vps_sdk.domain.model.NodePoseModel
+import com.arvrlab.vps_sdk.domain.model.PoseModel
 
 internal interface IVpsInteractor {
 
@@ -17,7 +18,7 @@ internal interface IVpsInteractor {
         force: Boolean = false,
         gpsLocation: GpsLocationModel? = null,
         cameraIntrinsics: CameraIntrinsics
-    ): NodePoseModel?
+    ): PoseModel?
 
     suspend fun calculateNodePose(
         url: String,

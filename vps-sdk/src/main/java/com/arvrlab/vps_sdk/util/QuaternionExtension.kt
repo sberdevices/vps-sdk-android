@@ -7,6 +7,7 @@ import kotlin.math.asin
 import kotlin.math.atan2
 
 private const val RAD_2_DEG = 180f / PI
+private const val DEG_2_RAD = 180f * PI
 
 fun Quaternion.getEulerAngles(): Vector3 {
     // https://github.com/coderlirui/quat2eul/blob/master/quat2eul.cpp
@@ -23,5 +24,8 @@ fun Quaternion.getEulerAngles(): Vector3 {
     return Vector3(rX.toDegrees(), rY.toDegrees(), rZ.toDegrees())
 }
 
-private fun Float.toDegrees(): Float =
+fun Float.toDegrees(): Float =
     (this * RAD_2_DEG).toFloat()
+
+fun Float.toRadians(): Float =
+    (this / DEG_2_RAD).toFloat()
