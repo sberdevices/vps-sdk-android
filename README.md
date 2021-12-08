@@ -1,3 +1,5 @@
+![logo](./img/logo.png)
+
 # VPS SDK (Android)
 
 ![MavenCentral](https://img.shields.io/static/v1?label=Maven%20Central&message=v.0.4.1&color=success&style=flat)
