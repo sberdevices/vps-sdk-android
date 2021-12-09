@@ -40,7 +40,16 @@ android {
 }
 
 dependencies {
-    api(project(":sceneformux"))
+    api(Lib.arCore)
+
+    implementation(files("libs/libsceneform_runtime_schemas.jar"))
+
+    api(Lib.filamentAndroid)
+    api(Lib.gltfioAndroid)
+
+    compileOnly(Lib.appcompat)
+    compileOnly(Lib.material)
+
 
     implementation(Lib.coreKtx)
     implementation(Lib.appcompat)

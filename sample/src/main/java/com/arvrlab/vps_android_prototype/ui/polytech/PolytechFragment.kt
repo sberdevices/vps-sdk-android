@@ -20,7 +20,8 @@ class PolytechFragment : SceneFragment() {
         locationID = LOCATION_ID
     )
 
-    private val occluderNode: Node = Node()
+    private val occluderNode: Node =
+        Node()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
