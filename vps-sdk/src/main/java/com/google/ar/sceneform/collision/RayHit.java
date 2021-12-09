@@ -9,49 +9,57 @@ import com.google.ar.sceneform.utilities.Preconditions;
  * @hide
  */
 public class RayHit {
-  private float distance = Float.MAX_VALUE;
-  private final Vector3 point = new Vector3();
+    private final Vector3 point = new Vector3();
+    private float distance = Float.MAX_VALUE;
 
-  /** @hide */
-  public void setDistance(float distance) {
-    this.distance = distance;
-  }
+    /**
+     * Get the distance along the ray to the impact point on the surface of the collision shape.
+     *
+     * @return distance along the ray that the hit occurred at
+     */
+    public float getDistance() {
+        return distance;
+    }
 
-  /**
-   * Get the distance along the ray to the impact point on the surface of the collision shape.
-   *
-   * @return distance along the ray that the hit occurred at
-   */
-  public float getDistance() {
-    return distance;
-  }
+    /**
+     * @hide
+     */
+    public void setDistance(float distance) {
+        this.distance = distance;
+    }
 
-  /** @hide */
-  public void setPoint(Vector3 point) {
-    Preconditions.checkNotNull(point, "Parameter \"point\" was null.");
-    this.point.set(point);
-  }
+    /**
+     * Get the position in world-space where the ray hit the collision shape.
+     *
+     * @return a new vector that represents the position in world-space that the hit occurred at
+     */
+    public Vector3 getPoint() {
+        return new Vector3(point);
+    }
 
-  /**
-   * Get the position in world-space where the ray hit the collision shape.
-   *
-   * @return a new vector that represents the position in world-space that the hit occurred at
-   */
-  public Vector3 getPoint() {
-    return new Vector3(point);
-  }
+    /**
+     * @hide
+     */
+    public void setPoint(Vector3 point) {
+        Preconditions.checkNotNull(point, "Parameter \"point\" was null.");
+        this.point.set(point);
+    }
 
-  /** @hide */
-  public void set(RayHit other) {
-    Preconditions.checkNotNull(other, "Parameter \"other\" was null.");
+    /**
+     * @hide
+     */
+    public void set(RayHit other) {
+        Preconditions.checkNotNull(other, "Parameter \"other\" was null.");
 
-    setDistance(other.distance);
-    setPoint(other.point);
-  }
+        setDistance(other.distance);
+        setPoint(other.point);
+    }
 
-  /** @hide */
-  public void reset() {
-    distance = Float.MAX_VALUE;
-    point.set(0, 0, 0);
-  }
+    /**
+     * @hide
+     */
+    public void reset() {
+        distance = Float.MAX_VALUE;
+        point.set(0, 0, 0);
+    }
 }

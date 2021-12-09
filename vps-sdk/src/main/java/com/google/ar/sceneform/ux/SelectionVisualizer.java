@@ -15,14 +15,18 @@
  */
 package com.google.ar.sceneform.ux;
 
-/** Interface to visual when a {@link BaseTransformableNode} is selected. */
+/**
+ * Interface to visual when a {@link BaseTransformableNode} is selected.
+ */
 public interface SelectionVisualizer {
 
-  /** Adds a visual that indicates a {@link BaseTransformableNode} is currently selected. */
-  void applySelectionVisual(BaseTransformableNode node);
+    /**
+     * Adds a visual that indicates a {@link BaseTransformableNode} is currently selected.
+     */
+    void applySelectionVisual(BaseTransformableNode node);
 
-  /**
-   * Removes the visual that was indicating a {@link BaseTransformableNode} is currently selected.
-   */
-  void removeSelectionVisual(BaseTransformableNode node);
+    /**
+     * Removes the visual that was indicating a {@link BaseTransformableNode} is currently selected.
+     */
+    void removeSelectionVisual(BaseTransformableNode node);
 }

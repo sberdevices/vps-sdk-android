@@ -16,27 +16,33 @@
 package com.google.ar.sceneform.ux;
 
 import android.view.MotionEvent;
+
 import com.google.ar.sceneform.HitTestResult;
 
-/** Gesture Recognizer for when the user performs a drag motion on the touch screen. */
+/**
+ * Gesture Recognizer for when the user performs a drag motion on the touch screen.
+ */
 public class DragGestureRecognizer extends BaseGestureRecognizer<DragGesture> {
-  /** Interface definition for a callbacks to be invoked when a {@link DragGesture} starts. */
-  public interface OnGestureStartedListener
-      extends BaseGestureRecognizer.OnGestureStartedListener<DragGesture> {}
-
-  public DragGestureRecognizer(GesturePointersUtility gesturePointersUtility) {
-    super(gesturePointersUtility);
-  }
-
-  @Override
-  protected void tryCreateGestures(HitTestResult hitTestResult, MotionEvent motionEvent) {
-    int action = motionEvent.getActionMasked();
-    int actionId = motionEvent.getPointerId(motionEvent.getActionIndex());
-    boolean touchBegan =
-        action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN;
-
-    if (touchBegan && !gesturePointersUtility.isPointerIdRetained(actionId)) {
-      gestures.add(new DragGesture(gesturePointersUtility, hitTestResult, motionEvent));
+    public DragGestureRecognizer(GesturePointersUtility gesturePointersUtility) {
+        super(gesturePointersUtility);
     }
-  }
+
+    @Override
+    protected void tryCreateGestures(HitTestResult hitTestResult, MotionEvent motionEvent) {
+        int action = motionEvent.getActionMasked();
+        int actionId = motionEvent.getPointerId(motionEvent.getActionIndex());
+        boolean touchBegan =
+                action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN;
+
+        if (touchBegan && !gesturePointersUtility.isPointerIdRetained(actionId)) {
+            gestures.add(new DragGesture(gesturePointersUtility, hitTestResult, motionEvent));
+        }
+    }
+
+    /**
+     * Interface definition for a callbacks to be invoked when a {@link DragGesture} starts.
+     */
+    public interface OnGestureStartedListener
+            extends BaseGestureRecognizer.OnGestureStartedListener<DragGesture> {
+    }
 }

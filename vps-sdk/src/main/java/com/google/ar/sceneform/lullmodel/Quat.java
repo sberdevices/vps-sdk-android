@@ -2,27 +2,46 @@
 
 package com.google.ar.sceneform.lullmodel;
 
-import java.nio.*;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.Struct;
 
-import com.google.flatbuffers.*;
+import java.nio.ByteBuffer;
 
 @SuppressWarnings("unused")
 public final class Quat extends Struct {
-  public void __init(int _i, ByteBuffer _bb) { bb_pos = _i; bb = _bb; }
-  public Quat __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
+    public static int createQuat(FlatBufferBuilder builder, float x, float y, float z, float w) {
+        builder.prep(4, 16);
+        builder.putFloat(w);
+        builder.putFloat(z);
+        builder.putFloat(y);
+        builder.putFloat(x);
+        return builder.offset();
+    }
 
-  public float x() { return bb.getFloat(bb_pos + 0); }
-  public float y() { return bb.getFloat(bb_pos + 4); }
-  public float z() { return bb.getFloat(bb_pos + 8); }
-  public float w() { return bb.getFloat(bb_pos + 12); }
+    public void __init(int _i, ByteBuffer _bb) {
+        bb_pos = _i;
+        bb = _bb;
+    }
 
-  public static int createQuat(FlatBufferBuilder builder, float x, float y, float z, float w) {
-    builder.prep(4, 16);
-    builder.putFloat(w);
-    builder.putFloat(z);
-    builder.putFloat(y);
-    builder.putFloat(x);
-    return builder.offset();
-  }
+    public Quat __assign(int _i, ByteBuffer _bb) {
+        __init(_i, _bb);
+        return this;
+    }
+
+    public float x() {
+        return bb.getFloat(bb_pos + 0);
+    }
+
+    public float y() {
+        return bb.getFloat(bb_pos + 4);
+    }
+
+    public float z() {
+        return bb.getFloat(bb_pos + 8);
+    }
+
+    public float w() {
+        return bb.getFloat(bb_pos + 12);
+    }
 }
 

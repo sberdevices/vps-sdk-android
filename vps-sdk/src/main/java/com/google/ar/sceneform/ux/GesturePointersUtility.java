@@ -18,7 +18,9 @@ package com.google.ar.sceneform.ux;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.MotionEvent;
+
 import com.google.ar.sceneform.math.Vector3;
+
 import java.util.HashSet;
 
 /**
@@ -26,40 +28,40 @@ import java.util.HashSet;
  * Provides helper functions for converting touch coordinates between pixels and inches.
  */
 public class GesturePointersUtility {
-  private final DisplayMetrics displayMetrics;
-  private final HashSet<Integer> retainedPointerIds;
+    private final DisplayMetrics displayMetrics;
+    private final HashSet<Integer> retainedPointerIds;
 
-  public GesturePointersUtility(DisplayMetrics displayMetrics) {
-    this.displayMetrics = displayMetrics;
-    retainedPointerIds = new HashSet<>();
-  }
-
-  public void retainPointerId(int pointerId) {
-    if (!isPointerIdRetained(pointerId)) {
-      retainedPointerIds.add(pointerId);
+    public GesturePointersUtility(DisplayMetrics displayMetrics) {
+        this.displayMetrics = displayMetrics;
+        retainedPointerIds = new HashSet<>();
     }
-  }
 
-  public void releasePointerId(int pointerId) {
-    retainedPointerIds.remove(Integer.valueOf(pointerId));
-  }
+    public static Vector3 motionEventToPosition(MotionEvent me, int pointerId) {
+        int index = me.findPointerIndex(pointerId);
+        return new Vector3(me.getX(index), me.getY(index), 0.0f);
+    }
 
-  public boolean isPointerIdRetained(int pointerId) {
-    return retainedPointerIds.contains(pointerId);
-  }
+    public void retainPointerId(int pointerId) {
+        if (!isPointerIdRetained(pointerId)) {
+            retainedPointerIds.add(pointerId);
+        }
+    }
 
-  public float inchesToPixels(float inches) {
-    return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_IN, inches, displayMetrics);
-  }
+    public void releasePointerId(int pointerId) {
+        retainedPointerIds.remove(Integer.valueOf(pointerId));
+    }
 
-  public float pixelsToInches(float pixels) {
-    float inchOfPixels =
-        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_IN, 1.0f, displayMetrics);
-    return pixels / inchOfPixels;
-  }
+    public boolean isPointerIdRetained(int pointerId) {
+        return retainedPointerIds.contains(pointerId);
+    }
 
-  public static Vector3 motionEventToPosition(MotionEvent me, int pointerId) {
-    int index = me.findPointerIndex(pointerId);
-    return new Vector3(me.getX(index), me.getY(index), 0.0f);
-  }
+    public float inchesToPixels(float inches) {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_IN, inches, displayMetrics);
+    }
+
+    public float pixelsToInches(float pixels) {
+        float inchOfPixels =
+                TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_IN, 1.0f, displayMetrics);
+        return pixels / inchOfPixels;
+    }
 }

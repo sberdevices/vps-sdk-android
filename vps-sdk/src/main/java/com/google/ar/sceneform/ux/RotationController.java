@@ -24,36 +24,37 @@ import com.google.ar.sceneform.math.Vector3;
  */
 public class RotationController extends BaseTransformationController<TwistGesture> {
 
-  // Rate that the node rotates in degrees per degree of twisting.
-  private float rotationRateDegrees = 2.5f;
+    // Rate that the node rotates in degrees per degree of twisting.
+    private float rotationRateDegrees = 2.5f;
 
-  public RotationController(
-      BaseTransformableNode transformableNode, TwistGestureRecognizer gestureRecognizer) {
-    super(transformableNode, gestureRecognizer);
-  }
+    public RotationController(
+            BaseTransformableNode transformableNode, TwistGestureRecognizer gestureRecognizer) {
+        super(transformableNode, gestureRecognizer);
+    }
 
-  public void setRotationRateDegrees(float rotationRateDegrees) {
-    this.rotationRateDegrees = rotationRateDegrees;
-  }
+    public float getRotationRateDegrees() {
+        return rotationRateDegrees;
+    }
 
-  public float getRotationRateDegrees() {
-    return rotationRateDegrees;
-  }
+    public void setRotationRateDegrees(float rotationRateDegrees) {
+        this.rotationRateDegrees = rotationRateDegrees;
+    }
 
-  @Override
-  public boolean canStartTransformation(TwistGesture gesture) {
-    return getTransformableNode().isSelected();
-  }
+    @Override
+    public boolean canStartTransformation(TwistGesture gesture) {
+        return getTransformableNode().isSelected();
+    }
 
-  @Override
-  public void onContinueTransformation(TwistGesture gesture) {
-    float rotationAmount = -gesture.getDeltaRotationDegrees() * rotationRateDegrees;
-    Quaternion rotationDelta = new Quaternion(Vector3.up(), rotationAmount);
-    Quaternion localrotation = getTransformableNode().getLocalRotation();
-    localrotation = Quaternion.multiply(localrotation, rotationDelta);
-    getTransformableNode().setLocalRotation(localrotation);
-  }
+    @Override
+    public void onContinueTransformation(TwistGesture gesture) {
+        float rotationAmount = -gesture.getDeltaRotationDegrees() * rotationRateDegrees;
+        Quaternion rotationDelta = new Quaternion(Vector3.up(), rotationAmount);
+        Quaternion localrotation = getTransformableNode().getLocalRotation();
+        localrotation = Quaternion.multiply(localrotation, rotationDelta);
+        getTransformableNode().setLocalRotation(localrotation);
+    }
 
-  @Override
-  public void onEndTransformation(TwistGesture gesture) {}
+    @Override
+    public void onEndTransformation(TwistGesture gesture) {
+    }
 }

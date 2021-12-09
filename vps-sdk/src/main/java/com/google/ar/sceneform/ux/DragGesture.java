@@ -17,138 +17,137 @@ package com.google.ar.sceneform.ux;
 
 import android.util.Log;
 import android.view.MotionEvent;
+
 import com.google.ar.sceneform.HitTestResult;
 import com.google.ar.sceneform.math.Vector3;
 
-/** Gesture for when the user performs a drag motion on the touch screen. */
+/**
+ * Gesture for when the user performs a drag motion on the touch screen.
+ */
 public class DragGesture extends BaseGesture<DragGesture> {
-  private static final String TAG = DragGesture.class.getSimpleName();
+    private static final String TAG = DragGesture.class.getSimpleName();
+    private static final float SLOP_INCHES = 0.1f;
+    private static final boolean DRAG_GESTURE_DEBUG = false;
+    private final Vector3 startPosition;
+    private final Vector3 position;
+    private final Vector3 delta;
+    private final int pointerId;
+    public DragGesture(
+            GesturePointersUtility gesturePointersUtility,
+            HitTestResult hitTestResult,
+            MotionEvent motionEvent) {
+        super(gesturePointersUtility);
 
-  /** Interface definition for callbacks to be invoked by a {@link DragGesture}. */
-  public interface OnGestureEventListener extends BaseGesture.OnGestureEventListener<DragGesture> {}
-
-  private final Vector3 startPosition;
-  private final Vector3 position;
-  private final Vector3 delta;
-  private final int pointerId;
-
-  private static final float SLOP_INCHES = 0.1f;
-  private static final boolean DRAG_GESTURE_DEBUG = false;
-
-  public DragGesture(
-      GesturePointersUtility gesturePointersUtility,
-      HitTestResult hitTestResult,
-      MotionEvent motionEvent) {
-    super(gesturePointersUtility);
-
-    pointerId = motionEvent.getPointerId(motionEvent.getActionIndex());
-    startPosition = GesturePointersUtility.motionEventToPosition(motionEvent, pointerId);
-    position = new Vector3(startPosition);
-    delta = Vector3.zero();
-    targetNode = hitTestResult.getNode();
-    debugLog("Created: " + pointerId);
-  }
-
-  public Vector3 getPosition() {
-    return new Vector3(position);
-  }
-
-  public Vector3 getDelta() {
-    return new Vector3(delta);
-  }
-
-  @Override
-  protected boolean canStart(HitTestResult hitTestResult, MotionEvent motionEvent) {
-    int actionId = motionEvent.getPointerId(motionEvent.getActionIndex());
-    int action = motionEvent.getActionMasked();
-
-    if (gesturePointersUtility.isPointerIdRetained(pointerId)) {
-      cancel();
-      return false;
+        pointerId = motionEvent.getPointerId(motionEvent.getActionIndex());
+        startPosition = GesturePointersUtility.motionEventToPosition(motionEvent, pointerId);
+        position = new Vector3(startPosition);
+        delta = Vector3.zero();
+        targetNode = hitTestResult.getNode();
+        debugLog("Created: " + pointerId);
     }
 
-    if (actionId == pointerId
-        && (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP)) {
-      cancel();
-      return false;
-    } else if (action == MotionEvent.ACTION_CANCEL) {
-      cancel();
-      return false;
-    }
-
-    if (action != MotionEvent.ACTION_MOVE) {
-      return false;
-    }
-
-    if (motionEvent.getPointerCount() > 1) {
-      for (int i = 0; i < motionEvent.getPointerCount(); i++) {
-        int id = motionEvent.getPointerId(i);
-        if (id != pointerId && !gesturePointersUtility.isPointerIdRetained(id)) {
-          return false;
+    private static void debugLog(String log) {
+        if (DRAG_GESTURE_DEBUG) {
+            Log.d(TAG, "DragGesture:[" + log + "]");
         }
-      }
     }
 
-    Vector3 newPosition = GesturePointersUtility.motionEventToPosition(motionEvent, pointerId);
-    float diff = Vector3.subtract(newPosition, startPosition).length();
-    float slopPixels = gesturePointersUtility.inchesToPixels(SLOP_INCHES);
-    if (diff >= slopPixels) {
-      return true;
+    public Vector3 getPosition() {
+        return new Vector3(position);
     }
 
-    return false;
-  }
-
-  @Override
-  protected void onStart(HitTestResult hitTestResult, MotionEvent motionEvent) {
-    debugLog("Started: " + pointerId);
-
-    position.set(GesturePointersUtility.motionEventToPosition(motionEvent, pointerId));
-    gesturePointersUtility.retainPointerId(pointerId);
-  }
-
-  @Override
-  protected boolean updateGesture(HitTestResult hitTestResult, MotionEvent motionEvent) {
-    int actionId = motionEvent.getPointerId(motionEvent.getActionIndex());
-    int action = motionEvent.getActionMasked();
-
-    if (action == MotionEvent.ACTION_MOVE) {
-      Vector3 newPosition = GesturePointersUtility.motionEventToPosition(motionEvent, pointerId);
-      if (!Vector3.equals(newPosition, position)) {
-        delta.set(Vector3.subtract(newPosition, position));
-        position.set(newPosition);
-        debugLog("Updated: " + pointerId + " : " + position);
-        return true;
-      }
-    } else if (actionId == pointerId
-        && (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP)) {
-      complete();
-    } else if (action == MotionEvent.ACTION_CANCEL) {
-      cancel();
+    public Vector3 getDelta() {
+        return new Vector3(delta);
     }
 
-    return false;
-  }
+    @Override
+    protected boolean canStart(HitTestResult hitTestResult, MotionEvent motionEvent) {
+        int actionId = motionEvent.getPointerId(motionEvent.getActionIndex());
+        int action = motionEvent.getActionMasked();
 
-  @Override
-  protected void onCancel() {
-    debugLog("Cancelled: " + pointerId);
-  }
+        if (gesturePointersUtility.isPointerIdRetained(pointerId)) {
+            cancel();
+            return false;
+        }
 
-  @Override
-  protected void onFinish() {
-    debugLog("Finished: " + pointerId);
-    gesturePointersUtility.releasePointerId(pointerId);
-  }
+        if (actionId == pointerId
+                && (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP)) {
+            cancel();
+            return false;
+        } else if (action == MotionEvent.ACTION_CANCEL) {
+            cancel();
+            return false;
+        }
 
-  @Override
-  protected DragGesture getSelf() {
-    return this;
-  }
+        if (action != MotionEvent.ACTION_MOVE) {
+            return false;
+        }
 
-  private static void debugLog(String log) {
-    if (DRAG_GESTURE_DEBUG) {
-      Log.d(TAG, "DragGesture:[" + log + "]");
+        if (motionEvent.getPointerCount() > 1) {
+            for (int i = 0; i < motionEvent.getPointerCount(); i++) {
+                int id = motionEvent.getPointerId(i);
+                if (id != pointerId && !gesturePointersUtility.isPointerIdRetained(id)) {
+                    return false;
+                }
+            }
+        }
+
+        Vector3 newPosition = GesturePointersUtility.motionEventToPosition(motionEvent, pointerId);
+        float diff = Vector3.subtract(newPosition, startPosition).length();
+        float slopPixels = gesturePointersUtility.inchesToPixels(SLOP_INCHES);
+        return diff >= slopPixels;
     }
-  }
+
+    @Override
+    protected void onStart(HitTestResult hitTestResult, MotionEvent motionEvent) {
+        debugLog("Started: " + pointerId);
+
+        position.set(GesturePointersUtility.motionEventToPosition(motionEvent, pointerId));
+        gesturePointersUtility.retainPointerId(pointerId);
+    }
+
+    @Override
+    protected boolean updateGesture(HitTestResult hitTestResult, MotionEvent motionEvent) {
+        int actionId = motionEvent.getPointerId(motionEvent.getActionIndex());
+        int action = motionEvent.getActionMasked();
+
+        if (action == MotionEvent.ACTION_MOVE) {
+            Vector3 newPosition = GesturePointersUtility.motionEventToPosition(motionEvent, pointerId);
+            if (!Vector3.equals(newPosition, position)) {
+                delta.set(Vector3.subtract(newPosition, position));
+                position.set(newPosition);
+                debugLog("Updated: " + pointerId + " : " + position);
+                return true;
+            }
+        } else if (actionId == pointerId
+                && (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP)) {
+            complete();
+        } else if (action == MotionEvent.ACTION_CANCEL) {
+            cancel();
+        }
+
+        return false;
+    }
+
+    @Override
+    protected void onCancel() {
+        debugLog("Cancelled: " + pointerId);
+    }
+
+    @Override
+    protected void onFinish() {
+        debugLog("Finished: " + pointerId);
+        gesturePointersUtility.releasePointerId(pointerId);
+    }
+
+    @Override
+    protected DragGesture getSelf() {
+        return this;
+    }
+
+    /**
+     * Interface definition for callbacks to be invoked by a {@link DragGesture}.
+     */
+    public interface OnGestureEventListener extends BaseGesture.OnGestureEventListener<DragGesture> {
+    }
 }

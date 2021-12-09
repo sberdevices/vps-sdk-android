@@ -15,8 +15,10 @@
  */
 package com.google.ar.sceneform.ux;
 
-import androidx.annotation.Nullable;
 import android.view.MotionEvent;
+
+import androidx.annotation.Nullable;
+
 import com.google.ar.sceneform.HitTestResult;
 import com.google.ar.sceneform.Node;
 
@@ -29,115 +31,116 @@ import com.google.ar.sceneform.Node;
  * <p>Gestures are created and updated by BaseGestureRecognizer's.
  */
 public abstract class BaseGesture<T extends BaseGesture<T>> {
-  /** Interface definition for callbacks to be invoked by a {@link BaseGesture}. */
-  public interface OnGestureEventListener<T extends BaseGesture<T>> {
-    void onUpdated(T gesture);
-
-    void onFinished(T gesture);
-  }
-
-  protected final GesturePointersUtility gesturePointersUtility;
-
-  private boolean hasStarted;
-  private boolean justStarted;
-  private boolean hasFinished;
-  private boolean wasCancelled;
-
-  @Nullable protected Node targetNode;
-  @Nullable private OnGestureEventListener<T> eventListener;
-
-  public BaseGesture(GesturePointersUtility gesturePointersUtility) {
-    this.gesturePointersUtility = gesturePointersUtility;
-  }
-
-  public boolean hasStarted() {
-    return hasStarted;
-  }
-
-  public boolean justStarted() {
-    return justStarted;
-  }
-
-  public boolean hasFinished() {
-    return hasFinished;
-  }
-
-  public boolean wasCancelled() {
-    return wasCancelled;
-  }
-
-  @Nullable
-  public Node getTargetNode() {
-    return targetNode;
-  }
-
-  public float inchesToPixels(float inches) {
-    return gesturePointersUtility.inchesToPixels(inches);
-  }
-
-  public float pixelsToInches(float pixels) {
-    return gesturePointersUtility.pixelsToInches(pixels);
-  }
-
-  public void setGestureEventListener(@Nullable OnGestureEventListener<T> listener) {
-    eventListener = listener;
-  }
-
-  public void onTouch(HitTestResult hitTestResult, MotionEvent motionEvent) {
-    if (!hasStarted && canStart(hitTestResult, motionEvent)) {
-      start(hitTestResult, motionEvent);
-      return;
+    protected final GesturePointersUtility gesturePointersUtility;
+    @Nullable
+    protected Node targetNode;
+    private boolean hasStarted;
+    private boolean justStarted;
+    private boolean hasFinished;
+    private boolean wasCancelled;
+    @Nullable
+    private OnGestureEventListener<T> eventListener;
+    public BaseGesture(GesturePointersUtility gesturePointersUtility) {
+        this.gesturePointersUtility = gesturePointersUtility;
     }
-    justStarted = false;
-    if (hasStarted) {
-      if (updateGesture(hitTestResult, motionEvent)) {
-        dispatchUpdateEvent();
-      }
+
+    public boolean hasStarted() {
+        return hasStarted;
     }
-  }
 
-  protected abstract boolean canStart(HitTestResult hitTestResult, MotionEvent motionEvent);
-
-  protected abstract void onStart(HitTestResult hitTestResult, MotionEvent motionEvent);
-
-  protected abstract boolean updateGesture(HitTestResult hitTestResult, MotionEvent motionEvent);
-
-  protected abstract void onCancel();
-
-  protected abstract void onFinish();
-
-  protected void cancel() {
-    wasCancelled = true;
-    onCancel();
-    complete();
-  }
-
-  protected void complete() {
-    hasFinished = true;
-    if (hasStarted) {
-      onFinish();
-      dispatchFinishedEvent();
+    public boolean justStarted() {
+        return justStarted;
     }
-  }
 
-  private void start(HitTestResult hitTestResult, MotionEvent motionEvent) {
-    hasStarted = true;
-    justStarted = true;
-    onStart(hitTestResult, motionEvent);
-  }
-
-  private void dispatchUpdateEvent() {
-    if (eventListener != null) {
-      eventListener.onUpdated(getSelf());
+    public boolean hasFinished() {
+        return hasFinished;
     }
-  }
 
-  private void dispatchFinishedEvent() {
-    if (eventListener != null) {
-      eventListener.onFinished(getSelf());
+    public boolean wasCancelled() {
+        return wasCancelled;
     }
-  }
 
-  // For compile-time safety so we don't need to cast when dispatching events.
-  protected abstract T getSelf();
+    @Nullable
+    public Node getTargetNode() {
+        return targetNode;
+    }
+
+    public float inchesToPixels(float inches) {
+        return gesturePointersUtility.inchesToPixels(inches);
+    }
+
+    public float pixelsToInches(float pixels) {
+        return gesturePointersUtility.pixelsToInches(pixels);
+    }
+
+    public void setGestureEventListener(@Nullable OnGestureEventListener<T> listener) {
+        eventListener = listener;
+    }
+
+    public void onTouch(HitTestResult hitTestResult, MotionEvent motionEvent) {
+        if (!hasStarted && canStart(hitTestResult, motionEvent)) {
+            start(hitTestResult, motionEvent);
+            return;
+        }
+        justStarted = false;
+        if (hasStarted) {
+            if (updateGesture(hitTestResult, motionEvent)) {
+                dispatchUpdateEvent();
+            }
+        }
+    }
+
+    protected abstract boolean canStart(HitTestResult hitTestResult, MotionEvent motionEvent);
+
+    protected abstract void onStart(HitTestResult hitTestResult, MotionEvent motionEvent);
+
+    protected abstract boolean updateGesture(HitTestResult hitTestResult, MotionEvent motionEvent);
+
+    protected abstract void onCancel();
+
+    protected abstract void onFinish();
+
+    protected void cancel() {
+        wasCancelled = true;
+        onCancel();
+        complete();
+    }
+
+    protected void complete() {
+        hasFinished = true;
+        if (hasStarted) {
+            onFinish();
+            dispatchFinishedEvent();
+        }
+    }
+
+    private void start(HitTestResult hitTestResult, MotionEvent motionEvent) {
+        hasStarted = true;
+        justStarted = true;
+        onStart(hitTestResult, motionEvent);
+    }
+
+    private void dispatchUpdateEvent() {
+        if (eventListener != null) {
+            eventListener.onUpdated(getSelf());
+        }
+    }
+
+    private void dispatchFinishedEvent() {
+        if (eventListener != null) {
+            eventListener.onFinished(getSelf());
+        }
+    }
+
+    // For compile-time safety so we don't need to cast when dispatching events.
+    protected abstract T getSelf();
+
+    /**
+     * Interface definition for callbacks to be invoked by a {@link BaseGesture}.
+     */
+    public interface OnGestureEventListener<T extends BaseGesture<T>> {
+        void onUpdated(T gesture);
+
+        void onFinished(T gesture);
+    }
 }

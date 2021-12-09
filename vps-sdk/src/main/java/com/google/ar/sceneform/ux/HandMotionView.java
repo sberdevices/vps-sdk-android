@@ -25,34 +25,36 @@ import androidx.appcompat.widget.AppCompatImageView;
 import com.arvrlab.vps_sdk.R;
 
 
-/** This view contains the hand motion instructions with animation. */
+/**
+ * This view contains the hand motion instructions with animation.
+ */
 
 public class HandMotionView extends AppCompatImageView {
-  private HandMotionAnimation animation;
-  private static final long ANIMATION_SPEED_MS = 2500;
+    private static final long ANIMATION_SPEED_MS = 2500;
+    private HandMotionAnimation animation;
 
-  public HandMotionView(Context context) {
-    super(context);
-  }
+    public HandMotionView(Context context) {
+        super(context);
+    }
 
-  public HandMotionView(Context context, AttributeSet attrs) {
-    super(context, attrs);
-  }
+    public HandMotionView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+    }
 
-  @Override
-  protected void onAttachedToWindow() {
-    super.onAttachedToWindow();
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
 
-    clearAnimation();
+        clearAnimation();
 
-    FrameLayout container =
-        (FrameLayout) ((Activity) getContext()).findViewById(R.id.sceneform_hand_layout);
+        FrameLayout container =
+                ((Activity) getContext()).findViewById(R.id.sceneform_hand_layout);
 
-    animation = new HandMotionAnimation(container, this);
-    animation.setRepeatCount(Animation.INFINITE);
-    animation.setDuration(ANIMATION_SPEED_MS);
-    animation.setStartOffset(1000);
+        animation = new HandMotionAnimation(container, this);
+        animation.setRepeatCount(Animation.INFINITE);
+        animation.setDuration(ANIMATION_SPEED_MS);
+        animation.setStartOffset(1000);
 
-    startAnimation(animation);
-  }
+        startAnimation(animation);
+    }
 }

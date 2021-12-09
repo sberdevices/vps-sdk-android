@@ -15,40 +15,48 @@
  */
 package com.google.ar.sceneform.ux;
 
-import androidx.annotation.Nullable;
 import android.view.View;
+
+import androidx.annotation.Nullable;
 
 /**
  * This view manages showing the plane discovery instructions view. You can assign into the
  * planeDiscoveryView to override the default visual, or assign null to remove it.
  */
 public class PlaneDiscoveryController {
-  @Nullable private View planeDiscoveryView;
+    @Nullable
+    private View planeDiscoveryView;
 
-  public PlaneDiscoveryController(@Nullable View planeDiscoveryView) {
-    this.planeDiscoveryView = planeDiscoveryView;
-  }
-
-  /** Set the instructions view to present over the Sceneform view. */
-  public void setInstructionView(View view) {
-    planeDiscoveryView = view;
-  }
-
-  /** Show the plane discovery UX instructions for finding a plane. */
-  public void show() {
-    if (planeDiscoveryView == null) {
-      return;
+    public PlaneDiscoveryController(@Nullable View planeDiscoveryView) {
+        this.planeDiscoveryView = planeDiscoveryView;
     }
 
-    planeDiscoveryView.setVisibility(View.VISIBLE);
-  }
-
-  /** Hide the plane discovery UX instructions. */
-  public void hide() {
-    if (planeDiscoveryView == null) {
-      return;
+    /**
+     * Set the instructions view to present over the Sceneform view.
+     */
+    public void setInstructionView(View view) {
+        planeDiscoveryView = view;
     }
 
-    planeDiscoveryView.setVisibility(View.GONE);
-  }
+    /**
+     * Show the plane discovery UX instructions for finding a plane.
+     */
+    public void show() {
+        if (planeDiscoveryView == null) {
+            return;
+        }
+
+        planeDiscoveryView.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * Hide the plane discovery UX instructions.
+     */
+    public void hide() {
+        if (planeDiscoveryView == null) {
+            return;
+        }
+
+        planeDiscoveryView.setVisibility(View.GONE);
+    }
 }

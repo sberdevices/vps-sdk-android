@@ -47,10 +47,6 @@ dependencies {
     api(Lib.filamentAndroid)
     api(Lib.gltfioAndroid)
 
-    compileOnly(Lib.appcompat)
-    compileOnly(Lib.material)
-
-
     implementation(Lib.coreKtx)
     implementation(Lib.appcompat)
     implementation(Lib.material)

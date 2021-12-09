@@ -18,96 +18,100 @@ import com.google.android.filament.TransformManager;
 import com.google.android.filament.VertexBuffer;
 import com.google.android.filament.View;
 
-/** Engine interface to support multiple flavors of the getFilamentEngine filament engine. */
+/**
+ * Engine interface to support multiple flavors of the getFilamentEngine filament engine.
+ */
 public interface IEngine {
 
-  Engine getFilamentEngine();
+    Engine getFilamentEngine();
 
-  boolean isValid();
+    boolean isValid();
 
-  void destroy();
+    void destroy();
 
-  // SwapChain
+    // SwapChain
 
-  /** Valid surface types: - Android: Surface - Other: none */
-  SwapChain createSwapChain(Object surface);
+    /**
+     * Valid surface types: - Android: Surface - Other: none
+     */
+    SwapChain createSwapChain(Object surface);
 
-  /**
-   * Valid surface types: - Android: Surface - Other: none
-   *
-   * <p>Flags: see CONFIG flags in SwapChain.
-   *
-   * @see SwapChain#CONFIG_DEFAULT
-   * @see SwapChain#CONFIG_TRANSPARENT
-   * @see SwapChain#CONFIG_READABLE
-   */
-  SwapChain createSwapChain(Object surface, long flags);
+    /**
+     * Valid surface types: - Android: Surface - Other: none
+     *
+     * <p>Flags: see CONFIG flags in SwapChain.
+     *
+     * @see SwapChain#CONFIG_DEFAULT
+     * @see SwapChain#CONFIG_TRANSPARENT
+     * @see SwapChain#CONFIG_READABLE
+     */
+    SwapChain createSwapChain(Object surface, long flags);
 
-  SwapChain createSwapChainFromNativeSurface(NativeSurface surface, long flags);
+    SwapChain createSwapChainFromNativeSurface(NativeSurface surface, long flags);
 
-  void destroySwapChain(SwapChain swapChain);
+    void destroySwapChain(SwapChain swapChain);
 
-  // View
+    // View
 
-  View createView();
+    View createView();
 
-  void destroyView(View view);
+    void destroyView(View view);
 
-  // Renderer
+    // Renderer
 
-  com.google.android.filament.Renderer createRenderer();
+    com.google.android.filament.Renderer createRenderer();
 
-  void destroyRenderer(com.google.android.filament.Renderer renderer);
+    void destroyRenderer(com.google.android.filament.Renderer renderer);
 
-  // Camera
+    // Camera
 
-  Camera createCamera();
+    Camera createCamera();
 
-  Camera createCamera(@Entity int entity);
+    Camera createCamera(@Entity int entity);
 
-  void destroyCamera(Camera camera);
+    void destroyCamera(Camera camera);
 
-  // Scene
+    // Scene
 
-  Scene createScene();
+    Scene createScene();
 
-  void destroyScene(Scene scene);
+    void destroyScene(Scene scene);
 
-  // Stream
+    // Stream
 
-  void destroyStream(Stream stream);
+    void destroyStream(Stream stream);
 
-  // Fence
+    // Fence
 
-  Fence createFence();
+    Fence createFence();
 
-  void destroyFence(Fence fence);
+    void destroyFence(Fence fence);
 
-  // others...
+    // others...
 
-  void destroyIndexBuffer(IndexBuffer indexBuffer);
+    void destroyIndexBuffer(IndexBuffer indexBuffer);
 
-  void destroyVertexBuffer(VertexBuffer vertexBuffer);
+    void destroyVertexBuffer(VertexBuffer vertexBuffer);
 
-  void destroyIndirectLight(IndirectLight ibl);
+    void destroyIndirectLight(IndirectLight ibl);
 
-  void destroyMaterial(com.google.android.filament.Material material);
+    void destroyMaterial(com.google.android.filament.Material material);
 
-  void destroyMaterialInstance(MaterialInstance materialInstance);
+    void destroyMaterialInstance(MaterialInstance materialInstance);
 
-  void destroySkybox(Skybox skybox);
+    void destroySkybox(Skybox skybox);
 
-  void destroyTexture(com.google.android.filament.Texture texture);
+    void destroyTexture(com.google.android.filament.Texture texture);
 
-  void destroyEntity(@Entity int entity);
+    void destroyEntity(@Entity int entity);
 
-  // Managers
+    // Managers
 
-  TransformManager getTransformManager();
+    TransformManager getTransformManager();
 
-  LightManager getLightManager();
+    LightManager getLightManager();
 
-  RenderableManager getRenderableManager();
+    RenderableManager getRenderableManager();
 
-  void flushAndWait();
+    void flushAndWait();
 }

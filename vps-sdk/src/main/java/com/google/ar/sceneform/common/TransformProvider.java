@@ -9,5 +9,5 @@ import com.google.ar.sceneform.math.Matrix;
  * @hide
  */
 public interface TransformProvider {
-  Matrix getWorldModelMatrix();
+    Matrix getWorldModelMatrix();
 }

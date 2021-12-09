@@ -16,67 +16,73 @@
 package com.google.ar.sceneform.ux;
 
 import android.view.MotionEvent;
+
 import com.google.ar.sceneform.HitTestResult;
 import com.google.ar.sceneform.Node;
+
 import java.util.ArrayList;
 
 /**
  * Base class for nodes that can be transformed using gestures from {@link TransformationSystem}.
  */
 public abstract class BaseTransformableNode extends Node implements Node.OnTapListener {
-  private final TransformationSystem transformationSystem;
-  private final ArrayList<BaseTransformationController<?>> controllers = new ArrayList<>();
+    private final TransformationSystem transformationSystem;
+    private final ArrayList<BaseTransformationController<?>> controllers = new ArrayList<>();
 
-  @SuppressWarnings("initialization")
-  public BaseTransformableNode(TransformationSystem transformationSystem) {
-    this.transformationSystem = transformationSystem;
+    @SuppressWarnings("initialization")
+    public BaseTransformableNode(TransformationSystem transformationSystem) {
+        this.transformationSystem = transformationSystem;
 
-    setOnTapListener(this);
-  }
-
-  public TransformationSystem getTransformationSystem() {
-    return transformationSystem;
-  }
-
-  /** Returns true if any of the transformation controllers are actively transforming this node. */
-  public boolean isTransforming() {
-    for (int i = 0; i < controllers.size(); i++) {
-      if (controllers.get(i).isTransforming()) {
-        return true;
-      }
+        setOnTapListener(this);
     }
 
-    return false;
-  }
+    public TransformationSystem getTransformationSystem() {
+        return transformationSystem;
+    }
 
-  /** Returns true if this node is currently selected by the TransformationSystem. */
-  public boolean isSelected() {
-    return transformationSystem.getSelectedNode() == this;
-  }
+    /**
+     * Returns true if any of the transformation controllers are actively transforming this node.
+     */
+    public boolean isTransforming() {
+        for (int i = 0; i < controllers.size(); i++) {
+            if (controllers.get(i).isTransforming()) {
+                return true;
+            }
+        }
 
-  /**
-   * Sets this as the selected node in the TransformationSystem if there is no currently selected
-   * node or if the currently selected node is not actively being transformed.
-   *
-   * @see TransformableNode#isTransforming
-   * @return true if the node was successfully selected
-   */
-  public boolean select() {
-    return transformationSystem.selectNode(this);
-  }
+        return false;
+    }
 
-  @Override
-  public void onTap(HitTestResult hitTestResult, MotionEvent motionEvent) {
-    select();
-  }
+    /**
+     * Returns true if this node is currently selected by the TransformationSystem.
+     */
+    public boolean isSelected() {
+        return transformationSystem.getSelectedNode() == this;
+    }
 
-  protected void addTransformationController(
-      BaseTransformationController<?> transformationController) {
-    controllers.add(transformationController);
-  }
+    /**
+     * Sets this as the selected node in the TransformationSystem if there is no currently selected
+     * node or if the currently selected node is not actively being transformed.
+     *
+     * @return true if the node was successfully selected
+     * @see TransformableNode#isTransforming
+     */
+    public boolean select() {
+        return transformationSystem.selectNode(this);
+    }
 
-  protected void removeTransformationController(
-      BaseTransformationController<?> transformationController) {
-    controllers.remove(transformationController);
-  }
+    @Override
+    public void onTap(HitTestResult hitTestResult, MotionEvent motionEvent) {
+        select();
+    }
+
+    protected void addTransformationController(
+            BaseTransformationController<?> transformationController) {
+        controllers.add(transformationController);
+    }
+
+    protected void removeTransformationController(
+            BaseTransformationController<?> transformationController) {
+        controllers.remove(transformationController);
+    }
 }

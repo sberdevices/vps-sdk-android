@@ -17,6 +17,7 @@ package com.google.ar.sceneform.ux;
 
 import androidx.annotation.CallSuper;
 import androidx.annotation.Nullable;
+
 import com.google.ar.sceneform.FrameTime;
 import com.google.ar.sceneform.Node;
 
@@ -27,138 +28,140 @@ import com.google.ar.sceneform.Node;
  * <p>Example's include, changing the {@link TransformableNode}'s Scale based on a Pinch Gesture.
  */
 public abstract class BaseTransformationController<T extends BaseGesture<T>>
-    implements BaseGestureRecognizer.OnGestureStartedListener<T>,
+        implements BaseGestureRecognizer.OnGestureStartedListener<T>,
         BaseGesture.OnGestureEventListener<T>,
         Node.LifecycleListener {
-  private final BaseTransformableNode transformableNode;
-  private final BaseGestureRecognizer<T> gestureRecognizer;
+    private final BaseTransformableNode transformableNode;
+    private final BaseGestureRecognizer<T> gestureRecognizer;
 
-  @Nullable private T activeGesture;
-  private boolean enabled;
-  private boolean activeAndEnabled;
+    @Nullable
+    private T activeGesture;
+    private boolean enabled;
+    private boolean activeAndEnabled;
 
-  @SuppressWarnings("initialization") // Suppress @UnderInitialization warning.
-  public BaseTransformationController(
-      BaseTransformableNode transformableNode, BaseGestureRecognizer<T> gestureRecognizer) {
-    this.transformableNode = transformableNode;
-    this.transformableNode.addLifecycleListener(this);
-    this.gestureRecognizer = gestureRecognizer;
-    setEnabled(true);
-  }
-
-  public boolean isEnabled() {
-    return enabled;
-  }
-
-  @Nullable
-  public T getActiveGesture() {
-    return activeGesture;
-  }
-
-  public void setEnabled(boolean enabled) {
-    this.enabled = enabled;
-    updateActiveAndEnabled();
-  }
-
-  public boolean isTransforming() {
-    return activeGesture != null;
-  }
-
-  public BaseTransformableNode getTransformableNode() {
-    return transformableNode;
-  }
-
-  // ---------------------------------------------------------------------------------------
-  // Implementation of interface Node.LifecycleListener
-  // ---------------------------------------------------------------------------------------
-
-  @Override
-  @CallSuper
-  public void onActivated(Node node) {
-    updateActiveAndEnabled();
-  }
-
-  @Override
-  public void onUpdated(Node node, FrameTime frameTime) {}
-
-  @Override
-  @CallSuper
-  public void onDeactivated(Node node) {
-    updateActiveAndEnabled();
-  }
-
-  // ---------------------------------------------------------------------------------------
-  // Implementation of interface BaseGestureRecognizer.OnGestureStartedListener
-  // ---------------------------------------------------------------------------------------
-
-  @Override
-  public void onGestureStarted(T gesture) {
-    if (isTransforming()) {
-      return;
+    @SuppressWarnings("initialization") // Suppress @UnderInitialization warning.
+    public BaseTransformationController(
+            BaseTransformableNode transformableNode, BaseGestureRecognizer<T> gestureRecognizer) {
+        this.transformableNode = transformableNode;
+        this.transformableNode.addLifecycleListener(this);
+        this.gestureRecognizer = gestureRecognizer;
+        setEnabled(true);
     }
 
-    if (canStartTransformation(gesture)) {
-      setActiveGesture(gesture);
-    }
-  }
-
-  // ---------------------------------------------------------------------------------------
-  // Implementation of interface BaseGesture.OnGestureEventListener
-  // ---------------------------------------------------------------------------------------
-
-  @SuppressWarnings("UngroupedOverloads") // This is not an overload, it is a different interface.
-  @Override
-  public void onUpdated(T gesture) {
-    onContinueTransformation(gesture);
-  }
-
-  @Override
-  public void onFinished(T gesture) {
-    onEndTransformation(gesture);
-    setActiveGesture(null);
-  }
-
-  protected abstract boolean canStartTransformation(T gesture);
-
-  protected abstract void onContinueTransformation(T gesture);
-
-  protected abstract void onEndTransformation(T gesture);
-
-  private void setActiveGesture(@Nullable T gesture) {
-    if (activeGesture != null) {
-      activeGesture.setGestureEventListener(null);
+    public boolean isEnabled() {
+        return enabled;
     }
 
-    activeGesture = gesture;
-
-    if (activeGesture != null) {
-      activeGesture.setGestureEventListener(this);
-    }
-  }
-
-  private void updateActiveAndEnabled() {
-    boolean newActiveAndEnabled = getTransformableNode().isActive() && enabled;
-    if (newActiveAndEnabled == activeAndEnabled) {
-      return;
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        updateActiveAndEnabled();
     }
 
-    activeAndEnabled = newActiveAndEnabled;
-
-    if (activeAndEnabled) {
-      connectToRecognizer();
-    } else {
-      disconnectFromRecognizer();
-      if (activeGesture != null) {
-        activeGesture.cancel();
-      }
+    @Nullable
+    public T getActiveGesture() {
+        return activeGesture;
     }
-  }
 
-  private void connectToRecognizer() {
-    gestureRecognizer.addOnGestureStartedListener(this);
-  }
+    private void setActiveGesture(@Nullable T gesture) {
+        if (activeGesture != null) {
+            activeGesture.setGestureEventListener(null);
+        }
 
-  private void disconnectFromRecognizer() {
-    gestureRecognizer.removeOnGestureStartedListener(this);
-  }
+        activeGesture = gesture;
+
+        if (activeGesture != null) {
+            activeGesture.setGestureEventListener(this);
+        }
+    }
+
+    public boolean isTransforming() {
+        return activeGesture != null;
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // Implementation of interface Node.LifecycleListener
+    // ---------------------------------------------------------------------------------------
+
+    public BaseTransformableNode getTransformableNode() {
+        return transformableNode;
+    }
+
+    @Override
+    @CallSuper
+    public void onActivated(Node node) {
+        updateActiveAndEnabled();
+    }
+
+    @Override
+    public void onUpdated(Node node, FrameTime frameTime) {
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // Implementation of interface BaseGestureRecognizer.OnGestureStartedListener
+    // ---------------------------------------------------------------------------------------
+
+    @Override
+    @CallSuper
+    public void onDeactivated(Node node) {
+        updateActiveAndEnabled();
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // Implementation of interface BaseGesture.OnGestureEventListener
+    // ---------------------------------------------------------------------------------------
+
+    @Override
+    public void onGestureStarted(T gesture) {
+        if (isTransforming()) {
+            return;
+        }
+
+        if (canStartTransformation(gesture)) {
+            setActiveGesture(gesture);
+        }
+    }
+
+    @SuppressWarnings("UngroupedOverloads") // This is not an overload, it is a different interface.
+    @Override
+    public void onUpdated(T gesture) {
+        onContinueTransformation(gesture);
+    }
+
+    @Override
+    public void onFinished(T gesture) {
+        onEndTransformation(gesture);
+        setActiveGesture(null);
+    }
+
+    protected abstract boolean canStartTransformation(T gesture);
+
+    protected abstract void onContinueTransformation(T gesture);
+
+    protected abstract void onEndTransformation(T gesture);
+
+    private void updateActiveAndEnabled() {
+        boolean newActiveAndEnabled = getTransformableNode().isActive() && enabled;
+        if (newActiveAndEnabled == activeAndEnabled) {
+            return;
+        }
+
+        activeAndEnabled = newActiveAndEnabled;
+
+        if (activeAndEnabled) {
+            connectToRecognizer();
+        } else {
+            disconnectFromRecognizer();
+            if (activeGesture != null) {
+                activeGesture.cancel();
+            }
+        }
+    }
+
+    private void connectToRecognizer() {
+        gestureRecognizer.addOnGestureStartedListener(this);
+    }
+
+    private void disconnectFromRecognizer() {
+        gestureRecognizer.removeOnGestureStartedListener(this);
+    }
 }
