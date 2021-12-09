@@ -67,4 +67,6 @@ dependencies {
     implementation(Lib.tensorflowLite)
     implementation(Lib.tensorflowLiteGpu)
     implementation(Lib.tensorflowLiteSupport)
+
+    testImplementation(Lib.junit)
 }
