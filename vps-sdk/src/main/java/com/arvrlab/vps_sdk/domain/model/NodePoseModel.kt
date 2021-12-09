@@ -13,7 +13,7 @@ data class NodePoseModel(
     val yaw: Float = 0f
 ) {
     companion object {
-        val ZERO = NodePoseModel()
+        val DEFAULT = NodePoseModel(0f, 0f, 0f, 0f, 0f, 0f)
         val EMPTY = NodePoseModel(NaN, NaN, NaN, NaN, NaN, NaN)
     }
 

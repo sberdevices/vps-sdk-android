@@ -146,7 +146,7 @@ internal class VpsRepository(
 
     private fun ResponseRelativeModel?.toNodePoseModel(): NodePoseModel =
         if (this == null)
-            NodePoseModel.ZERO
+            NodePoseModel.DEFAULT
         else
             NodePoseModel(
                 x = this.x ?: 0f,

@@ -217,7 +217,7 @@ internal class VpsServiceImpl(
             cameraIntrinsics = arManager.getCameraIntrinsics()
             arManager.saveCameraPose(0)
             currentNodePose = if (force)
-                NodePoseModel.ZERO
+                NodePoseModel.DEFAULT
             else
                 arManager.getCameraLocalPose()
         }

@@ -9,7 +9,7 @@ data class GpsPoseModel(
     val heading: Float = 0f
 ) {
     companion object {
-        val ZERO = GpsPoseModel()
+        val DEFAULT = GpsPoseModel(0f, 0f, 0f, 0f)
         val EMPTY = GpsPoseModel(NaN, NaN, NaN, NaN)
     }
 }
