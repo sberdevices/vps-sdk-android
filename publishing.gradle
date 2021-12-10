@@ -76,5 +76,6 @@ private Properties loadLocalProperties() {
 
 private String loadSecretKey() {
     def file = getRootProject().file("secret.key")
+    if (!file.exists()) return ""
     return new String(file.readBytes())
 }
