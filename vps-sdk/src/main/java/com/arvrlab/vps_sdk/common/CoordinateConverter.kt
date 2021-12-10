@@ -2,7 +2,7 @@ package com.arvrlab.vps_sdk.common
 
 import com.arvrlab.vps_sdk.domain.model.GpsPoseModel
 import com.arvrlab.vps_sdk.domain.model.NodePoseModel
-import com.arvrlab.vps_sdk.domain.model.PoseModel
+import com.arvrlab.vps_sdk.domain.model.LocalizationModel
 import com.arvrlab.vps_sdk.util.getEulerAngles
 import com.arvrlab.vps_sdk.util.toRadians
 import com.google.ar.sceneform.math.Vector3
@@ -18,31 +18,29 @@ class CoordinateConverter internal constructor() {
         private const val MERIDIAN_ONE_DEGREES_DISTANCE = 40008.548 * 1000.0 / TWO_PI_DEGREES
         private const val EQUATOR_ONE_DEGREES_DISTANCE = 40075.0 * 1000.0 / TWO_PI_DEGREES
 
-        private const val PI_DIV_180 = Math.PI / 180.0
-
         fun instance(): CoordinateConverter =
             GlobalContext.get().get()
     }
 
-    private var prevPoseModel: PoseModel = PoseModel.EMPTY
+    private var prevLocalizationModel: LocalizationModel = LocalizationModel.EMPTY
 
     private var angleDifference: Float = 0f
 
-    internal fun updatePoseModel(poseModel: PoseModel) {
-        prevPoseModel = poseModel
-        angleDifference = calculateAngleDifference(poseModel)
+    internal fun updatePoseModel(localizationModel: LocalizationModel) {
+        prevLocalizationModel = localizationModel
+        angleDifference = calculateAngleDifference(localizationModel)
     }
 
     fun convertToGlobalCoordinate(nodePoseModel: NodePoseModel): GpsPoseModel {
-        if (prevPoseModel == PoseModel.EMPTY) return GpsPoseModel.EMPTY
+        if (prevLocalizationModel == LocalizationModel.EMPTY) return GpsPoseModel.EMPTY
 
         val nodePoseHeading = nodePoseModel.getRotation().getEulerAngles().y
 
         val prevCoordinate =
-            rotatedCoordinate(angleDifference, prevPoseModel.nodePoseModel.getPosition())
+            rotatedCoordinate(angleDifference, prevLocalizationModel.nodePoseModel.getPosition())
         val currentCoordinate = rotatedCoordinate(angleDifference, nodePoseModel.getPosition())
         val coordinate =
-            calculateGpsCoordinate(prevCoordinate, currentCoordinate, prevPoseModel.gpsPoseModel)
+            calculateGpsCoordinate(prevCoordinate, currentCoordinate, prevLocalizationModel.gpsPoseModel)
 
         var heading = nodePoseHeading - angleDifference
 
@@ -53,12 +51,12 @@ class CoordinateConverter internal constructor() {
     }
 
     fun convertToLocalCoordinate(gpsPoseModel: GpsPoseModel): NodePoseModel {
-        if (prevPoseModel == PoseModel.EMPTY) return NodePoseModel.EMPTY
+        if (prevLocalizationModel == LocalizationModel.EMPTY) return NodePoseModel.EMPTY
 
         val position = calculateArCoreCoordinate(
-            prevPoseModel.gpsPoseModel,
+            prevLocalizationModel.gpsPoseModel,
             gpsPoseModel,
-            prevPoseModel.nodePoseModel.getPosition(),
+            prevLocalizationModel.nodePoseModel.getPosition(),
             -angleDifference
         )
         val angleY = -gpsPoseModel.heading - angleDifference
@@ -76,7 +74,7 @@ class CoordinateConverter internal constructor() {
         val latitude = gpsPoseModel.latitude
         val longitude = gpsPoseModel.longitude
 
-        val oneDegreesLongitude = cos(prevLatitude * PI_DIV_180) * EQUATOR_ONE_DEGREES_DISTANCE
+        val oneDegreesLongitude = cos(prevLatitude.toRadians()) * EQUATOR_ONE_DEGREES_DISTANCE
         val dx = (longitude - prevLongitude) * oneDegreesLongitude
         val dz = (latitude - prevLatitude) * MERIDIAN_ONE_DEGREES_DISTANCE
 
@@ -98,9 +96,9 @@ class CoordinateConverter internal constructor() {
         return Vector3(newX, point.y, newZ)
     }
 
-    private fun calculateAngleDifference(poseModel: PoseModel): Float {
-        val angle = poseModel.nodePoseModel.getRotation().getEulerAngles().y
-        return -(poseModel.gpsPoseModel.heading - angle)
+    private fun calculateAngleDifference(localizationModel: LocalizationModel): Float {
+        val angle = localizationModel.nodePoseModel.getRotation().getEulerAngles().y
+        return -(localizationModel.gpsPoseModel.heading - angle)
     }
 
     private fun calculateGpsCoordinate(
@@ -112,7 +110,7 @@ class CoordinateConverter internal constructor() {
         val dz = currentCoordinate.z - prevCoordinate.z
 
         val oneDegreesLongitude =
-            cos(gpsPoseModel.latitude * PI_DIV_180) * EQUATOR_ONE_DEGREES_DISTANCE
+            cos(gpsPoseModel.latitude.toRadians()) * EQUATOR_ONE_DEGREES_DISTANCE
 
         val latitude = gpsPoseModel.latitude - dz / MERIDIAN_ONE_DEGREES_DISTANCE
         val longitude = gpsPoseModel.longitude + dx / oneDegreesLongitude

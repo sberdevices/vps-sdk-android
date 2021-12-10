@@ -1,10 +1,10 @@
 package com.arvrlab.vps_sdk.domain.model
 
-internal data class PoseModel(
+internal data class LocalizationModel(
     val nodePoseModel: NodePoseModel,
     val gpsPoseModel: GpsPoseModel
 ) {
     companion object {
-        val EMPTY = PoseModel(NodePoseModel.EMPTY, GpsPoseModel.EMPTY)
+        val EMPTY = LocalizationModel(NodePoseModel.EMPTY, GpsPoseModel.EMPTY)
     }
 }

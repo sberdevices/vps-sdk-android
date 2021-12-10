@@ -59,7 +59,7 @@ internal class VpsServiceImpl(
     private var vpsJob: Job? = null
     private var state: State = State.STOP
 
-    private var lastPose: PoseModel = PoseModel.EMPTY
+    private var lastLocalization: LocalizationModel = LocalizationModel.EMPTY
 
     private lateinit var vpsConfig: VpsConfig
     private var vpsCallback: VpsCallback? = null
@@ -166,11 +166,11 @@ internal class VpsServiceImpl(
                 failureCount = 0
                 firstLocalize = false
                 when (result) {
-                    is LocalizationBySerialImages -> successLocalization(
-                        result.poseModel,
+                    is LocalizationBySerialImagesModel -> successLocalization(
+                        result.localizationModel,
                         result.indexImage
                     )
-                    is PoseModel -> {
+                    is LocalizationModel -> {
                         successLocalization(
                             result,
                         )
@@ -183,16 +183,16 @@ internal class VpsServiceImpl(
     }
 
     private suspend fun successLocalization(
-        poseModel: PoseModel,
+        localizationModel: LocalizationModel,
         nodePositionIndex: Int = 0
     ) {
         withContext(Dispatchers.Main) {
-            arManager.restoreCameraPose(nodePositionIndex, poseModel.nodePoseModel)
+            arManager.restoreCameraPose(nodePositionIndex, localizationModel.nodePoseModel)
             vpsCallback?.onSuccess()
         }
-        coordinateConverter.updatePoseModel(poseModel)
+        coordinateConverter.updatePoseModel(localizationModel)
 
-        lastPose = poseModel
+        lastLocalization = localizationModel
     }
 
     private suspend fun failLocalization(failureCount: Int) {
@@ -202,7 +202,7 @@ internal class VpsServiceImpl(
         Logger.debug("localization fail: $failureCount")
     }
 
-    private suspend fun getNodePoseBySingleImage(force: Boolean): PoseModel? {
+    private suspend fun getNodePoseBySingleImage(force: Boolean): LocalizationModel? {
         val byteArray: ByteArray
         val currentNodePose: NodePoseModel
         val cameraIntrinsics: CameraIntrinsics
@@ -234,7 +234,7 @@ internal class VpsServiceImpl(
         )
     }
 
-    private suspend fun getNodePoseBySerialImage(): LocalizationBySerialImages? {
+    private suspend fun getNodePoseBySerialImage(): LocalizationBySerialImagesModel? {
         val byteArrays = mutableListOf<ByteArray>()
         val nodePoses = mutableListOf<NodePoseModel>()
         val cameraIntrinsics = mutableListOf<CameraIntrinsics>()

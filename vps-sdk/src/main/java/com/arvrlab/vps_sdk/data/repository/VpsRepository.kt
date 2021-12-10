@@ -36,7 +36,7 @@ internal class VpsRepository(
     override suspend fun requestLocalizationBySingleImage(
         url: String,
         vpsLocationModel: VpsLocationModel
-    ): PoseModel? {
+    ): LocalizationModel? {
         val vpsApi = vpsApiManager.getVpsApi(url)
 
         val jsonBody = vpsLocationModel.toRequestVpsModel()
@@ -54,7 +54,7 @@ internal class VpsRepository(
                 .toNodePoseModel()
             val gpsPoseModel = attributesModel.location
                 .toGpsPoseModel()
-            return PoseModel(nodePoseModel, gpsPoseModel)
+            return LocalizationModel(nodePoseModel, gpsPoseModel)
         }
         return null
     }
@@ -62,7 +62,7 @@ internal class VpsRepository(
     override suspend fun requestLocalizationBySerialImages(
         url: String,
         vararg vpsLocationModel: VpsLocationModel
-    ): LocalizationBySerialImages? {
+    ): LocalizationBySerialImagesModel? {
         val vpsApi = vpsApiManager.getVpsApi(url)
 
         val parts = arrayListOf<MultipartBody.Part>()
@@ -87,8 +87,8 @@ internal class VpsRepository(
                 .toNodePoseModel()
             val gpsPoseModel = attributesModel.location
                 .toGpsPoseModel()
-            return LocalizationBySerialImages(
-                PoseModel(nodePoseModel, gpsPoseModel),
+            return LocalizationBySerialImagesModel(
+                LocalizationModel(nodePoseModel, gpsPoseModel),
                 response.data.id?.toInt() ?: 0
             )
         }
