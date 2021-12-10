@@ -40,7 +40,12 @@ android {
 }
 
 dependencies {
-    api(project(":sceneformux"))
+    api(Lib.arCore)
+
+    implementation(files("libs/libsceneform_runtime_schemas.jar"))
+
+    api(Lib.filamentAndroid)
+    api(Lib.gltfioAndroid)
 
     implementation(Lib.coreKtx)
     implementation(Lib.appcompat)
@@ -67,4 +72,6 @@ dependencies {
     implementation(Lib.tensorflowLite)
     implementation(Lib.tensorflowLiteGpu)
     implementation(Lib.tensorflowLiteSupport)
+
+    testImplementation(Lib.junit)
 }

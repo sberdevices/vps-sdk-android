@@ -67,4 +67,6 @@ object Lib {
     const val tensorflowLite = "org.tensorflow:tensorflow-lite:$tensorflow"
     const val tensorflowLiteGpu = "org.tensorflow:tensorflow-lite-gpu:$tensorflow"
     const val tensorflowLiteSupport = "org.tensorflow:tensorflow-lite-support:0.2.0"
+
+    const val junit = "junit:junit:4.13.2"
 }

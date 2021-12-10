@@ -15,15 +15,13 @@ class PolytechFragment : SceneFragment() {
         const val LOCATION_ID = "Polytech"
     }
 
-    override var vpsConfig: VpsConfig = VpsConfig(
+    override var vpsConfig: VpsConfig = VpsConfig.getOutdoorConfig(
         vpsUrl = URL,
-        locationID = LOCATION_ID,
-        onlyForce = true,
-        useSerialImages = false,
-        useGps = true
+        locationID = LOCATION_ID
     )
 
-    private val occluderNode: Node = Node()
+    private val occluderNode: Node =
+        Node()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

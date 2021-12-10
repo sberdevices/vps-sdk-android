@@ -19,6 +19,7 @@ internal data class NodePoseModel(
         Vector3(-x, -y, -z)
 
     fun getRotation(): Quaternion =
-        Quaternion.eulerAngles(Vector3(-roll, -pitch, -yaw))
+        Quaternion.eulerAngles(Vector3(roll, pitch, yaw))
+            .inverted()
 
 }
