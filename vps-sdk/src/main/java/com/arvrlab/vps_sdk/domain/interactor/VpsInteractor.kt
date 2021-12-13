@@ -9,8 +9,9 @@ import com.arvrlab.vps_sdk.data.Photo
 import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
 import com.arvrlab.vps_sdk.data.repository.IVpsRepository
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
-import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
+import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImagesModel
 import com.arvrlab.vps_sdk.domain.model.NodePoseModel
+import com.arvrlab.vps_sdk.domain.model.LocalizationModel
 import com.arvrlab.vps_sdk.domain.model.VpsLocationModel
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_HEIGHT
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_WIDTH
@@ -31,7 +32,7 @@ internal class VpsInteractor(
         force: Boolean,
         gpsLocation: GpsLocationModel?,
         cameraIntrinsics: CameraIntrinsics
-    ): NodePoseModel? {
+    ): LocalizationModel? {
         val byteArray = convertByteArray(source, localizationType)
 
         val vpsLocationModel = VpsLocationModel(
@@ -54,7 +55,7 @@ internal class VpsInteractor(
         nodePoses: List<NodePoseModel>,
         gpsLocations: List<GpsLocationModel?>,
         cameraIntrinsics: List<CameraIntrinsics>
-    ): LocalizationBySerialImages? {
+    ): LocalizationBySerialImagesModel? {
         if (sources.size != nodePoses.size) {
             throw IllegalStateException()
         }

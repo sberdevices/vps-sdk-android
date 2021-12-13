@@ -2,11 +2,8 @@ package com.arvrlab.vps_sdk.util
 
 import com.google.ar.sceneform.math.Quaternion
 import com.google.ar.sceneform.math.Vector3
-import kotlin.math.PI
 import kotlin.math.asin
 import kotlin.math.atan2
-
-private const val RAD_2_DEG = 180f / PI
 
 fun Quaternion.getEulerAngles(): Vector3 {
     // https://github.com/coderlirui/quat2eul/blob/master/quat2eul.cpp
@@ -22,6 +19,3 @@ fun Quaternion.getEulerAngles(): Vector3 {
     )
     return Vector3(rX.toDegrees(), rY.toDegrees(), rZ.toDegrees())
 }
-
-private fun Float.toDegrees(): Float =
-    (this * RAD_2_DEG).toFloat()

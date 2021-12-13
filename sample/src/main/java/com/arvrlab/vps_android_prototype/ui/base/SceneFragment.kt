@@ -35,7 +35,6 @@ abstract class SceneFragment : Fragment(R.layout.fmt_scene), VpsCallback {
     abstract var vpsConfig: VpsConfig
 
     protected var occluderEnable: Boolean = false
-        private set
 
     protected val binding by viewBinding(FmtSceneBinding::bind)
 

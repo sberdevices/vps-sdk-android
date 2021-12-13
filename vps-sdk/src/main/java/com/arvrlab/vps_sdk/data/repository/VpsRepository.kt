@@ -4,10 +4,9 @@ import com.arvrlab.vps_sdk.data.MobileVps
 import com.arvrlab.vps_sdk.data.Photo
 import com.arvrlab.vps_sdk.data.api.IVpsApiManager
 import com.arvrlab.vps_sdk.data.model.request.*
+import com.arvrlab.vps_sdk.data.model.response.ResponseLocationModel
 import com.arvrlab.vps_sdk.data.model.response.ResponseRelativeModel
-import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImages
-import com.arvrlab.vps_sdk.domain.model.NodePoseModel
-import com.arvrlab.vps_sdk.domain.model.VpsLocationModel
+import com.arvrlab.vps_sdk.domain.model.*
 import com.squareup.moshi.JsonAdapter
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -37,7 +36,7 @@ internal class VpsRepository(
     override suspend fun requestLocalizationBySingleImage(
         url: String,
         vpsLocationModel: VpsLocationModel
-    ): NodePoseModel? {
+    ): LocalizationModel? {
         val vpsApi = vpsApiManager.getVpsApi(url)
 
         val jsonBody = vpsLocationModel.toRequestVpsModel()
@@ -50,9 +49,12 @@ internal class VpsRepository(
 
         val attributesModel = response.data?.attributes
         if (attributesModel?.status == STATUS_DONE) {
-            return attributesModel.location
+            val nodePoseModel = attributesModel.location
                 ?.relative
-                .toNodePositionModel()
+                .toNodePoseModel()
+            val gpsPoseModel = attributesModel.location
+                .toGpsPoseModel()
+            return LocalizationModel(nodePoseModel, gpsPoseModel)
         }
         return null
     }
@@ -60,7 +62,7 @@ internal class VpsRepository(
     override suspend fun requestLocalizationBySerialImages(
         url: String,
         vararg vpsLocationModel: VpsLocationModel
-    ): LocalizationBySerialImages? {
+    ): LocalizationBySerialImagesModel? {
         val vpsApi = vpsApiManager.getVpsApi(url)
 
         val parts = arrayListOf<MultipartBody.Part>()
@@ -80,10 +82,15 @@ internal class VpsRepository(
 
         val attributesModel = response.data?.attributes
         if (attributesModel?.status == STATUS_DONE) {
-            val nodePositionModel = attributesModel.location
+            val nodePoseModel = attributesModel.location
                 ?.relative
-                .toNodePositionModel()
-            return LocalizationBySerialImages(nodePositionModel, response.data.id?.toInt() ?: 0)
+                .toNodePoseModel()
+            val gpsPoseModel = attributesModel.location
+                .toGpsPoseModel()
+            return LocalizationBySerialImagesModel(
+                LocalizationModel(nodePoseModel, gpsPoseModel),
+                response.data.id?.toInt() ?: 0
+            )
         }
         return null
     }
@@ -137,9 +144,9 @@ internal class VpsRepository(
         return MultipartBody.Part.createFormData(name, fileName, requestBody)
     }
 
-    private fun ResponseRelativeModel?.toNodePositionModel(): NodePoseModel =
+    private fun ResponseRelativeModel?.toNodePoseModel(): NodePoseModel =
         if (this == null)
-            NodePoseModel.EMPTY
+            NodePoseModel.DEFAULT
         else
             NodePoseModel(
                 x = this.x ?: 0f,
@@ -148,6 +155,17 @@ internal class VpsRepository(
                 roll = this.roll ?: 0f,
                 pitch = this.pitch ?: 0f,
                 yaw = this.yaw ?: 0f,
+            )
+
+    private fun ResponseLocationModel?.toGpsPoseModel(): GpsPoseModel =
+        if (this == null)
+            GpsPoseModel.EMPTY
+        else
+            GpsPoseModel(
+                altitude = gps?.altitude ?: 0f,
+                latitude = gps?.latitude ?: 0f,
+                longitude = gps?.longitude ?: 0f,
+                heading = compass?.heading ?: 0f
             )
 
 }
