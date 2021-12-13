@@ -25,4 +25,13 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <org.osmdroid.views.MapView
+        android:id="@+id/vMap"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

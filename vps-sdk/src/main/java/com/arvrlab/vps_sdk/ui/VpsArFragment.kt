@@ -1,6 +1,7 @@
 package com.arvrlab.vps_sdk.ui
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -9,6 +10,7 @@ import android.view.View
 import android.view.WindowManager
 import androidx.lifecycle.lifecycleScope
 import com.arvrlab.vps_sdk.R
+import com.arvrlab.vps_sdk.VpsSdk
 import com.arvrlab.vps_sdk.ui.VpsArViewModel.Dialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.ar.core.CameraConfig
@@ -33,6 +35,11 @@ class VpsArFragment : ArFragment() {
 
     val vpsService: VpsService
         get() = viewModel
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        VpsSdk.init(context)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
