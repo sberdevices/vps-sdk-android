@@ -44,4 +44,6 @@ dependencies {
     implementation(Lib.lifecycleRuntimeKtx)
     implementation(Lib.lifecycleViewmodelKtx)
     implementation(Lib.lifecycleExtensions)
+
+    implementation(Lib.osmdroid)
 }

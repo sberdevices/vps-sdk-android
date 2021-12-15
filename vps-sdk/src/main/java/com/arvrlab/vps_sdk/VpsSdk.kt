@@ -1,17 +1,18 @@
 package com.arvrlab.vps_sdk
 
-import android.app.Application
+import android.content.Context
 import com.arvrlab.vps_sdk.di.Module
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 
-internal class App : Application() {
+object VpsSdk {
 
-    override fun onCreate() {
-        super.onCreate()
+    fun init(context: Context) {
+        if (GlobalContext.getOrNull() != null) return
 
         startKoin {
-            androidContext(this@App)
+            androidContext(context)
             modules(
                 Module.repository,
                 Module.domain,
@@ -19,4 +20,7 @@ internal class App : Application() {
             )
         }
     }
+
 }
+
+class VpsSdkInitializationException : RuntimeException("Must be called VpsSdk.init(context)")
