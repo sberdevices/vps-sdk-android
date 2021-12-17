@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.util.*
 
-class VpsArFragment : ArFragment() {
+open class VpsArFragment : ArFragment() {
 
     private companion object {
         const val FAR_CLIP_PLANE = 1000f
@@ -110,6 +110,10 @@ class VpsArFragment : ArFragment() {
     override fun getSessionConfiguration(session: Session): Config {
         session.cameraConfig = getHighestResolution(session)
         return super.getSessionConfiguration(session)
+            .apply {
+                updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
+                planeFindingMode = Config.PlaneFindingMode.DISABLED
+            }
     }
 
     fun setAutofocus(autofocus: Boolean) {
