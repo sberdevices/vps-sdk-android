@@ -11,7 +11,7 @@ internal interface INeuroInteractor {
     suspend fun loadNeuroModel(mobileVps: MobileVps)
 
     @Throws(exceptionClasses = [IOException::class])
-    suspend fun codingBitmap(bitmap: Bitmap, dstWidth: Int, dstHeight: Int): ByteArray
+    suspend fun codingBitmap(bitmap: Bitmap): ByteArray
 
     fun close()
 

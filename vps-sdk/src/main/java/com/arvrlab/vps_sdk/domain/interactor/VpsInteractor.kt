@@ -2,20 +2,16 @@ package com.arvrlab.vps_sdk.domain.interactor
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Color
 import com.arvrlab.vps_sdk.data.LocalizationType
 import com.arvrlab.vps_sdk.data.MobileVps
 import com.arvrlab.vps_sdk.data.Photo
 import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
 import com.arvrlab.vps_sdk.data.repository.IVpsRepository
-import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
-import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImagesModel
-import com.arvrlab.vps_sdk.domain.model.NodePoseModel
-import com.arvrlab.vps_sdk.domain.model.LocalizationModel
-import com.arvrlab.vps_sdk.domain.model.VpsLocationModel
+import com.arvrlab.vps_sdk.domain.model.*
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_HEIGHT
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_WIDTH
 import com.arvrlab.vps_sdk.util.Constant.QUALITY
+import com.arvrlab.vps_sdk.util.toGrayscale
 import java.io.ByteArrayOutputStream
 
 internal class VpsInteractor(
@@ -101,7 +97,7 @@ internal class VpsInteractor(
 
     private suspend fun createNeuroByteArray(byteArray: ByteArray): ByteArray {
         val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
-        return neuroInteractor.codingBitmap(bitmap, BITMAP_WIDTH, BITMAP_HEIGHT)
+        return neuroInteractor.codingBitmap(bitmap)
     }
 
     private fun createJpgByteArray(byteArray: ByteArray): ByteArray {
@@ -110,31 +106,12 @@ internal class VpsInteractor(
             BITMAP_WIDTH,
             BITMAP_HEIGHT,
             false
-        ).toBlackAndWhiteBitmap()
+        ).toGrayscale()
 
         return ByteArrayOutputStream().use { stream ->
             bitmap.compress(Bitmap.CompressFormat.JPEG, QUALITY, stream)
             stream.toByteArray()
         }
-    }
-
-    private fun Bitmap.toBlackAndWhiteBitmap(): Bitmap {
-        val blackAndWhiteBitmap = Bitmap.createBitmap(
-            this.width, this.height, this.config
-        )
-        for (x in 0 until this.width) {
-            for (y in 0 until this.height) {
-                val pixelColor = this.getPixel(x, y)
-                val pixelAlpha: Int = Color.alpha(pixelColor)
-                val pixelRed: Int = Color.red(pixelColor)
-                val pixelGreen: Int = Color.green(pixelColor)
-                val pixelBlue: Int = Color.blue(pixelColor)
-                val pixelBW = (pixelRed + pixelGreen + pixelBlue) / 3
-                val newPixel: Int = Color.argb(pixelAlpha, pixelBW, pixelBW, pixelBW)
-                blackAndWhiteBitmap.setPixel(x, y, newPixel)
-            }
-        }
-        return blackAndWhiteBitmap
     }
 
 }

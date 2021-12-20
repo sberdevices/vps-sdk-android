@@ -1,12 +1,12 @@
 package com.arvrlab.vps_sdk.domain.interactor
 
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.graphics.Matrix
 import android.os.Looper
 import com.arvrlab.vps_sdk.data.MobileVps
 import com.arvrlab.vps_sdk.data.repository.INeuroRepository
 import com.arvrlab.vps_sdk.domain.model.NeuroModel
+import com.arvrlab.vps_sdk.util.ColorUtil
 import com.arvrlab.vps_sdk.util.Constant.URL_DELIMITER
 import com.arvrlab.vps_sdk.util.toHalf
 import kotlinx.coroutines.*
@@ -16,6 +16,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.collections.set
 
 internal class NeuroInteractor(
     private val neuroRepository: INeuroRepository
@@ -58,8 +59,8 @@ internal class NeuroInteractor(
         }.join()
     }
 
-    override suspend fun codingBitmap(bitmap: Bitmap, dstWidth: Int, dstHeight: Int): ByteArray {
-        val neuroModel = convertToNeuroModel(bitmap, dstWidth, dstHeight)
+    override suspend fun codingBitmap(bitmap: Bitmap): ByteArray {
+        val neuroModel = convertToNeuroModel(bitmap)
         return convertToByteArray(neuroModel)
     }
 
@@ -77,24 +78,30 @@ internal class NeuroInteractor(
     }
 
     private suspend fun convertToNeuroModel(
-        bitmap: Bitmap,
-        dstWidth: Int,
-        dstHeight: Int
+        bitmap: Bitmap
     ): NeuroModel {
         initInterpreterIfNeed()
 
-        val byteBuffer = convertBitmapToBuffer(bitmap, dstWidth, dstHeight)
+        val mspInputModel = mspInterpreter?.getInputModel() ?: return NeuroModel.EMPTY
+        val mvnInputModel = mvnInterpreter?.getInputModel()
 
-        lateinit var mvnOutputMap: Map<Int, Any>
+        val mspByteBuffer = convertBitmapToBuffer(bitmap, mspInputModel)
+        val mvnByteBuffer = if (mvnInputModel == null || mspInputModel == mvnInputModel) {
+            mspByteBuffer
+        } else {
+            convertBitmapToBuffer(bitmap, mvnInputModel)
+        }
+
         lateinit var mspOutputMap: Map<Int, Any>
+        lateinit var mvnOutputMap: Map<Int, Any>
         coroutineScope.launch(Dispatchers.Default) {
             mutex.lock()
 
-            val mvnDeferred = async { mvnInterpreter.runForMultipleInputsOutputs(byteBuffer) }
-            val mspDeferred = async { mspInterpreter.runForMultipleInputsOutputs(byteBuffer) }
+            val mspDeferred = async { mspInterpreter.runForMultipleInputsOutputs(mspByteBuffer) }
+            val mvnDeferred = async { mvnInterpreter.runForMultipleInputsOutputs(mvnByteBuffer) }
 
-            mvnOutputMap = mvnDeferred.await()
             mspOutputMap = mspDeferred.await()
+            mvnOutputMap = mvnDeferred.await()
 
             mutex.unlock()
         }.join()
@@ -156,37 +163,23 @@ internal class NeuroInteractor(
 
     private fun convertBitmapToBuffer(
         bitmap: Bitmap,
-        dstWidth: Int,
-        dstHeight: Int
-    ): ByteBuffer {
-        val resizedBitmap = getPreProcessedBitmap(bitmap, dstWidth, dstHeight)
+        inputModel: InputModel
+    ): ByteBuffer =
+        bitmap.prepareBitmap(inputModel.imageWidth, inputModel.imageHeight)
+            .getByteBuffer(inputModel.grayImage)
 
-        val imageByteBuffer = ByteBuffer
-            .allocateDirect(resizedBitmap.allocationByteCount)
-            .order(ByteOrder.nativeOrder())
 
-        fillBuffer(resizedBitmap, imageByteBuffer)
-
-        return imageByteBuffer
-    }
-
-    private fun getPreProcessedBitmap(
-        src: Bitmap,
-        dstWidth: Int,
-        dstHeight: Int
-    ): Bitmap {
+    private fun Bitmap.prepareBitmap(newWidth: Int, newHeight: Int): Bitmap {
         val matrix = Matrix()
-        val width = src.width
-        val height = src.height
 
-        if (width != dstWidth || height != dstHeight) {
-            val sx = dstWidth / width.toFloat()
-            val sy = dstHeight / height.toFloat()
+        if (width != newWidth || height != newHeight) {
+            val sx = newWidth / width.toFloat()
+            val sy = newHeight / height.toFloat()
             matrix.setScale(sx, sy)
         }
         matrix.postRotate(MATRIX_ROTATE)
 
-        return Bitmap.createBitmap(src, 0, 0, width, height, matrix, true)
+        return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
     }
 
     private fun Interpreter?.runForMultipleInputsOutputs(byteBuffer: ByteBuffer): Map<Int, Any> {
@@ -195,6 +188,15 @@ internal class NeuroInteractor(
         this.runForMultipleInputsOutputs(arrayOf(byteBuffer), outputMap)
 
         return outputMap
+    }
+
+    private fun Interpreter.getInputModel(): InputModel {
+        val shape = this.getInputTensor(0).shape()
+        return InputModel(
+            imageWidth = shape[1],
+            imageHeight = shape[2],
+            grayImage = shape[3] == 1
+        )
     }
 
     private fun Interpreter.getOutputMap(): Map<Int, Any> {
@@ -219,13 +221,19 @@ internal class NeuroInteractor(
             }
         }
 
-    private fun fillBuffer(bitmap: Bitmap, imgData: ByteBuffer) {
-        for (y in 0 until bitmap.height) {
-            for (x in 0 until bitmap.width) {
-                val pixel = Color.green(bitmap.getPixel(x, y))
-                imgData.putFloat(pixel.toFloat())
+    private fun Bitmap.getByteBuffer(useGrayScale: Boolean): ByteBuffer {
+        val imageByteBuffer = ByteBuffer
+            .allocateDirect(allocationByteCount)
+            .order(ByteOrder.nativeOrder())
+
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                val pixel = getPixel(x, y)
+                val color = if (useGrayScale) ColorUtil.gray(pixel) else pixel
+                imageByteBuffer.putFloat(color.toFloat())
             }
         }
+        return imageByteBuffer
     }
 
     private fun Any.toByteArray(): ByteArray =
@@ -261,5 +269,11 @@ internal class NeuroInteractor(
             (this ushr 8).toByte(),
             this.toByte()
         )
+
+    private data class InputModel(
+        val imageWidth: Int,
+        val imageHeight: Int,
+        val grayImage: Boolean,
+    )
 
 }
