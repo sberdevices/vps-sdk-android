@@ -24,7 +24,7 @@ building:
 publishing:
   stage: publish
   rules:
-    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
       when: manual
   script:
     - ./gradlew clean
@@ -40,4 +40,4 @@ copying to github:
     - branches
   script:
     - git fetch -p -P
-    - git push --tags "$GIT_HUB_REPOSITORY" HEAD:master
+    - git push --tags "$GIT_HUB_REPOSITORY" HEAD:main
