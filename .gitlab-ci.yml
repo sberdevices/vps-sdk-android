@@ -6,8 +6,13 @@ stages:
   - publish
   - copy
 
+.tags: &tags
+  tags:
+    - vps-gitlab-runner-docker
+
 testing:
   stage: test
+  <<: *tags
   only:
     - merge_requests
   script:
@@ -16,6 +21,7 @@ testing:
 
 building:
   stage: build
+  <<: *tags
   only:
     - merge_requests
   script:
@@ -23,6 +29,7 @@ building:
 
 publishing:
   stage: publish
+  <<: *tags
   rules:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
       when: manual
@@ -32,6 +39,7 @@ publishing:
 
 copying to github:
   stage: copy
+  <<: *tags
   variables:
     GIT_HUB_REPOSITORY: https://$GIT_HUB_ACCESS_TOKEN@github.com/sberdevices/vps-sdk-android.git
   only:
