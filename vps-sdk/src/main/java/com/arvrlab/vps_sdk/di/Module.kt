@@ -4,8 +4,6 @@ import android.content.Context
 import android.location.LocationManager
 import com.arvrlab.vps_sdk.BuildConfig
 import com.arvrlab.vps_sdk.common.CoordinateConverter
-import com.arvrlab.vps_sdk.ui.VpsService
-import com.arvrlab.vps_sdk.ui.VpsServiceImpl
 import com.arvrlab.vps_sdk.data.api.IVpsApiManager
 import com.arvrlab.vps_sdk.data.api.NeuroApi
 import com.arvrlab.vps_sdk.data.api.VpsApiManager
@@ -20,6 +18,8 @@ import com.arvrlab.vps_sdk.domain.interactor.NeuroInteractor
 import com.arvrlab.vps_sdk.domain.interactor.VpsInteractor
 import com.arvrlab.vps_sdk.ui.ArManager
 import com.arvrlab.vps_sdk.ui.VpsArViewModel
+import com.arvrlab.vps_sdk.ui.VpsService
+import com.arvrlab.vps_sdk.ui.VpsServiceImpl
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
