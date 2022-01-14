@@ -68,8 +68,7 @@ open class VpsArFragment : ArFragment() {
         }
         vpsService.bindArSceneView(arSceneView)
 
-        planeDiscoveryController.hide()
-        planeDiscoveryController.setInstructionView(null)
+        instructionsController.isEnabled = false
         arSceneView.scene.camera.farClipPlane = FAR_CLIP_PLANE
         arSceneView.planeRenderer.isEnabled = false
     }
@@ -107,9 +106,10 @@ open class VpsArFragment : ArFragment() {
         viewModel.onRequestPermissionsResult(requestCode)
     }
 
-    override fun getSessionConfiguration(session: Session): Config {
+    override fun onCreateSessionConfig(session: Session): Config {
         session.cameraConfig = getHighestResolution(session)
-        return super.getSessionConfiguration(session)
+        session.resume()
+        return super.onCreateSessionConfig(session)
             .apply {
                 updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
                 planeFindingMode = Config.PlaneFindingMode.DISABLED
