@@ -1,8 +1,8 @@
 plugins {
-    id(PluginName.application)
-    id(PluginName.kotlinAndroid)
-    id(PluginName.kotlinKapt)
-    id(PluginName.kotlinParcelize)
+    id("com.android.application")
+    id("kotlin-android")
+    id("kotlin-kapt")
+    id("kotlin-parcelize")
 }
 
 android {

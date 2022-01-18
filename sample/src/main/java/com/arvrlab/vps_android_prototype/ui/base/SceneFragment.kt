@@ -24,7 +24,6 @@ import com.arvrlab.vps_sdk.domain.model.GpsPoseModel
 import com.arvrlab.vps_sdk.ui.VpsArFragment
 import com.arvrlab.vps_sdk.ui.VpsCallback
 import com.arvrlab.vps_sdk.ui.VpsService
-import com.google.ar.core.Config.FocusMode.*
 import com.google.ar.sceneform.FrameTime
 import com.google.ar.sceneform.Scene
 import com.google.ar.sceneform.rendering.ModelRenderable
