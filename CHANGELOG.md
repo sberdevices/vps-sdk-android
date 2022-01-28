@@ -2,9 +2,9 @@
 January 18, 2022
 
 - Added georeferencing
-- Added Open Street Map
+- Added Open Street Map support in an example app
 - Read input parameters from tf-model
-- Replaced local library sceneform from Google on dependency on `Sceneform Maintained`(https://github.com/SceneView/sceneform-android)
+- Replaced forked SceneForm library Google by [Sceneform Maintained](https://github.com/SceneView/sceneform-android)
 
 ## v.0.5.0
 December 9, 2021
