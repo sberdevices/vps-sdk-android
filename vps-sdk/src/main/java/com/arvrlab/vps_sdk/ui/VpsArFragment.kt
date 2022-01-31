@@ -113,6 +113,7 @@ open class VpsArFragment : ArFragment() {
             .apply {
                 updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
                 planeFindingMode = Config.PlaneFindingMode.DISABLED
+                lightEstimationMode = Config.LightEstimationMode.DISABLED
             }
     }
 
