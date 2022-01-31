@@ -7,13 +7,13 @@
 This is **Visual Positioning System** SDK for native Android apps. Main features are:
 - High-precision global user position localization for your AR apps
 - Easy to use public API and premade Fragments
-- Integration in [SceneForm](https://github.com/google-ar/sceneform-android-sdk) fork
+- Dependency on [SceneForm](https://github.com/SceneView/sceneform-android)
 
 For more information visit [our page on SmartMarket](https://developers.sber.ru/portal/tools/visual-positioning-system-sdk). If you want access to other VPS locations or want to scan your own proprerty, please contact us at <arvrlab@sberbank.ru>.
 
 ## Requirements
 - Android SDK 24+
-- ARCore supported device
+- [ARCore](https://developers.google.com/ar/develop) supported device
 
 ## Installation
 
@@ -38,9 +38,9 @@ For more information visit [our page on SmartMarket](https://developers.sber.ru/
 3. Sync Project with Gradle Files
 
 
-## Example
+## Sample
 
-There is an example project in this repository. 
+There is an sample project in this [repository](https://github.com/sberdevices/vps-sdk-android/tree/main/sample). 
 
 Just clone the repository and build it as a regular Android app. Make sure that your device support ARCore.
 
@@ -97,7 +97,14 @@ supportFragmentManager.beginTransaction()
 Create a config for `VpsService`:
 
 ```kotlin
-val vpsConfig = VpsConfig(
+val vpsConfig = VpsConfig.getIndoorConfig(
+                    <vpsUrl>,
+                    <location_ID>
+                )
+```
+or
+```kotlin
+val vpsConfig = VpsConfig.getOutdoorConfig(
                     <vpsUrl>,
                     <location_ID>
                 )
@@ -140,6 +147,11 @@ vpsService.stopVpsService()
 
 ### VpsService in a custom ArFragment
 
+For initialize VPS SDK in your app class add next code:
+```kotlin
+VpsSdk.init(this)
+```
+
 Create a new instance of `VpsService`:
 ```kotlin
 VpsService.newInstance(): VpsService
@@ -171,15 +183,14 @@ override fun onDestroy() {
 After that you can use `VpsService` as mentioned above.
 
 
-### Additional information about `VpsService`
+### Place 3D model
 
 You can add a custom 3D model using `worldNode` in `VpsService`
 
 ```kotlin
 vpsService.worldNode
 ```
-
-If `VpsService` is running then field `isRun` return `true`
+`worldNode` allow to place a model by current location.
 
 ## License
 
