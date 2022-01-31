@@ -7,7 +7,7 @@
 This is **Visual Positioning System** SDK for native Android apps. Main features are:
 - High-precision global user position localization for your AR apps
 - Easy to use public API and premade Fragments
-- Dependency on [SceneForm](https://github.com/SceneView/sceneform-android)
+- Integration in [SceneForm Maintained](https://github.com/SceneView/sceneform-android)
 
 For more information visit [our page on SmartMarket](https://developers.sber.ru/portal/tools/visual-positioning-system-sdk). If you want access to other VPS locations or want to scan your own proprerty, please contact us at <arvrlab@sberbank.ru>.
 
@@ -40,7 +40,7 @@ For more information visit [our page on SmartMarket](https://developers.sber.ru/
 
 ## Sample
 
-There is an sample project in this [repository](https://github.com/sberdevices/vps-sdk-android/tree/main/sample). 
+There is an sample project in this [repository](/sample). 
 
 Just clone the repository and build it as a regular Android app. Make sure that your device support ARCore.
 
@@ -190,7 +190,7 @@ You can add a custom 3D model using `worldNode` in `VpsService`
 ```kotlin
 vpsService.worldNode
 ```
-`worldNode` allow to place a model by current location.
+All object placed under `worldNode` will have correct global position after localization.
 
 ## License
 
