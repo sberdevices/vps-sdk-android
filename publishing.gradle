@@ -7,11 +7,12 @@ tasks.register("sourceJar", Jar) {
 }
 
 afterEvaluate {
+    loadVariables()
+
     signing {
-        def localProperties = loadLocalProperties()
-        def keyId = localProperties.getProperty("GPG_KEYID")
-        def secretKey = loadSecretKey()
-        def password = localProperties.getProperty("GPG_PASSWORD")
+        def keyId = System.getenv("GPG_KEYID") ?: GPG_KEYID
+        def password = System.getenv("GPG_PASSWORD") ?: GPG_PASSWORD
+        def secretKey = System.getenv("GPG_SECRET_KEY") ?: GPG_SECRET_KEY
         useInMemoryPgpKeys(keyId, secretKey, password)
     }
     publishing {
@@ -54,10 +55,9 @@ afterEvaluate {
             maven {
                 name = "sonatypeStaging"
                 url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-                def localProperties = loadLocalProperties()
                 credentials {
-                    username = localProperties.getProperty("OSSRH_USERNAME")
-                    password = localProperties.getProperty("OSSRH_PASSWORD")
+                    username = System.getenv("OSSRH_USERNAME") ?: OSSRH_USERNAME
+                    password = System.getenv("OSSRH_PASSWORD") ?: OSSRH_PASSWORD
                 }
             }
         }
@@ -68,13 +68,29 @@ afterEvaluate {
     }
 }
 
-private Properties loadLocalProperties() {
+private loadVariables() {
+    def localProperties = getLocalProperties()
+
+    project.ext["GPG_KEYID"] = localProperties.getProperty("GPG_KEYID")
+    project.ext["GPG_PASSWORD"] = localProperties.getProperty("GPG_PASSWORD")
+    project.ext["GPG_SECRET_KEY"] = getSecretKey()
+    project.ext["OSSRH_USERNAME"] = localProperties.getProperty("OSSRH_USERNAME")
+    project.ext["OSSRH_PASSWORD"] = localProperties.getProperty("OSSRH_PASSWORD")
+}
+
+private Properties getLocalProperties() {
     def properties = new Properties()
-    properties.load(new FileReader(getRootProject().file("local.properties")))
+    def localProperties = getRootProject().file("local.properties")
+    if (localProperties.exists()) {
+        properties.load(new FileReader(localProperties))
+    }
     return properties
 }
 
-private String loadSecretKey() {
-    def file = getRootProject().file("secret.key")
-    return new String(file.readBytes())
+private String getSecretKey() {
+    def secretKey = getRootProject().file("secret.key")
+    if (secretKey.exists()) {
+        return new String(secretKey.readBytes())
+    }
+    return ""
 }

@@ -12,15 +12,6 @@ object Version {
 object Plugin {
     const val gradle = "com.android.tools.build:gradle:${Version.gradle}"
     const val kotlin = "org.jetbrains.kotlin:kotlin-gradle-plugin:${Version.kotlin}"
-    const val navigationSafeArgs = "androidx.navigation:navigation-safe-args-gradle-plugin:2.3.5"
-}
-
-object PluginName {
-    const val application = "com.android.application"
-    const val kotlinAndroid = "kotlin-android"
-    const val kotlinKapt = "kotlin-kapt"
-    const val library = "com.android.library"
-    const val kotlinParcelize = "kotlin-parcelize"
 }
 
 object Lib {
@@ -29,11 +20,7 @@ object Lib {
     const val appcompat = "androidx.appcompat:appcompat:1.3.1"
     const val material = "com.google.android.material:material:1.4.0"
 
-    const val arCore = "com.google.ar:core:1.26.0"
-
-    private const val filament = "1.7.0"
-    const val filamentAndroid = "com.google.android.filament:filament-android:$filament"
-    const val gltfioAndroid = "com.google.android.filament:gltfio-android:$filament"
+    const val sceneform = "com.gorisse.thomas.sceneform:sceneform:1.20.2"
 
     private const val coroutines = "1.5.0"
     const val coroutinesCore = "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines"
@@ -67,6 +54,8 @@ object Lib {
     const val tensorflowLite = "org.tensorflow:tensorflow-lite:$tensorflow"
     const val tensorflowLiteGpu = "org.tensorflow:tensorflow-lite-gpu:$tensorflow"
     const val tensorflowLiteSupport = "org.tensorflow:tensorflow-lite-support:0.2.0"
+
+    const val osmdroid = "org.osmdroid:osmdroid-android:6.1.11"
 
     const val junit = "junit:junit:4.13.2"
 }

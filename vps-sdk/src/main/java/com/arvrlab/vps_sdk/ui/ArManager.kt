@@ -152,7 +152,7 @@ internal class ArManager : Scene.OnUpdateListener {
     }
 
     fun getCameraIntrinsics(): CameraIntrinsics {
-        val camera = arSceneView?.arFrame?.camera ?: return CameraIntrinsics.EMPTY
+        val camera = arSceneView?.arFrame?.camera ?: return CameraIntrinsics.DEFAULT
 
         val principalPoint = camera.imageIntrinsics.principalPoint
         val focalLength = camera.imageIntrinsics.focalLength

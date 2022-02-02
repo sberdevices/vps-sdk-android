@@ -1,5 +1,7 @@
 package com.arvrlab.vps_sdk.util
 
+import kotlin.math.PI
+
 private const val FP32_SIGN_SHIFT = 31
 private const val FP32_EXPONENT_SHIFT = 23
 private const val FP32_SHIFTED_EXPONENT_MASK = 0xff
@@ -8,6 +10,9 @@ private const val FP32_EXPONENT_BIAS = 127
 private const val EXPONENT_BIAS = 15
 private const val SIGN_SHIFT = 15
 private const val EXPONENT_SHIFT = 10
+
+private const val RAD_2_DEG = 180.0 / PI
+private const val DEG_2_RAD = PI / 180.0
 
 /**
  * <p>Converts the specified single-precision float value into a
@@ -82,3 +87,9 @@ fun Float.toHalf(): Short {
     // cause an overflow in the exponent bit which is OK.
     return (s shl SIGN_SHIFT or (outE shl EXPONENT_SHIFT) + outM).toShort()
 }
+
+fun Float.toDegrees(): Float =
+    (this * RAD_2_DEG).toFloat()
+
+fun Float.toRadians(): Float =
+    (this * DEG_2_RAD).toFloat()

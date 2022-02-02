@@ -1,0 +1,51 @@
+image: androidsdk/android-30
+
+stages:
+  - test
+  - build
+  - publish
+  - copy
+
+.tags: &tags
+  tags:
+    - vps-gitlab-runner-docker
+
+testing:
+  stage: test
+  <<: *tags
+  only:
+    - merge_requests
+  script:
+    - ./gradlew clean
+    - ./gradlew testReleaseUnitTest
+
+building:
+  stage: build
+  <<: *tags
+  only:
+    - merge_requests
+  script:
+    - ./gradlew assembleRelease
+
+publishing:
+  stage: publish
+  <<: *tags
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
+      when: manual
+  script:
+    - ./gradlew clean
+    - ./gradlew publish
+
+copying to github:
+  stage: copy
+  <<: *tags
+  variables:
+    GIT_HUB_REPOSITORY: https://$GIT_HUB_ACCESS_TOKEN@github.com/sberdevices/vps-sdk-android.git
+  only:
+    - /^v.*$/
+  except:
+    - branches
+  script:
+    - git fetch -p -P
+    - git push --tags "$GIT_HUB_REPOSITORY" HEAD:main

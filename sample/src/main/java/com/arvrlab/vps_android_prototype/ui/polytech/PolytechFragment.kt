@@ -5,6 +5,7 @@ import android.view.View
 import com.arvrlab.vps_android_prototype.R
 import com.arvrlab.vps_android_prototype.ui.base.SceneFragment
 import com.arvrlab.vps_sdk.data.VpsConfig
+import com.google.ar.core.Config
 import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.rendering.EngineInstance
 
@@ -33,6 +34,10 @@ class PolytechFragment : SceneFragment() {
         loadModel(R.raw.polytech) {
             occluderNode.renderable = it
             setupOccluder()
+        }
+        vpsArFragment.setOnSessionConfigurationListener { session, config ->
+            config.focusMode = Config.FocusMode.FIXED
+            session.resume()
         }
     }
 

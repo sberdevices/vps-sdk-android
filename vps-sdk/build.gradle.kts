@@ -1,8 +1,8 @@
 plugins {
-    id(PluginName.library)
-    id(PluginName.kotlinAndroid)
-    id(PluginName.kotlinKapt)
-    id(PluginName.kotlinParcelize)
+    id("com.android.library")
+    id("kotlin-android")
+    id("kotlin-kapt")
+    id("kotlin-parcelize")
 }
 apply(from = rootProject.file("publishing.gradle"))
 
@@ -23,8 +23,8 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
             )
         }
     }
@@ -40,12 +40,7 @@ android {
 }
 
 dependencies {
-    api(Lib.arCore)
-
-    implementation(files("libs/libsceneform_runtime_schemas.jar"))
-
-    api(Lib.filamentAndroid)
-    api(Lib.gltfioAndroid)
+    api(Lib.sceneform)
 
     implementation(Lib.coreKtx)
     implementation(Lib.appcompat)

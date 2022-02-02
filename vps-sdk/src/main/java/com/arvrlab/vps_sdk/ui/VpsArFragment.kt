@@ -1,6 +1,7 @@
 package com.arvrlab.vps_sdk.ui
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -9,6 +10,7 @@ import android.view.View
 import android.view.WindowManager
 import androidx.lifecycle.lifecycleScope
 import com.arvrlab.vps_sdk.R
+import com.arvrlab.vps_sdk.VpsSdk
 import com.arvrlab.vps_sdk.ui.VpsArViewModel.Dialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.ar.core.CameraConfig
@@ -22,7 +24,7 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.util.*
 
-class VpsArFragment : ArFragment() {
+open class VpsArFragment : ArFragment() {
 
     private companion object {
         const val FAR_CLIP_PLANE = 1000f
@@ -33,6 +35,11 @@ class VpsArFragment : ArFragment() {
 
     val vpsService: VpsService
         get() = viewModel
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        VpsSdk.init(context)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -61,8 +68,7 @@ class VpsArFragment : ArFragment() {
         }
         vpsService.bindArSceneView(arSceneView)
 
-        planeDiscoveryController.hide()
-        planeDiscoveryController.setInstructionView(null)
+        instructionsController.isEnabled = false
         arSceneView.scene.camera.farClipPlane = FAR_CLIP_PLANE
         arSceneView.planeRenderer.isEnabled = false
     }
@@ -100,9 +106,15 @@ class VpsArFragment : ArFragment() {
         viewModel.onRequestPermissionsResult(requestCode)
     }
 
-    override fun getSessionConfiguration(session: Session): Config {
+    override fun onCreateSessionConfig(session: Session): Config {
         session.cameraConfig = getHighestResolution(session)
-        return super.getSessionConfiguration(session)
+        session.resume()
+        return super.onCreateSessionConfig(session)
+            .apply {
+                updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
+                planeFindingMode = Config.PlaneFindingMode.DISABLED
+                lightEstimationMode = Config.LightEstimationMode.DISABLED
+            }
     }
 
     fun setAutofocus(autofocus: Boolean) {
