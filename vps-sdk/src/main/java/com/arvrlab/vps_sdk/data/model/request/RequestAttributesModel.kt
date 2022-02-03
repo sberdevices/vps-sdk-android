@@ -10,11 +10,11 @@ internal data class RequestAttributesModel(
     @Json(name = "timestamp")
     val timestamp: Double,
     @Json(name = "forced_localization")
-    val forcedLocalisation: Boolean = true,
+    val forcedLocalisation: Boolean,
     @Json(name = "imageTransform")
     val imageTransform: RequestImageTransformModel = RequestImageTransformModel(),
     @Json(name = "intrinsics")
-    val intrinsics: RequestIntrinsicsModel = RequestIntrinsicsModel(),
+    val intrinsics: RequestIntrinsicsModel,
     @Json(name = "location")
-    val location: RequestLocationModel = RequestLocationModel()
+    val location: RequestLocationModel
 )

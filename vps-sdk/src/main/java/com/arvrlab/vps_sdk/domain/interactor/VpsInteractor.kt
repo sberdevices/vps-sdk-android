@@ -30,6 +30,7 @@ internal class VpsInteractor(
         nodePose: NodePoseModel,
         force: Boolean,
         gpsLocation: GpsLocationModel?,
+        compass: CompassModel,
         cameraIntrinsics: CameraIntrinsics
     ): LocalizationModel? {
         val byteArray = convertByteArray(source, localizationType)
@@ -39,6 +40,7 @@ internal class VpsInteractor(
             timestamp = TimestampUtil.getTimestampInSec(),
             locationID = locationID,
             gpsLocation = gpsLocation,
+            compass = compass,
             nodePose = nodePose,
             force = force,
             localizationType = localizationType,
@@ -55,6 +57,7 @@ internal class VpsInteractor(
         localizationType: LocalizationType,
         nodePoses: List<NodePoseModel>,
         gpsLocations: List<GpsLocationModel?>,
+        compasses: List<CompassModel>,
         cameraIntrinsics: List<CameraIntrinsics>
     ): LocalizationBySerialImagesModel? {
         if (sources.size != nodePoses.size) {
@@ -71,6 +74,7 @@ internal class VpsInteractor(
                     timestamp = TimestampUtil.getTimestampInSec(),
                     locationID = locationID,
                     gpsLocation = gpsLocations[index],
+                    compass = compasses[index],
                     nodePose = nodePoses[0],
                     force = true,
                     localizationType = localizationType,

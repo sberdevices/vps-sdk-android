@@ -6,14 +6,12 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.location.LocationManager.GPS_PROVIDER
 import android.os.Bundle
+import com.arvrlab.vps_sdk.common.CompassManager
 import com.arvrlab.vps_sdk.common.CoordinateConverter
 import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
 import com.arvrlab.vps_sdk.domain.interactor.IVpsInteractor
-import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
-import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImagesModel
-import com.arvrlab.vps_sdk.domain.model.LocalizationModel
-import com.arvrlab.vps_sdk.domain.model.NodePoseModel
+import com.arvrlab.vps_sdk.domain.model.*
 import com.arvrlab.vps_sdk.ui.VpsService.State
 import com.arvrlab.vps_sdk.util.Logger
 import com.arvrlab.vps_sdk.util.waitIfNeedAsync
@@ -26,6 +24,7 @@ internal class VpsServiceImpl(
     private val vpsInteractor: IVpsInteractor,
     private val arManager: ArManager,
     private val locationManager: LocationManager,
+    private val compassManager: CompassManager,
     private val coordinateConverter: CoordinateConverter
 ) : VpsService {
 
@@ -124,6 +123,7 @@ internal class VpsServiceImpl(
         if (vpsJob != null) return
 
         requestLocationIfNeed()
+        compassManager.start()
 
         vpsJob = scope.launch(Dispatchers.Default) {
             while (!hasFocus) delay(DELAY)
@@ -140,6 +140,8 @@ internal class VpsServiceImpl(
         vpsCallback?.onStateChange(state)
 
         if (vpsJob == null) return
+
+        compassManager.stop()
 
         arManager.detachWorldNode()
         locationManager.removeUpdates(locationListener)
@@ -233,6 +235,7 @@ internal class VpsServiceImpl(
             nodePose = currentNodePose,
             force = force,
             gpsLocation = gpsLocation,
+            compass = compassManager.getCompassModel(),
             cameraIntrinsics = cameraIntrinsics
         )
     }
@@ -242,6 +245,7 @@ internal class VpsServiceImpl(
         val nodePoses = mutableListOf<NodePoseModel>()
         val cameraIntrinsics = mutableListOf<CameraIntrinsics>()
         val gpsLocations = mutableListOf<GpsLocationModel?>()
+        val compasses = mutableListOf<CompassModel>()
 
         withContext(Dispatchers.Main) {
             repeat(vpsConfig.countImages) { index ->
@@ -260,6 +264,7 @@ internal class VpsServiceImpl(
                 arManager.saveCameraPose(index)
                 nodePoses.add(arManager.getCameraLocalPose())
                 gpsLocations.add(gpsLocation)
+                compasses.add(compassManager.getCompassModel())
 
                 Logger.debug("acquire image: ${index + 1}")
                 delay?.await()
@@ -275,6 +280,7 @@ internal class VpsServiceImpl(
             localizationType = vpsConfig.localizationType,
             nodePoses = nodePoses,
             gpsLocations = gpsLocations,
+            compasses = compasses,
             cameraIntrinsics = cameraIntrinsics
         )
     }

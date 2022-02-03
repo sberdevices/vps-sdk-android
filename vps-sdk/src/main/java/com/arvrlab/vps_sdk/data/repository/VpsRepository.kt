@@ -120,7 +120,12 @@ internal class VpsRepository(
                                 longitude = it.longitude,
                                 timestamp = it.elapsedTimestampSec
                             )
-                        }
+                        },
+                        compass = RequestCompassModel(
+                            accuracy = this.compass.accuracy,
+                            heading = this.compass.heading,
+                            timestamp = this.compass.timestamp
+                        )
                     ),
                     intrinsics = RequestIntrinsicsModel(
                         cx = cameraIntrinsics.cx,

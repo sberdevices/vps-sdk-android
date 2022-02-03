@@ -1,8 +1,10 @@
 package com.arvrlab.vps_sdk.di
 
 import android.content.Context
+import android.hardware.SensorManager
 import android.location.LocationManager
 import com.arvrlab.vps_sdk.BuildConfig
+import com.arvrlab.vps_sdk.common.CompassManager
 import com.arvrlab.vps_sdk.common.CoordinateConverter
 import com.arvrlab.vps_sdk.data.api.IVpsApiManager
 import com.arvrlab.vps_sdk.data.api.NeuroApi
@@ -69,8 +71,10 @@ internal object Module {
     val presentation: Module = module {
         factory { ArManager() }
         factory { get<Context>().getSystemService(LocationManager::class.java) }
+        factory { get<Context>().getSystemService(SensorManager::class.java) }
+        factory { CompassManager(get()) }
         single { CoordinateConverter() }
-        factory<VpsService> { VpsServiceImpl(get(), get(), get(), get()) }
+        factory<VpsService> { VpsServiceImpl(get(), get(), get(), get(), get()) }
         factory { VpsArViewModel(get(), get(), get()) }
     }
 
