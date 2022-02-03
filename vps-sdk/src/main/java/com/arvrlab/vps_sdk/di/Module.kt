@@ -8,10 +8,7 @@ import com.arvrlab.vps_sdk.data.api.IVpsApiManager
 import com.arvrlab.vps_sdk.data.api.NeuroApi
 import com.arvrlab.vps_sdk.data.api.VpsApiManager
 import com.arvrlab.vps_sdk.data.model.request.RequestVpsModel
-import com.arvrlab.vps_sdk.data.repository.INeuroRepository
-import com.arvrlab.vps_sdk.data.repository.IVpsRepository
-import com.arvrlab.vps_sdk.data.repository.NeuroRepository
-import com.arvrlab.vps_sdk.data.repository.VpsRepository
+import com.arvrlab.vps_sdk.data.repository.*
 import com.arvrlab.vps_sdk.domain.interactor.INeuroInteractor
 import com.arvrlab.vps_sdk.domain.interactor.IVpsInteractor
 import com.arvrlab.vps_sdk.domain.interactor.NeuroInteractor
@@ -61,11 +58,12 @@ internal object Module {
                 .create(NeuroApi::class.java)
         }
         single<INeuroRepository> { NeuroRepository(get(), get()) }
+        single<IPrefsRepository> { PrefsRepository(get()) }
     }
 
     val domain: Module = module {
         factory<INeuroInteractor> { NeuroInteractor(get()) }
-        factory<IVpsInteractor> { VpsInteractor(get(), get()) }
+        factory<IVpsInteractor> { VpsInteractor(get(), get(), get()) }
     }
 
     val presentation: Module = module {

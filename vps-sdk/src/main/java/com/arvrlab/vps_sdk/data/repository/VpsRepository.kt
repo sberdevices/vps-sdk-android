@@ -99,6 +99,7 @@ internal class VpsRepository(
         RequestVpsModel(
             data = RequestDataModel(
                 attributes = RequestAttributesModel(
+                    userId = this.userId,
                     forcedLocalisation = this.force,
                     location = RequestLocationModel(
                         locationId = this.locationID,

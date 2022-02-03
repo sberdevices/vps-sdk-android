@@ -6,6 +6,7 @@ import com.arvrlab.vps_sdk.data.LocalizationType
 import com.arvrlab.vps_sdk.data.MobileVps
 import com.arvrlab.vps_sdk.data.Photo
 import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
+import com.arvrlab.vps_sdk.data.repository.IPrefsRepository
 import com.arvrlab.vps_sdk.data.repository.IVpsRepository
 import com.arvrlab.vps_sdk.domain.model.*
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_HEIGHT
@@ -16,7 +17,8 @@ import java.io.ByteArrayOutputStream
 
 internal class VpsInteractor(
     private val vpsRepository: IVpsRepository,
-    private val neuroInteractor: INeuroInteractor
+    private val neuroInteractor: INeuroInteractor,
+    private val prefsRepository: IPrefsRepository
 ) : IVpsInteractor {
 
     override suspend fun calculateNodePose(
@@ -32,6 +34,7 @@ internal class VpsInteractor(
         val byteArray = convertByteArray(source, localizationType)
 
         val vpsLocationModel = VpsLocationModel(
+            userId = prefsRepository.getUserId(),
             locationID = locationID,
             gpsLocation = gpsLocation,
             nodePose = nodePose,
@@ -62,6 +65,7 @@ internal class VpsInteractor(
 
             vpsLocationArray.add(
                 VpsLocationModel(
+                    userId = prefsRepository.getUserId(),
                     locationID = locationID,
                     gpsLocation = gpsLocations[index],
                     nodePose = nodePoses[0],
