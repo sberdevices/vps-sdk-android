@@ -12,6 +12,7 @@ import com.arvrlab.vps_sdk.domain.model.*
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_HEIGHT
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_WIDTH
 import com.arvrlab.vps_sdk.util.Constant.QUALITY
+import com.arvrlab.vps_sdk.util.TimestampUtil
 import com.arvrlab.vps_sdk.util.toGrayscale
 import java.io.ByteArrayOutputStream
 
@@ -35,6 +36,7 @@ internal class VpsInteractor(
 
         val vpsLocationModel = VpsLocationModel(
             userId = prefsRepository.getUserId(),
+            timestamp = TimestampUtil.getTimestampInSec(),
             locationID = locationID,
             gpsLocation = gpsLocation,
             nodePose = nodePose,
@@ -66,6 +68,7 @@ internal class VpsInteractor(
             vpsLocationArray.add(
                 VpsLocationModel(
                     userId = prefsRepository.getUserId(),
+                    timestamp = TimestampUtil.getTimestampInSec(),
                     locationID = locationID,
                     gpsLocation = gpsLocations[index],
                     nodePose = nodePoses[0],

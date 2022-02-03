@@ -5,6 +5,7 @@ import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
 
 internal data class VpsLocationModel(
     val userId: String,
+    val timestamp: Double,
     val locationID: String,
     val gpsLocation: GpsLocationModel?,
     val nodePose: NodePoseModel,

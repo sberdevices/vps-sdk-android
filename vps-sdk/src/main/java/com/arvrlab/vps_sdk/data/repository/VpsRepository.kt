@@ -100,6 +100,7 @@ internal class VpsRepository(
             data = RequestDataModel(
                 attributes = RequestAttributesModel(
                     userId = this.userId,
+                    timestamp = this.timestamp,
                     forcedLocalisation = this.force,
                     location = RequestLocationModel(
                         locationId = this.locationID,
@@ -117,7 +118,7 @@ internal class VpsRepository(
                                 altitude = it.altitude,
                                 latitude = it.latitude,
                                 longitude = it.longitude,
-                                timestamp = it.elapsedRealtimeNanos
+                                timestamp = it.elapsedTimestampSec
                             )
                         }
                     ),

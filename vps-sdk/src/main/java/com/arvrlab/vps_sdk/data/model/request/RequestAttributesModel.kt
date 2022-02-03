@@ -7,6 +7,8 @@ import com.squareup.moshi.JsonClass
 internal data class RequestAttributesModel(
     @Json(name = "user_id")
     val userId: String,
+    @Json(name = "timestamp")
+    val timestamp: Double,
     @Json(name = "forced_localization")
     val forcedLocalisation: Boolean = true,
     @Json(name = "imageTransform")
