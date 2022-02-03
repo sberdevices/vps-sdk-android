@@ -5,6 +5,8 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 internal data class RequestAttributesModel(
+    @Json(name = "version")
+    val version: Int = 1,
     @Json(name = "user_id")
     val userId: String,
     @Json(name = "timestamp")
