@@ -6,17 +6,20 @@ import com.arvrlab.vps_sdk.data.LocalizationType
 import com.arvrlab.vps_sdk.data.MobileVps
 import com.arvrlab.vps_sdk.data.Photo
 import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
+import com.arvrlab.vps_sdk.data.repository.IPrefsRepository
 import com.arvrlab.vps_sdk.data.repository.IVpsRepository
 import com.arvrlab.vps_sdk.domain.model.*
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_HEIGHT
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_WIDTH
 import com.arvrlab.vps_sdk.util.Constant.QUALITY
+import com.arvrlab.vps_sdk.util.TimestampUtil
 import com.arvrlab.vps_sdk.util.toGrayscale
 import java.io.ByteArrayOutputStream
 
 internal class VpsInteractor(
     private val vpsRepository: IVpsRepository,
-    private val neuroInteractor: INeuroInteractor
+    private val neuroInteractor: INeuroInteractor,
+    private val prefsRepository: IPrefsRepository
 ) : IVpsInteractor {
 
     override suspend fun calculateNodePose(
@@ -27,13 +30,17 @@ internal class VpsInteractor(
         nodePose: NodePoseModel,
         force: Boolean,
         gpsLocation: GpsLocationModel?,
+        compass: CompassModel,
         cameraIntrinsics: CameraIntrinsics
     ): LocalizationModel? {
         val byteArray = convertByteArray(source, localizationType)
 
         val vpsLocationModel = VpsLocationModel(
+            userId = prefsRepository.getUserId(),
+            timestamp = TimestampUtil.getTimestampInSec(),
             locationID = locationID,
             gpsLocation = gpsLocation,
+            compass = compass,
             nodePose = nodePose,
             force = force,
             localizationType = localizationType,
@@ -50,6 +57,7 @@ internal class VpsInteractor(
         localizationType: LocalizationType,
         nodePoses: List<NodePoseModel>,
         gpsLocations: List<GpsLocationModel?>,
+        compasses: List<CompassModel>,
         cameraIntrinsics: List<CameraIntrinsics>
     ): LocalizationBySerialImagesModel? {
         if (sources.size != nodePoses.size) {
@@ -62,8 +70,11 @@ internal class VpsInteractor(
 
             vpsLocationArray.add(
                 VpsLocationModel(
+                    userId = prefsRepository.getUserId(),
+                    timestamp = TimestampUtil.getTimestampInSec(),
                     locationID = locationID,
                     gpsLocation = gpsLocations[index],
+                    compass = compasses[index],
                     nodePose = nodePoses[0],
                     force = true,
                     localizationType = localizationType,

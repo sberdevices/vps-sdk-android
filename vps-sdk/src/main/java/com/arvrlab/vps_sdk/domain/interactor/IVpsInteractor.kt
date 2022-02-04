@@ -2,9 +2,10 @@ package com.arvrlab.vps_sdk.domain.interactor
 
 import com.arvrlab.vps_sdk.data.LocalizationType
 import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
+import com.arvrlab.vps_sdk.domain.model.*
+import com.arvrlab.vps_sdk.domain.model.CompassModel
 import com.arvrlab.vps_sdk.domain.model.GpsLocationModel
 import com.arvrlab.vps_sdk.domain.model.LocalizationBySerialImagesModel
-import com.arvrlab.vps_sdk.domain.model.NodePoseModel
 import com.arvrlab.vps_sdk.domain.model.LocalizationModel
 
 internal interface IVpsInteractor {
@@ -17,6 +18,7 @@ internal interface IVpsInteractor {
         nodePose: NodePoseModel,
         force: Boolean = false,
         gpsLocation: GpsLocationModel? = null,
+        compass: CompassModel,
         cameraIntrinsics: CameraIntrinsics
     ): LocalizationModel?
 
@@ -27,6 +29,7 @@ internal interface IVpsInteractor {
         localizationType: LocalizationType,
         nodePoses: List<NodePoseModel>,
         gpsLocations: List<GpsLocationModel?>,
+        compasses: List<CompassModel>,
         cameraIntrinsics: List<CameraIntrinsics>
     ): LocalizationBySerialImagesModel?
 
