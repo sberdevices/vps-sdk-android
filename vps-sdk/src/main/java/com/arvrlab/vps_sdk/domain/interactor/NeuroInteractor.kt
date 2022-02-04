@@ -8,6 +8,7 @@ import com.arvrlab.vps_sdk.data.repository.INeuroRepository
 import com.arvrlab.vps_sdk.domain.model.NeuroModel
 import com.arvrlab.vps_sdk.util.ColorUtil
 import com.arvrlab.vps_sdk.util.Constant.URL_DELIMITER
+import com.arvrlab.vps_sdk.util.cropTo9x16
 import com.arvrlab.vps_sdk.util.toHalf
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -27,6 +28,9 @@ internal class NeuroInteractor(
 
         const val CLOSE_DELAY = 100L
     }
+
+    override var scaleFactorImage: Float = 1f
+        private set
 
     private val coroutineScope: CoroutineScope =
         CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -60,7 +64,7 @@ internal class NeuroInteractor(
     }
 
     override suspend fun codingBitmap(bitmap: Bitmap): ByteArray {
-        val neuroModel = convertToNeuroModel(bitmap)
+        val neuroModel = convertToNeuroModel(bitmap.cropTo9x16())
         return convertToByteArray(neuroModel)
     }
 
@@ -168,14 +172,14 @@ internal class NeuroInteractor(
         bitmap.prepareBitmap(inputModel.imageWidth, inputModel.imageHeight)
             .getByteBuffer(inputModel.grayImage)
 
-
     private fun Bitmap.prepareBitmap(newWidth: Int, newHeight: Int): Bitmap {
         val matrix = Matrix()
 
         if (width != newWidth || height != newHeight) {
-            val sx = newWidth / width.toFloat()
-            val sy = newHeight / height.toFloat()
-            matrix.setScale(sx, sy)
+            scaleFactorImage = newWidth / width.toFloat()
+            matrix.setScale(scaleFactorImage, scaleFactorImage)
+        } else {
+            scaleFactorImage = 1f
         }
         matrix.postRotate(MATRIX_ROTATE)
 
