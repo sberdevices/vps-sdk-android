@@ -1,10 +1,12 @@
 package com.arvrlab.vps_android_prototype.ui.base
 
+import android.app.Dialog
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.annotation.CallSuper
 import androidx.annotation.RawRes
 import androidx.appcompat.app.AlertDialog
@@ -69,6 +71,8 @@ abstract class SceneFragment : Fragment(R.layout.fmt_scene), VpsCallback, Scene.
                 vMap.controller.setZoom(18.0)
             }
     }
+
+    private var errorDialog: Dialog? = null
 
     final override fun onCreateView(
         inflater: LayoutInflater,
@@ -221,11 +225,16 @@ abstract class SceneFragment : Fragment(R.layout.fmt_scene), VpsCallback, Scene.
     }
 
     private fun showError(e: Throwable) {
+        errorDialog?.let { it.findViewById<TextView>(android.R.id.message).text = e.toString() }
+            ?.also { return }
+
         AlertDialog.Builder(requireContext())
             .setTitle("Error")
             .setMessage(e.toString())
             .setPositiveButton(android.R.string.ok) { dialog, _ -> dialog.dismiss() }
+            .setOnDismissListener { errorDialog = null }
             .show()
+            .also { errorDialog = it }
     }
 
 }
