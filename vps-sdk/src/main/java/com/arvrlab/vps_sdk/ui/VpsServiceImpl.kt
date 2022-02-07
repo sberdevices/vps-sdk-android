@@ -19,6 +19,7 @@ import com.google.ar.core.exceptions.NotYetAvailableException
 import com.google.ar.sceneform.ArSceneView
 import com.google.ar.sceneform.Node
 import kotlinx.coroutines.*
+import retrofit2.HttpException
 
 internal class VpsServiceImpl(
     private val vpsInteractor: IVpsInteractor,
@@ -45,11 +46,7 @@ internal class VpsServiceImpl(
 
     private val vpsHandlerException: CoroutineExceptionHandler =
         CoroutineExceptionHandler { _, throwable ->
-            Logger.error(throwable)
-            scope.launch {
-                stopVpsService()
-                vpsCallback?.onError(throwable)
-            }
+            handleException(throwable)
         }
 
     private val scope: CoroutineScope = CoroutineScope(
@@ -66,9 +63,7 @@ internal class VpsServiceImpl(
     private lateinit var vpsConfig: VpsConfig
     private var vpsCallback: VpsCallback? = null
 
-    private val locationListener: LocationListener by lazy {
-        DummyLocationListener()
-    }
+    private var locationListener: LocationListener? = null
 
     private var hasFocus: Boolean = false
 
@@ -128,9 +123,11 @@ internal class VpsServiceImpl(
         vpsJob = scope.launch(Dispatchers.Default) {
             while (!hasFocus) delay(DELAY)
 
-            state = State.RUN
-            withContext(Dispatchers.Main) {
-                vpsCallback?.onStateChange(state)
+            if (state != State.RUN) {
+                state = State.RUN
+                withContext(Dispatchers.Main) {
+                    vpsCallback?.onStateChange(state)
+                }
             }
             localization()
         }
@@ -144,7 +141,7 @@ internal class VpsServiceImpl(
         compassManager.stop()
 
         arManager.detachWorldNode()
-        locationManager.removeUpdates(locationListener)
+        stopRequestLocation()
         vpsJob?.cancel()
         vpsJob = null
     }
@@ -153,8 +150,7 @@ internal class VpsServiceImpl(
         val force = vpsConfig.onlyForce
         var firstLocalize = true
         var failureCount = 0
-
-        while (vpsJob?.isActive == true) {
+        while (state == State.RUN) {
             val result: Any? = if (firstLocalize && vpsConfig.useSerialImages) {
                 getNodePoseBySerialImage()
             } else {
@@ -287,14 +283,22 @@ internal class VpsServiceImpl(
 
     @SuppressLint("MissingPermission")
     private fun requestLocationIfNeed() {
-        if (vpsConfig.useGps) {
-            locationManager.requestLocationUpdates(
-                GPS_PROVIDER,
-                MIN_INTERVAL_MS,
-                MIN_DISTANCE_IN_METERS,
-                locationListener
-            )
+        if (vpsConfig.useGps && locationListener == null) {
+            locationListener = DummyLocationListener()
+                .also { locationListener ->
+                    locationManager.requestLocationUpdates(
+                        GPS_PROVIDER,
+                        MIN_INTERVAL_MS,
+                        MIN_DISTANCE_IN_METERS,
+                        locationListener
+                    )
+                }
         }
+    }
+
+    private fun stopRequestLocation() {
+        locationManager.removeUpdates(locationListener ?: return)
+        locationListener = null
     }
 
     @SuppressLint("MissingPermission")
@@ -316,6 +320,18 @@ internal class VpsServiceImpl(
             }
         }
         return byteArray
+    }
+
+    private fun handleException(throwable: Throwable) {
+        scope.launch {
+            if (throwable is HttpException) {
+                vpsJob = null
+                internalStartVpsService()
+            } else {
+                stopVpsService()
+            }
+            vpsCallback?.onError(throwable)
+        }
     }
 
     private class DummyLocationListener : LocationListener {
