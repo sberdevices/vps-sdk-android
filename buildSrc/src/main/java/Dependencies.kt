@@ -58,4 +58,5 @@ object Lib {
     const val osmdroid = "org.osmdroid:osmdroid-android:6.1.11"
 
     const val junit = "junit:junit:4.13.2"
+    const val robolectric = "org.robolectric:robolectric:4.6"
 }
