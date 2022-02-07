@@ -8,7 +8,7 @@ import com.arvrlab.vps_sdk.data.repository.INeuroRepository
 import com.arvrlab.vps_sdk.domain.model.NeuroModel
 import com.arvrlab.vps_sdk.util.ColorUtil
 import com.arvrlab.vps_sdk.util.Constant.URL_DELIMITER
-import com.arvrlab.vps_sdk.util.cropTo9x16
+import com.arvrlab.vps_sdk.util.cropTo16x9
 import com.arvrlab.vps_sdk.util.toHalf
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -64,7 +64,7 @@ internal class NeuroInteractor(
     }
 
     override suspend fun codingBitmap(bitmap: Bitmap): ByteArray {
-        val neuroModel = convertToNeuroModel(bitmap.cropTo9x16())
+        val neuroModel = convertToNeuroModel(bitmap.cropTo16x9())
         return convertToByteArray(neuroModel)
     }
 

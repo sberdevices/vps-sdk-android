@@ -13,7 +13,7 @@ import com.arvrlab.vps_sdk.util.Constant.BITMAP_HEIGHT
 import com.arvrlab.vps_sdk.util.Constant.BITMAP_WIDTH
 import com.arvrlab.vps_sdk.util.Constant.QUALITY
 import com.arvrlab.vps_sdk.util.TimestampUtil
-import com.arvrlab.vps_sdk.util.cropTo9x16
+import com.arvrlab.vps_sdk.util.cropTo16x9
 import com.arvrlab.vps_sdk.util.toGrayscale
 import java.io.ByteArrayOutputStream
 
@@ -119,7 +119,7 @@ internal class VpsInteractor(
 
     private fun createJpgByteArray(byteArray: ByteArray): ByteArray {
         val source = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
-            .cropTo9x16()
+            .cropTo16x9()
         scaleFactorPhoto = BITMAP_WIDTH.toFloat() / source.width
 
         val bitmap = Bitmap.createScaledBitmap(

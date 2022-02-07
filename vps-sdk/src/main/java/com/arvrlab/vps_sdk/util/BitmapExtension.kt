@@ -2,7 +2,7 @@ package com.arvrlab.vps_sdk.util
 
 import android.graphics.*
 
-private const val RATIO_9_16 = 9f / 16f
+private const val RATIO_16_9 = 16f / 9f
 
 fun Bitmap.toGrayscale(): Bitmap {
     val result = Bitmap.createBitmap(width, height, config)
@@ -15,25 +15,16 @@ fun Bitmap.toGrayscale(): Bitmap {
     return result
 }
 
-fun Bitmap.cropTo9x16(): Bitmap {
-    var newHeight: Int = height
+fun Bitmap.cropTo16x9(): Bitmap {
     var newWidth: Int = width
-    if (width < height) {
-        newHeight = (width / RATIO_9_16).toInt()
-        if (newHeight == height) return this
+    var newHeight: Int
 
-        if (newHeight > height) {
-            newHeight = height
-            newWidth = (newHeight * RATIO_9_16).toInt()
-        }
-    } else {
-        newWidth = (height / RATIO_9_16).toInt()
-        if (newWidth == width) return this
+    newHeight = (width / RATIO_16_9).toInt()
+    if (newHeight == height) return this
 
-        if (newWidth > width) {
-            newWidth = width
-            newHeight = (newWidth * RATIO_9_16).toInt()
-        }
+    if (newHeight > height) {
+        newHeight = height
+        newWidth = (newHeight * RATIO_16_9).toInt()
     }
 
     return Bitmap.createBitmap(
