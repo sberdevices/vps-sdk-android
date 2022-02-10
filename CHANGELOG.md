@@ -2,7 +2,8 @@
 February 9, 2022
 
 - VPS service keeps running even when getting HttpException
-- some small fix
+- Intrinsics matrix and camera buffer now scales correctly
+- Minor fixes
 
 ## v.0.6.0
 January 18, 2022
