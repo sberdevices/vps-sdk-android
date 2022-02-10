@@ -8,13 +8,13 @@ internal data class RequestLocationModel(
     @Json(name = "clientCoordinateSystem")
     val clientCoordinateSystem: String = "arcore",
     @Json(name = "compass")
-    val compass: RequestCompassModel? = null,
+    val compass: RequestCompassModel,
     @Json(name = "gps")
-    val gps: RequestGpsModel? = null,
+    val gps: RequestGpsModel?,
     @Json(name = "localPos")
-    val localPos: RequestLocalPosModel = RequestLocalPosModel(),
+    val localPos: RequestLocalPosModel,
     @Json(name = "location_id")
-    val locationId: String = "Polytech",
+    val locationId: String,
     @Json(name = "type")
     val type: String = "relative"
 )

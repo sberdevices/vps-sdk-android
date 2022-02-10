@@ -7,6 +7,8 @@ import java.io.IOException
 
 internal interface INeuroInteractor {
 
+    val scaleFactorImage: Float
+
     @WorkerThread
     suspend fun loadNeuroModel(mobileVps: MobileVps)
 

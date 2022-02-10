@@ -152,16 +152,19 @@ internal class ArManager : Scene.OnUpdateListener {
     }
 
     fun getCameraIntrinsics(): CameraIntrinsics {
-        val camera = arSceneView?.arFrame?.camera ?: return CameraIntrinsics.DEFAULT
+        val imageIntrinsics = arSceneView?.arFrame?.camera?.imageIntrinsics
+            ?: return CameraIntrinsics.DEFAULT
 
-        val principalPoint = camera.imageIntrinsics.principalPoint
-        val focalLength = camera.imageIntrinsics.focalLength
+        val focalLength = imageIntrinsics.focalLength        //The order of values is {fx, fy}.
+        val principalPoint = imageIntrinsics.principalPoint  //The order of values is {cx, cy}.
 
+        // By default used horizontal orientation
+        // For portrait orientation changed order of values
         return CameraIntrinsics(
-            fx = focalLength[0],
-            fy = focalLength[1],
-            cx = principalPoint[0],
-            cy = principalPoint[1]
+            fx = focalLength[1],
+            fy = focalLength[0],
+            cx = principalPoint[1],
+            cy = principalPoint[0]
         )
     }
 

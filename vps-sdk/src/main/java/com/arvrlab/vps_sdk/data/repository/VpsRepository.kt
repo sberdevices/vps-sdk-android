@@ -99,6 +99,8 @@ internal class VpsRepository(
         RequestVpsModel(
             data = RequestDataModel(
                 attributes = RequestAttributesModel(
+                    userId = this.userId,
+                    timestamp = this.timestamp,
                     forcedLocalisation = this.force,
                     location = RequestLocationModel(
                         locationId = this.locationID,
@@ -116,9 +118,14 @@ internal class VpsRepository(
                                 altitude = it.altitude,
                                 latitude = it.latitude,
                                 longitude = it.longitude,
-                                timestamp = it.elapsedRealtimeNanos
+                                timestamp = it.elapsedTimestampSec
                             )
-                        }
+                        },
+                        compass = RequestCompassModel(
+                            accuracy = this.compass.accuracy,
+                            heading = this.compass.heading,
+                            timestamp = this.compass.timestamp
+                        )
                     ),
                     intrinsics = RequestIntrinsicsModel(
                         cx = cameraIntrinsics.cx,

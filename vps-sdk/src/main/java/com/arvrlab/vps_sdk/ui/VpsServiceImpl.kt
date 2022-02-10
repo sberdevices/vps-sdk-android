@@ -6,6 +6,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.location.LocationManager.GPS_PROVIDER
 import android.os.Bundle
+import com.arvrlab.vps_sdk.common.CompassManager
 import com.arvrlab.vps_sdk.common.CoordinateConverter
 import com.arvrlab.vps_sdk.data.VpsConfig
 import com.arvrlab.vps_sdk.data.model.CameraIntrinsics
@@ -18,11 +19,13 @@ import com.google.ar.core.exceptions.NotYetAvailableException
 import com.google.ar.sceneform.ArSceneView
 import com.google.ar.sceneform.Node
 import kotlinx.coroutines.*
+import retrofit2.HttpException
 
 internal class VpsServiceImpl(
     private val vpsInteractor: IVpsInteractor,
     private val arManager: ArManager,
     private val locationManager: LocationManager,
+    private val compassManager: CompassManager,
     private val coordinateConverter: CoordinateConverter
 ) : VpsService {
 
@@ -43,11 +46,7 @@ internal class VpsServiceImpl(
 
     private val vpsHandlerException: CoroutineExceptionHandler =
         CoroutineExceptionHandler { _, throwable ->
-            Logger.error(throwable)
-            scope.launch {
-                stopVpsService()
-                vpsCallback?.onError(throwable)
-            }
+            handleException(throwable)
         }
 
     private val scope: CoroutineScope = CoroutineScope(
@@ -64,9 +63,7 @@ internal class VpsServiceImpl(
     private lateinit var vpsConfig: VpsConfig
     private var vpsCallback: VpsCallback? = null
 
-    private val locationListener: LocationListener by lazy {
-        DummyLocationListener()
-    }
+    private var locationListener: LocationListener? = null
 
     private var hasFocus: Boolean = false
 
@@ -121,13 +118,16 @@ internal class VpsServiceImpl(
         if (vpsJob != null) return
 
         requestLocationIfNeed()
+        compassManager.start()
 
         vpsJob = scope.launch(Dispatchers.Default) {
             while (!hasFocus) delay(DELAY)
 
-            state = State.RUN
-            withContext(Dispatchers.Main) {
-                vpsCallback?.onStateChange(state)
+            if (state != State.RUN) {
+                state = State.RUN
+                withContext(Dispatchers.Main) {
+                    vpsCallback?.onStateChange(state)
+                }
             }
             localization()
         }
@@ -138,8 +138,10 @@ internal class VpsServiceImpl(
 
         if (vpsJob == null) return
 
+        compassManager.stop()
+
         arManager.detachWorldNode()
-        locationManager.removeUpdates(locationListener)
+        stopRequestLocation()
         vpsJob?.cancel()
         vpsJob = null
     }
@@ -148,8 +150,7 @@ internal class VpsServiceImpl(
         val force = vpsConfig.onlyForce
         var firstLocalize = true
         var failureCount = 0
-
-        while (vpsJob?.isActive == true) {
+        while (state == State.RUN) {
             val result: Any? = if (firstLocalize && vpsConfig.useSerialImages) {
                 getNodePoseBySerialImage()
             } else {
@@ -230,6 +231,7 @@ internal class VpsServiceImpl(
             nodePose = currentNodePose,
             force = force,
             gpsLocation = gpsLocation,
+            compass = compassManager.getCompassModel(),
             cameraIntrinsics = cameraIntrinsics
         )
     }
@@ -239,6 +241,7 @@ internal class VpsServiceImpl(
         val nodePoses = mutableListOf<NodePoseModel>()
         val cameraIntrinsics = mutableListOf<CameraIntrinsics>()
         val gpsLocations = mutableListOf<GpsLocationModel?>()
+        val compasses = mutableListOf<CompassModel>()
 
         withContext(Dispatchers.Main) {
             repeat(vpsConfig.countImages) { index ->
@@ -257,6 +260,7 @@ internal class VpsServiceImpl(
                 arManager.saveCameraPose(index)
                 nodePoses.add(arManager.getCameraLocalPose())
                 gpsLocations.add(gpsLocation)
+                compasses.add(compassManager.getCompassModel())
 
                 Logger.debug("acquire image: ${index + 1}")
                 delay?.await()
@@ -272,20 +276,29 @@ internal class VpsServiceImpl(
             localizationType = vpsConfig.localizationType,
             nodePoses = nodePoses,
             gpsLocations = gpsLocations,
+            compasses = compasses,
             cameraIntrinsics = cameraIntrinsics
         )
     }
 
     @SuppressLint("MissingPermission")
     private fun requestLocationIfNeed() {
-        if (vpsConfig.useGps) {
-            locationManager.requestLocationUpdates(
-                GPS_PROVIDER,
-                MIN_INTERVAL_MS,
-                MIN_DISTANCE_IN_METERS,
-                locationListener
-            )
+        if (vpsConfig.useGps && locationListener == null) {
+            locationListener = DummyLocationListener()
+                .also { locationListener ->
+                    locationManager.requestLocationUpdates(
+                        GPS_PROVIDER,
+                        MIN_INTERVAL_MS,
+                        MIN_DISTANCE_IN_METERS,
+                        locationListener
+                    )
+                }
         }
+    }
+
+    private fun stopRequestLocation() {
+        locationManager.removeUpdates(locationListener ?: return)
+        locationListener = null
     }
 
     @SuppressLint("MissingPermission")
@@ -307,6 +320,18 @@ internal class VpsServiceImpl(
             }
         }
         return byteArray
+    }
+
+    private fun handleException(throwable: Throwable) {
+        scope.launch {
+            if (throwable is HttpException) {
+                vpsJob = null
+                internalStartVpsService()
+            } else {
+                stopVpsService()
+            }
+            vpsCallback?.onError(throwable)
+        }
     }
 
     private class DummyLocationListener : LocationListener {
